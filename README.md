@@ -1,10 +1,16 @@
 # Sovereign AI Workbench
 
-> **Sovereign On-Premise Agentic AI Workbench using Open-Weight Multimodal LLMs**
+> Air-gapped, on-premise, multimodal agentic AI workbench for sensitive industrial, defense, PSU, and government workflows.
 
-A self-hosted AI workbench designed for sensitive industrial, government, defence, and enterprise environments where confidential data cannot be sent to external cloud AI APIs.
+## Current Status
 
-The current implementation provides a fully local AI vertical slice:
+| Milestone | Status |
+|---|:---:|
+| Milestone 1 — Local AI Vertical Slice | COMPLETE |
+| Milestone 2 — Local Document Intelligence & Ingestion | COMPLETE |
+| Milestone 3 — Local RAG | NEXT |
+
+The current system provides a working local pipeline:
 
 ```text
 React Frontend
@@ -13,545 +19,93 @@ FastAPI Backend
       ↓
 Ollama
       ↓
-Qwen3.5 0.8B
+qwen3.5:0.8b
       ↓
-FastAPI Backend
+FastAPI
       ↓
 React Frontend
-````
-
-All AI inference currently runs locally through Ollama.
-
----
-
-# 1. Current Status
-
-## Milestone 1 — Local AI Vertical Slice
-
-**Status: Complete**
-
-The current implementation provides:
-
-* React + TypeScript frontend
-* FastAPI backend
-* Ollama integration
-* `qwen3.5:0.8b` local model
-* Model provider abstraction
-* Backend health monitoring
-* Ollama/model health monitoring
-* Local AI chat generation
-* Industrial/sovereign UI
-* Environment-based configuration
-* No cloud AI APIs
-
----
-
-# 2. Requirements
-
-You need the following installed:
-
-* Git
-* Python 3.10+
-* pip
-* Node.js
-* npm
-* Ollama
-
-Check your installations:
-
-```bash
-git --version
-python --version
-pip --version
-node --version
-npm --version
-ollama --version
 ```
 
----
-
-# 3. Clone the Repository
-
-Open **Command Prompt, PowerShell, or Git Bash**.
-
-```bash
-git clone https://github.com/FASTGAMER1247/Sovereign-AI-Workbench.git
-```
-
-Enter the project:
-
-```bash
-cd Sovereign-AI-Workbench
-```
-
-The project structure should look like:
+Document workflows are also implemented:
 
 ```text
-Sovereign-AI-Workbench/
-│
-├── DOCS/
-├── backend/
-├── frontend/
-├── .gitignore
-└── README.md
+PDF / Image
+    ↓
+Local Storage
+    ↓
+Extraction
+    ↓
+Local Ollama Analysis
+    ↓
+Audit Findings
 ```
 
 ---
 
-# 4. Install Ollama
+# Features
 
-Download Ollama from:
+## Milestone 1
 
-[https://ollama.com/download](https://ollama.com/download)
+- React + TypeScript frontend
+- FastAPI backend
+- Ollama integration
+- `qwen3.5:0.8b` local model
+- Model-provider abstraction
+- Backend/model health checks
+- Direct AI chat
+- Industrial control-room UI
+- Local inference
 
-Install it normally.
+## Milestone 2
 
-Verify:
-
-```bash
-ollama --version
-```
+- PDF upload
+- PNG/JPG/JPEG upload
+- File validation
+- UUID-based document IDs
+- Local document storage
+- Persistent `registry.json`
+- PDF text extraction using PyMuPDF
+- Image/scanned-document understanding through Ollama Vision
+- Local AI document auditing
+- Risk-oriented analysis
+- Document registry UI
+- Extracted-content inspector
+- Audit prompt templates
+- Invalid-file rejection
+- Missing-document handling
 
 ---
 
-# 5. Download the AI Model
-
-The current development model is:
+# Architecture
 
 ```text
-qwen3.5:0.8b
+┌───────────────────────────────────────────────────────────┐
+│                    LOCAL MACHINE                          │
+│                                                           │
+│  React + Vite                                             │
+│       │                                                   │
+│       │ HTTP / /api                                      │
+│       ▼                                                   │
+│  FastAPI + Uvicorn                                       │
+│       │                                                   │
+│       ├──────► Local Document Storage                    │
+│       │        backend/data/documents/                    │
+│       │                                                   │
+│       ▼                                                   │
+│  Ollama :11434                                           │
+│       │                                                   │
+│       ▼                                                   │
+│  qwen3.5:0.8b                                            │
+│                                                           │
+│  No cloud AI API is required for inference.              │
+└───────────────────────────────────────────────────────────┘
 ```
 
-Download it:
-
-```bash
-ollama pull qwen3.5:0.8b
-```
-
-Verify:
-
-```bash
-ollama list
-```
-
-You should see:
-
-```text
-qwen3.5:0.8b
-```
+The frontend communicates with FastAPI only. FastAPI communicates with Ollama and local storage.
 
 ---
 
-# 6. Verify Ollama
-
-Before starting the project, make sure Ollama is working.
-
-Run:
-
-```bash
-curl http://127.0.0.1:11434/api/tags
-```
-
-You should receive JSON containing:
-
-```text
-qwen3.5:0.8b
-```
-
-You can also test generation directly:
-
-```bash
-curl http://127.0.0.1:11434/api/chat -d "{\"model\":\"qwen3.5:0.8b\",\"messages\":[{\"role\":\"user\",\"content\":\"Say hello in one sentence.\"}],\"stream\":false,\"think\":false}"
-```
-
-A JSON response containing an AI-generated message should be returned.
-
----
-
-# 7. Backend Setup
-
-Open a terminal at the project root:
-
-```bash
-cd Sovereign-AI-Workbench
-```
-
-Enter the backend:
-
-```bash
-cd backend
-```
-
-## Windows
-
-Create a Python virtual environment:
-
-```cmd
-python -m venv .venv
-```
-
-Activate it in **Command Prompt**:
-
-```cmd
-.venv\Scripts\activate
-```
-
-Your terminal should now look similar to:
-
-```text
-(.venv) C:\...\Sovereign-AI-Workbench\backend>
-```
-
-### If using PowerShell
-
-Use:
-
-```powershell
-.venv\Scripts\Activate.ps1
-```
-
-### If using Git Bash
-
-Use:
-
-```bash
-source .venv/Scripts/activate
-```
-
-> **Important:** `source` does not work in Windows Command Prompt.
-
----
-
-# 8. Install Backend Dependencies
-
-With the virtual environment activated:
-
-```bash
-pip install -r requirements.txt
-```
-
-This installs the project's backend dependencies.
-
----
-
-# 9. Create the Backend Environment File
-
-The repository contains:
-
-```text
-backend/.env.example
-```
-
-Create your local `.env` from it.
-
-### Command Prompt
-
-```cmd
-copy .env.example .env
-```
-
-### Git Bash
-
-```bash
-cp .env.example .env
-```
-
-The resulting file should be:
-
-```text
-backend/
-├── .env
-├── .env.example
-├── requirements.txt
-└── app/
-```
-
----
-
-# 10. Backend Environment Configuration
-
-The `.env` should contain local configuration similar to:
-
-```env
-OLLAMA_BASE_URL=http://127.0.0.1:11434
-DEFAULT_MODEL=qwen3.5:0.8b
-HOST=127.0.0.1
-PORT=8000
-OLLAMA_TIMEOUT_SECONDS=300
-```
-
-### Important
-
-Do **not** commit `.env` to GitHub.
-
-It is intentionally excluded through `.gitignore`.
-
-`.env.example` is safe to commit because it contains configuration examples rather than machine-specific secrets.
-
----
-
-# 11. Start the Backend
-
-Make sure you are inside:
-
-```text
-Sovereign-AI-Workbench/backend
-```
-
-and your virtual environment is activated.
-
-Run:
-
-```bash
-python -u -m uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
-
-You should see:
-
-```text
-Uvicorn running on http://127.0.0.1:8000
-```
-
-### Keep this terminal open.
-
-The backend must remain running while using the application.
-
----
-
-# 12. Verify the Backend
-
-Open a **new terminal**.
-
-Run:
-
-```bash
-curl http://127.0.0.1:8000/api/health
-```
-
-Expected response:
-
-```json
-{
-  "status": "ok",
-  "app": "Sovereign AI Workbench Backend",
-  "version": "0.1.0",
-  "sovereign_mode": true
-}
-```
-
----
-
-# 13. Check Ollama Through the Backend
-
-Run:
-
-```bash
-curl http://127.0.0.1:8000/api/models/health
-```
-
-The response should indicate:
-
-* Ollama is connected
-* The configured model is available
-* The provider is `ollama`
-* The model is `qwen3.5:0.8b`
-
----
-
-# 14. Test AI Generation
-
-Run:
-
-```bash
-curl -X POST http://127.0.0.1:8000/api/chat -H "Content-Type: application/json" -d "{\"prompt\":\"Explain sovereign AI in two sentences.\"}"
-```
-
-You should receive an actual response generated by the local Ollama model.
-
-The request path is:
-
-```text
-Client
-  ↓
-FastAPI
-  ↓
-Model Service
-  ↓
-Ollama Provider
-  ↓
-Ollama
-  ↓
-Qwen3.5
-```
-
----
-
-# 15. Frontend Setup
-
-Open another terminal.
-
-From the project root:
-
-```bash
-cd Sovereign-AI-Workbench/frontend
-```
-
-Install frontend dependencies:
-
-```bash
-npm install
-```
-
-This creates:
-
-```text
-frontend/node_modules/
-```
-
-`node_modules` is intentionally excluded from Git.
-
----
-
-# 16. Start the Frontend
-
-Run:
-
-```bash
-npm run dev
-```
-
-Vite should display something similar to:
-
-```text
-Local: http://localhost:5173/
-```
-
-Open:
-
-[http://localhost:5173/](http://localhost:5173/)
-
-in your browser.
-
----
-
-# 17. Running the Complete Application
-
-You should have the following running:
-
-## Terminal 1 — Backend
-
-```bash
-cd Sovereign-AI-Workbench/backend
-```
-
-Activate the virtual environment.
-
-Windows CMD:
-
-```cmd
-.venv\Scripts\activate
-```
-
-Then:
-
-```bash
-python -u -m uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
-
----
-
-## Terminal 2 — Frontend
-
-```bash
-cd Sovereign-AI-Workbench/frontend
-npm run dev
-```
-
----
-
-## Ollama
-
-Ollama must be running locally with:
-
-```text
-qwen3.5:0.8b
-```
-
----
-
-## Browser
-
-Open:
-
-```text
-http://localhost:5173
-```
-
----
-
-# 18. System Architecture
-
-```text
-                         LOCAL MACHINE
-┌──────────────────────────────────────────────────────────┐
-│                                                          │
-│                  React + TypeScript                      │
-│                  Vite Development Server                │
-│                                                          │
-│                  localhost:5173                          │
-│                         │                                │
-│                         │ /api                           │
-│                         ▼                                │
-│                  FastAPI Backend                         │
-│                  127.0.0.1:8000                         │
-│                         │                                │
-│                         ▼                                │
-│                  Model Service                           │
-│                         │                                │
-│                         ▼                                │
-│                  Ollama Provider                         │
-│                         │                                │
-│                         ▼                                │
-│                  Ollama API                              │
-│                  127.0.0.1:11434                         │
-│                         │                                │
-│                         ▼                                │
-│                  Qwen3.5 0.8B                            │
-│                                                          │
-└──────────────────────────────────────────────────────────┘
-
-                 NO CLOUD AI API REQUIRED
-```
-
----
-
-# 19. Important Sovereignty Principle
-
-The application is designed so that:
-
-```text
-React
-  ↓
-FastAPI
-  ↓
-Local Model Provider
-  ↓
-Ollama
-  ↓
-Local Model
-```
-
-The frontend does **not** communicate directly with Ollama.
-
-The frontend communicates only with the FastAPI backend.
-
-The FastAPI backend communicates with the local model provider.
-
-This keeps model infrastructure isolated from the UI and allows additional local model providers to be introduced later.
-
----
-
-# 20. Project Structure
+# Project Structure
 
 ```text
 Sovereign-AI-Workbench/
@@ -567,48 +121,31 @@ Sovereign-AI-Workbench/
 ├── backend/
 │   ├── app/
 │   │   ├── api/
-│   │   │   ├── __init__.py
-│   │   │   └── routes.py
-│   │   │
 │   │   ├── models/
-│   │   │   ├── __init__.py
-│   │   │   ├── base.py
-│   │   │   ├── ollama_provider.py
-│   │   │   └── schemas.py
-│   │   │
 │   │   ├── services/
-│   │   │   ├── __init__.py
+│   │   │   ├── document_service.py
 │   │   │   └── model_service.py
-│   │   │
-│   │   ├── __init__.py
 │   │   ├── config.py
 │   │   └── main.py
-│   │
+│   ├── data/
+│   │   └── documents/
+│   │       └── registry.json
 │   ├── .env.example
 │   ├── requirements.txt
-│   └── .venv/              # Local only
+│   └── .venv/                 # local only, NOT committed
 │
 ├── frontend/
 │   ├── src/
 │   │   ├── api/
-│   │   │   └── client.ts
-│   │   │
 │   │   ├── components/
-│   │   │   ├── Header.tsx
-│   │   │   ├── PromptBox.tsx
-│   │   │   ├── ResponseViewer.tsx
-│   │   │   └── SystemStatus.tsx
-│   │   │
+│   │   │   └── DocumentWorkspace.tsx
 │   │   ├── types/
-│   │   │   └── index.ts
-│   │   │
 │   │   ├── App.tsx
 │   │   ├── index.css
 │   │   └── main.tsx
-│   │
 │   ├── package.json
 │   ├── package-lock.json
-│   └── node_modules/        # Local only
+│   └── vite.config.ts
 │
 ├── .gitignore
 └── README.md
@@ -616,24 +153,470 @@ Sovereign-AI-Workbench/
 
 ---
 
-# 21. Files That Must NOT Be Committed
+# Requirements
 
-Do not commit machine-specific/generated files:
+You need:
+
+- Git
+- Python
+- pip
+- Node.js
+- npm
+- Ollama
+
+Development was verified with approximately:
+
+```text
+Node.js 22.x
+Python 3.14.x
+Ollama
+qwen3.5:0.8b
+```
+
+A GPU is recommended for practical performance, although the current development model can run on CPU.
+
+---
+
+# 1. Clone the Repository
+
+```cmd
+git clone https://github.com/FASTGAMER1247/Sovereign-AI-Workbench.git
+cd Sovereign-AI-Workbench
+```
+
+---
+
+# 2. Set Up Ollama
+
+Verify Ollama:
+
+```cmd
+ollama --version
+```
+
+Pull the model:
+
+```cmd
+ollama pull qwen3.5:0.8b
+```
+
+Verify:
+
+```cmd
+ollama list
+```
+
+You should see:
+
+```text
+qwen3.5:0.8b
+```
+
+Check the API:
+
+```cmd
+curl.exe http://127.0.0.1:11434/api/tags
+```
+
+## Windows Note
+
+Use:
+
+```text
+http://127.0.0.1:11434
+```
+
+rather than `localhost` when configuring Ollama. This avoids Windows IPv6/localhost resolution issues encountered during development.
+
+---
+
+# 3. Set Up the Backend
+
+```cmd
+cd backend
+```
+
+Create the virtual environment:
+
+```cmd
+python -m venv .venv
+```
+
+### Windows Command Prompt
+
+```cmd
+.venv\Scripts\activate
+```
+
+### Windows PowerShell
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+### Git Bash
+
+```bash
+source .venv/Scripts/activate
+```
+
+> `source` is not a Windows Command Prompt command.
+
+Install dependencies:
+
+```cmd
+python -m pip install -r requirements.txt
+```
+
+---
+
+# 4. Configure `.env`
+
+Create the local environment file:
+
+```cmd
+copy .env.example .env
+```
+
+The important local configuration is:
+
+```env
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+DEFAULT_MODEL=qwen3.5:0.8b
+HOST=127.0.0.1
+PORT=8000
+```
+
+Do not commit `backend/.env`.
+
+The repository contains `.env.example` so every developer can create their own local configuration.
+
+---
+
+# 5. Start the Backend
+
+From:
+
+```text
+Sovereign-AI-Workbench\backend
+```
+
+run:
+
+```cmd
+python -u -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+Backend:
+
+```text
+http://127.0.0.1:8000
+```
+
+Keep this terminal open.
+
+---
+
+# 6. Verify the Backend
+
+Open another terminal:
+
+```cmd
+curl.exe http://127.0.0.1:8000/api/health
+```
+
+Then:
+
+```cmd
+curl.exe http://127.0.0.1:8000/api/models/health
+```
+
+The model-health response should indicate that:
+
+```text
+provider = ollama
+default_model = qwen3.5:0.8b
+is_model_available = true
+```
+
+---
+
+# 7. Start the Frontend
+
+Open another terminal:
+
+```cmd
+cd frontend
+```
+
+Install dependencies:
+
+```cmd
+npm install
+```
+
+Start Vite:
+
+```cmd
+npm run dev
+```
+
+Vite will print the local URL, normally:
+
+```text
+http://localhost:5173/
+```
+
+or, if that port is occupied:
+
+```text
+http://localhost:5174/
+```
+
+Use the exact URL printed by Vite.
+
+---
+
+# Running the Complete System
+
+You normally need:
+
+### Terminal 1 — Ollama
+
+Ollama running with:
+
+```text
+qwen3.5:0.8b
+```
+
+### Terminal 2 — Backend
+
+```cmd
+cd Sovereign-AI-Workbench\backend
+.venv\Scripts\activate
+python -u -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+### Terminal 3 — Frontend
+
+```cmd
+cd Sovereign-AI-Workbench\frontend
+npm run dev
+```
+
+Then open the Vite URL.
+
+---
+
+# Direct AI Chat
+
+Use the **Direct AI Chat** mode and enter a prompt such as:
+
+```text
+Explain sovereign AI in two sentences.
+```
+
+The request follows:
+
+```text
+Browser
+  ↓
+React
+  ↓
+FastAPI /api/chat
+  ↓
+Model Provider
+  ↓
+Ollama
+  ↓
+qwen3.5:0.8b
+  ↓
+FastAPI
+  ↓
+React
+```
+
+---
+
+# Document Intelligence
+
+Select **Document Intelligence**.
+
+Supported uploads:
+
+```text
+.pdf
+.png
+.jpg
+.jpeg
+```
+
+The workflow is:
+
+```text
+Upload
+  ↓
+Validation
+  ↓
+UUID assignment
+  ↓
+Local storage
+  ↓
+Document registry
+  ↓
+Extraction
+  ↓
+Local AI analysis
+```
+
+Documents are stored locally at:
+
+```text
+backend/data/documents/
+```
+
+Metadata is stored in:
+
+```text
+backend/data/documents/registry.json
+```
+
+---
+
+# PDF Workflow
+
+1. Open **Document Intelligence**.
+2. Upload a PDF.
+3. Select the document.
+4. Click **Extract Text**.
+5. PyMuPDF extracts text from text-based PDFs.
+6. Select an audit template or enter a custom prompt.
+7. Run the audit.
+8. The local Ollama model analyzes the extracted content.
+
+Example:
+
+```text
+Identify the highest-risk component and state the immediate required action.
+```
+
+---
+
+# Image / Scanned Document Workflow
+
+Upload a PNG, JPG, or JPEG.
+
+The current pipeline is:
+
+```text
+Image
+  ↓
+Local FastAPI backend
+  ↓
+Base64 serialization
+  ↓
+Ollama Vision
+  ↓
+qwen3.5:0.8b
+  ↓
+Extracted/transcribed content
+  ↓
+Local AI audit
+```
+
+---
+
+# API Endpoints
+
+## System
+
+```text
+GET /api/health
+GET /api/models/health
+GET /api/models
+```
+
+## AI
+
+```text
+POST /api/chat
+```
+
+## Documents
+
+```text
+POST /api/documents/upload
+GET  /api/documents
+GET  /api/documents/{id}
+POST /api/documents/{id}/extract
+POST /api/documents/{id}/analyze
+```
+
+---
+
+# Example API Tests
+
+## Upload
+
+```cmd
+curl.exe -X POST "http://127.0.0.1:8000/api/documents/upload" -F "file=@test.pdf"
+```
+
+## List
+
+```cmd
+curl.exe "http://127.0.0.1:8000/api/documents"
+```
+
+## Extract
+
+```cmd
+curl.exe -X POST "http://127.0.0.1:8000/api/documents/<DOCUMENT_ID>/extract"
+```
+
+## Analyze
+
+```cmd
+curl.exe -X POST "http://127.0.0.1:8000/api/documents/<DOCUMENT_ID>/analyze" -H "Content-Type: application/json" -d "{"prompt":"Identify the highest risk component and state the immediate required action."}"
+```
+
+---
+
+# Model Notes
+
+The current development model is:
+
+```text
+qwen3.5:0.8b
+```
+
+It supports reasoning/thinking.
+
+The application disables thinking for normal inference using:
+
+```text
+think: false
+```
+
+This was necessary because unrestricted reasoning caused simple requests to generate thousands of additional tokens and become extremely slow on CPU.
+
+---
+
+# Git / Team Development
+
+Do not commit generated or machine-specific files:
 
 ```text
 backend/.venv/
 backend/.env
-**/__pycache__/
 frontend/node_modules/
+__pycache__/
+*.pyc
 ```
 
-These are already covered by `.gitignore`.
+These are recreated on each developer's machine.
 
----
-
-# 22. Files That MUST Be Committed
-
-Commit:
+Do commit:
 
 ```text
 DOCS/
@@ -643,360 +626,260 @@ backend/.env.example
 frontend/src/
 frontend/package.json
 frontend/package-lock.json
-frontend/tsconfig.json
 frontend/vite.config.ts
-.gitignore
 README.md
 ```
 
----
+## Recommended Team Workflow
 
-# 23. Troubleshooting
-
-## Ollama connection failed
-
-Check:
-
-```bash
-curl http://127.0.0.1:11434/api/tags
-```
-
-If this fails, make sure Ollama is installed and running.
-
-Then:
-
-```bash
-ollama list
-```
-
-Make sure:
-
-```text
-qwen3.5:0.8b
-```
-
-is installed.
-
----
-
-## Backend cannot connect to Ollama
-
-Check your `.env`:
-
-```env
-OLLAMA_BASE_URL=http://127.0.0.1:11434
-```
-
-Use:
-
-```text
-127.0.0.1
-```
-
-rather than:
-
-```text
-localhost
-```
-
-on Windows if connection problems occur.
-
----
-
-## `.venv\Scripts\activate` doesn't work
-
-Make sure you are inside:
-
-```text
-backend/
-```
-
-and that the virtual environment exists.
-
-Create it:
+Before starting work:
 
 ```cmd
-python -m venv .venv
+git pull --rebase origin main
 ```
 
-Then:
+After making changes:
+
+```cmd
+git add .
+git commit -m "Describe your changes"
+git pull --rebase origin main
+git push origin main
+```
+
+Avoid `git push --force` on `main`.
+
+---
+
+# Verification Status
+
+Milestone 2 was tested from the perspective of a fresh user.
+
+| Test | Result |
+|---|:---:|
+| Backend health | PASS |
+| Ollama model availability | PASS |
+| PDF upload | PASS |
+| PDF text extraction | PASS |
+| PDF AI audit | PASS |
+| Image upload | PASS |
+| Multimodal vision extraction | PASS |
+| Image AI audit | PASS |
+| Document registry | PASS |
+| Direct AI chat | PASS |
+| Invalid extension rejection | PASS |
+| Missing document handling | PASS |
+| Frontend production build | PASS |
+
+**13/13 verification tests passed.**
+
+The detailed implementation state and verification history are maintained in:
+
+```text
+DOCS/Memory.md
+```
+
+---
+
+# Roadmap
+
+```text
+Milestone 1
+Local AI Vertical Slice
+        ↓
+Milestone 2
+Document Intelligence
+        ↓
+Milestone 3
+Local RAG
+        ↓
+Milestone 4
+Agent Runtime
+        ↓
+Milestone 5
+Visual Agent Canvas
+        ↓
+Milestone 6
+Human-in-the-Loop Approval
+        ↓
+Milestone 7
+Model Routing
+        ↓
+Milestone 8
+Sandboxed Tools
+        ↓
+Milestone 9
+Security / Network Verification
+        ↓
+Final Hackathon Demonstration
+```
+
+---
+
+# Next Milestone — Local RAG
+
+The next implementation stage is the local knowledge layer.
+
+Planned pipeline:
+
+```text
+Documents
+    ↓
+Text Extraction
+    ↓
+Chunking
+    ↓
+Local Embeddings
+    ↓
+Vector Database
+    ↓
+Similarity Search
+    ↓
+Retrieved Context
+    ↓
+Local LLM
+    ↓
+Grounded Response
+```
+
+Planned capabilities include:
+
+1. Local vector database
+2. Text chunking
+3. Local embedding model
+4. Knowledge-base ingestion
+5. Semantic search
+6. Retrieval API
+7. Context injection
+8. Grounded document analysis
+
+---
+
+# Documentation
+
+The `DOCS/` directory contains the project's engineering documents:
+
+```text
+DOCS/
+├── PRD.md
+├── Architecture.md
+├── Design.md
+├── Rules.md
+├── Phases.md
+└── Memory.md
+```
+
+`Memory.md` is particularly important for development handoffs. It records what has actually been built, verified, discovered, and what should be implemented next.
+
+When handing the project to another developer or AI agent:
+
+> Read `DOCS/Memory.md` first, then the other documents as required.
+
+---
+
+# Sovereignty Principle
+
+The core project principle is:
+
+> **The data stays local. The intelligence comes to the data.**
+
+The current implementation is designed so that AI inference and document processing occur locally through the application backend and Ollama.
+
+For a production air-gapped deployment, application architecture should be supplemented with operating-system and network-level isolation and visible network verification.
+
+---
+
+# Troubleshooting
+
+## `source` is not recognized
+
+If you are using Windows Command Prompt, use:
 
 ```cmd
 .venv\Scripts\activate
 ```
 
----
-
-## `source` is not recognized
-
-If you are using Windows Command Prompt, don't use:
+not:
 
 ```bash
 source .venv/Scripts/activate
 ```
 
-Use:
+## `.venv\Scripts\activate` is not recognized
+
+Make sure you are inside:
+
+```text
+Sovereign-AI-Workbench\backend
+```
+
+Then check:
 
 ```cmd
-.venv\Scripts\activate
+dir .venv\Scripts
 ```
 
-`source` is for Git Bash/Linux-style shells.
-
----
-
-## `pip install` fails
-
-Make sure the virtual environment is activated:
-
-```text
-(.venv)
-```
-
-Then:
-
-```bash
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
-
----
-
-## Frontend dependencies are missing
-
-Run:
-
-```bash
-cd frontend
-npm install
-```
-
-Then:
-
-```bash
-npm run dev
-```
-
----
-
-## Port 8000 is already in use
-
-Check which process is using it:
-
-```cmd
-netstat -ano | findstr :8000
-```
-
-You can terminate the process if necessary, or change the backend port.
-
-If changing the port, make sure the frontend proxy configuration is updated accordingly.
-
----
-
-# 24. Development Workflow
-
-Before starting development:
-
-```bash
-git pull
-```
-
-After making changes:
-
-```bash
-git status
-```
-
-Review the changes:
-
-```bash
-git diff
-```
-
-Stage:
-
-```bash
-git add .
-```
-
-Commit:
-
-```bash
-git commit -m "Describe your changes"
-```
-
-Push:
-
-```bash
-git push
-```
-
----
-
-# 25. Important Development Rules
-
-Before modifying the project, read:
-
-```text
-DOCS/PRD.md
-DOCS/Architecture.md
-DOCS/Rules.md
-DOCS/Phases.md
-DOCS/Design.md
-DOCS/Memory.md
-```
-
-These documents define the project's requirements, architecture, implementation phases, design system, engineering rules, and current development state.
-
-Do not introduce cloud AI APIs without explicitly changing the project architecture and requirements.
-
-Do not replace real AI inference with mock responses for demonstrations.
-
-Do not bypass the model provider abstraction.
-
-Keep AI inference local.
-
----
-
-# 26. Current Development Model
-
-The current development model is:
-
-```text
-qwen3.5:0.8b
-```
-
-It is being used as the initial local development model because it can run on relatively modest hardware.
-
-The architecture is intentionally model-provider agnostic so that larger or specialized local models can be introduced later.
-
----
-
-# 27. Current API Endpoints
-
-| Endpoint             | Method | Purpose             |
-| -------------------- | ------ | ------------------- |
-| `/api/health`        | GET    | Backend health      |
-| `/api/models/health` | GET    | Ollama/model health |
-| `/api/models`        | GET    | Available models    |
-| `/api/chat`          | POST   | Local AI generation |
-
----
-
-# 28. Current Milestone
-
-### Milestone 1 — Local AI Vertical Slice
-
-```text
-React
-   ↓
-FastAPI
-   ↓
-Model Provider
-   ↓
-Ollama
-   ↓
-Qwen3.5
-```
-
-**Status: COMPLETE**
-
----
-
-# 29. Upcoming Development
-
-The next major components planned for the workbench include:
-
-1. Document ingestion
-2. PDF processing
-3. OCR
-4. Local vision processing
-5. Local knowledge base
-6. Vector search / RAG
-7. Agent framework
-8. Tool execution
-9. PDF Auditor agent
-10. Human approval gates
-11. Agent Canvas
-12. Multimodal workflows
-13. Document generation
-14. Code execution sandbox
-15. Model auto-selection
-16. Sovereignty/network monitoring
-
-These should be implemented according to the project's phase documents.
-
----
-
-# 30. Quick Start
-
-For experienced developers:
-
-### Terminal 1 — Backend
-
-```bash
-cd Sovereign-AI-Workbench/backend
-```
-
-Windows CMD:
+If the environment does not exist:
 
 ```cmd
 python -m venv .venv
-.venv\Scripts\activate
 ```
 
-Then:
+## Ollama connection fails
 
-```bash
-pip install -r requirements.txt
+Check:
+
+```cmd
+curl.exe http://127.0.0.1:11434/api/tags
 ```
 
-Create `.env` from `.env.example`.
+If the model is missing:
 
-Then:
-
-```bash
-python -u -m uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
-
-### Terminal 2 — Frontend
-
-```bash
-cd Sovereign-AI-Workbench/frontend
-npm install
-npm run dev
-```
-
-### Ollama
-
-```bash
+```cmd
 ollama pull qwen3.5:0.8b
 ```
 
-### Browser
+Check `.env`:
 
-```text
-http://localhost:5173
+```env
+OLLAMA_BASE_URL=http://127.0.0.1:11434
 ```
+
+## Frontend cannot reach backend
+
+Check:
+
+```cmd
+curl.exe http://127.0.0.1:8000/api/health
+```
+
+Make sure the backend is running.
+
+Then restart:
+
+```cmd
+cd frontend
+npm run dev
+```
+
+## Port 5173 is already in use
+
+Vite may automatically use `5174` or another available port. Use the URL printed by `npm run dev`.
 
 ---
 
-# 31. Sovereign AI Workbench
+# Development Philosophy
 
-Built for:
+The project prioritizes:
 
-* Air-gapped environments
-* Industrial organizations
-* Government environments
-* Defence-linked organizations
-* Sensitive enterprise workloads
-* Local/private AI deployments
+- Local inference
+- Data sovereignty
+- Explicit architecture boundaries
+- Model-provider abstraction
+- Reproducible development
+- Verifiable functionality
+- Human approval for future agent actions
+- No fake AI responses
+- No accidental cloud dependencies
 
-**The core principle:**
-
-> Your data stays on your machine.
-> Your models run on your machine.
-> Your AI inference stays on your machine.
->
-> ```
-> ```
+See `DOCS/PRD.md`, `DOCS/Architecture.md`, `DOCS/Rules.md`, `DOCS/Phases.md`, `DOCS/Design.md`, and `DOCS/Memory.md` for the detailed project specification.
