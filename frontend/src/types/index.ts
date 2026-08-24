@@ -48,3 +48,43 @@ export interface AppSystemState {
   modelHealth: ModelHealthResponse | null
   errorMessage: string | null
 }
+
+// ─── Document Types (Milestone 2) ───
+
+export interface DocumentResponse {
+  id: string
+  filename: string
+  file_type: 'pdf' | 'png' | 'jpg' | 'jpeg' | string
+  size_bytes: number
+  created_at: string
+  status: 'uploaded' | 'extracted' | 'analyzed' | 'error'
+  extracted_text_preview?: string | null
+  error_message?: string | null
+}
+
+export interface DocumentExtractionResponse {
+  document_id: string
+  filename: string
+  file_type: string
+  extracted_text: string
+  char_count: number
+  method: 'pymupdf' | 'ollama_vision' | string
+}
+
+export interface DocumentAnalysisRequest {
+  prompt?: string
+  model?: string
+}
+
+export interface DocumentAnalysisResponse {
+  document_id: string
+  filename: string
+  analysis: string
+  model: string
+  provider: string
+  duration_ms?: number
+  prompt_tokens?: number
+  completion_tokens?: number
+  created_at: string
+}
+

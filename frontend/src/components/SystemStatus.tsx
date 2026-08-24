@@ -34,9 +34,9 @@ export function SystemStatus({ onStatusChange }: SystemStatusProps) {
     if (backendOk) {
       try {
         const mh = await getModelHealth()
-        const modelStatus = mh.status === 'ok' ? 'online' : mh.status === 'warning' ? 'error' : 'error'
+        const modelStatus: AppSystemState['modelStatus'] = mh.status === 'ok' ? 'online' : 'error'
         setState(s => {
-          const next = { ...s, modelStatus, modelHealth: mh, errorMessage: mh.error ?? null }
+          const next: AppSystemState = { ...s, modelStatus, modelHealth: mh, errorMessage: mh.error ?? null }
           onStatusChange?.(next)
           return next
         })

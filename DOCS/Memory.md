@@ -62,26 +62,25 @@ A user should be able to:
 
 ## Overall Status
 
-IN PROGRESS — MILESTONE 1 COMPLETE
+IN PROGRESS — MILESTONE 2 COMPLETE
 
 ## Current Phase
 
-PHASE 0 — FOUNDATION (VERTICAL SLICE DONE)
+PHASE 1 / DAY 2 — LOCAL DOCUMENT INTELLIGENCE & INGESTION
 
 ## Current Day
 
-DAY 1 / 7
+DAY 2 / 7
 
 ## Overall Completion
 
-15%
+30%
 
 ## Current Objective
 
-Milestone 1 complete. Full data path verified:
-React Frontend → FastAPI Backend → Ollama (qwen3.5:0.8b) → FastAPI → React
+Milestone 2 complete. Secure local document ingestion, PyMuPDF text extraction, Ollama vision multimodal transcription, local AI document audit, and React Document Workspace are implemented and tested.
 
-Next: Phase 1 — Multimodal document ingestion pipeline (PDF/OCR).
+Next: Milestone 3 — Local Vector Store & Retrieval-Augmented Generation (RAG).
 
 ---
 
@@ -89,18 +88,21 @@ Next: Phase 1 — Multimodal document ingestion pipeline (PDF/OCR).
 
 > Only list functionality that has actually been implemented and tested.
 
-- FastAPI backend running at `http://127.0.0.1:8000` (uvicorn, Python 3.14.4)
+- FastAPI backend running at `http://127.0.0.1:8000` (uvicorn, Python 3.14.4) ✅
 - `GET /api/health` → `{"status":"ok","sovereign_mode":true}` ✅
 - `GET /api/models/health` → Ollama connected, `qwen3.5:0.8b` available ✅
 - `GET /api/models` → Returns installed local model list ✅
 - `POST /api/chat` → Real completions from `qwen3.5:0.8b` via Ollama ✅
-- React + Vite + TypeScript frontend at `http://localhost:5173`
-- SystemStatus component polling `/api/health` and `/api/models/health` live
-- PromptBox component accepting user input
-- ResponseViewer showing response text + model/duration/token metadata
-- `think: false` API flag disabling reasoning chains → sub-2s responses for short prompts
-- CORS configured for frontend ↔ backend communication
-- Zero external API calls — entirely local, air-gapped capable
+- `POST /api/documents/upload` → Secure local document upload (.pdf, .png, .jpg, .jpeg) with UUID & metadata registry ✅
+- `GET /api/documents` → Returns list of all ingested documents ✅
+- `GET /api/documents/{document_id}` → Returns single document metadata ✅
+- `POST /api/documents/{document_id}/extract` → Fast text extraction from PDF using PyMuPDF (`fitz`) and multimodal visual transcription for images using Ollama Vision ✅
+- `POST /api/documents/{document_id}/analyze` → Local AI document analysis (Executive summary, Findings, Risk Assessment, Recommendations) using `qwen3.5:0.8b` ✅
+- React + Vite + TypeScript frontend at `http://localhost:5174` ✅
+- Industrial control room UI with navigation switcher (Document Intelligence vs Direct AI Chat) ✅
+- Document Ingestion panel with drag-and-drop file upload, file validation, and real-time registry list ✅
+- Document Inspector with Extracted Content viewer, template buttons, custom prompt runner, and AI Findings viewer ✅
+- Zero external API calls — 100% on-premise execution ✅
 
 ---
 
@@ -109,8 +111,8 @@ Next: Phase 1 — Multimodal document ingestion pipeline (PDF/OCR).
 > Do not hide failures.
 > Record known bugs, incomplete integrations, crashes, and blockers.
 
-- `qwen3.5:0.8b` is a reasoning model; without `think: false` in the Ollama API payload, it generates 2000+ reasoning tokens before answering — causing the 60s default timeout to expire. Fixed by adding `"think": false` to all Ollama provider payloads and setting `OLLAMA_TIMEOUT_SECONDS=300` for longer prompts.
-- On Windows, `localhost` resolves to IPv6 `::1` first, causing Ollama connection failures. Fixed by using `127.0.0.1` explicitly in `.env`.
+- Ollama vision extraction on CPU can take 40-60 seconds for complex image transcription with `qwen3.5:0.8b`. Workaround: `OLLAMA_TIMEOUT_SECONDS=300` configured in backend settings.
+- Scanned PDFs without embedded text layers need page rendering to images for OCR in future milestones (PyMuPDF extracts embedded text directly; image files route through Ollama Vision).
 
 ---
 
@@ -118,7 +120,7 @@ Next: Phase 1 — Multimodal document ingestion pipeline (PDF/OCR).
 
 ## Frontend
 
-Status: MILESTONE 1 COMPLETE
+Status: MILESTONE 2 COMPLETE
 
 ```text
 [x] React 19 application
@@ -126,31 +128,41 @@ Status: MILESTONE 1 COMPLETE
 [x] Vite 6 with /api proxy to FastAPI
 [ ] React Flow
 [ ] Zustand
-[x] Application shell (Header, main layout)
+[x] Application shell (Header, navigation mode switcher)
 [x] SystemStatus component (live backend + Ollama health polling)
 [x] PromptBox component (with Ctrl+Enter shortcut)
 [x] ResponseViewer component (response + model/duration/token metadata)
+[x] DocumentWorkspace component (Upload dropzone, registry list, inspector, audit view)
 [ ] Agent Canvas
 [ ] Execution Monitor
 ```
 
 ## Backend
 
-Status: MILESTONE 1 COMPLETE
+Status: MILESTONE 2 COMPLETE
 
 ```text
 [x] FastAPI 0.115+
-[x] API structure (/api prefix, routers)
+[x] API structure (/api prefix, routes.py)
 [x] Health endpoint GET /api/health
 [x] Model health endpoint GET /api/models/health
 [x] Model list endpoint GET /api/models
 [x] Chat endpoint POST /api/chat
-[x] CORS middleware for localhost:5173
+[x] Document upload endpoint POST /api/documents/upload
+[x] Document list endpoint GET /api/documents
+[x] Document detail endpoint GET /api/documents/{document_id}
+[x] Document extraction endpoint POST /api/documents/{document_id}/extract
+[x] Document analysis endpoint POST /api/documents/{document_id}/analyze
+[x] DocumentService with local disk storage (backend/data/documents/)
+[x] JSON file registry (backend/data/documents/registry.json)
+[x] File extension & size validation (MAX_UPLOAD_SIZE_MB=50)
+[x] PyMuPDF (fitz) PDF text extraction
+[x] Ollama Vision multimodal image transcription
+[x] CORS middleware for localhost:5173 & localhost:5174
 [x] Pydantic settings (config.py)
 [x] ModelProvider abstract base class (base.py)
-[x] OllamaProvider implementation (ollama_provider.py)
+[x] OllamaProvider implementation with multimodal images support
 [x] ModelService dispatcher (model_service.py)
-[x] Error handling and structured logging
 [ ] WebSocket execution stream
 [ ] Workflow engine
 [ ] Agent runtime
@@ -159,29 +171,28 @@ Status: MILESTONE 1 COMPLETE
 
 ## AI / Models
 
-Status: MILESTONE 1 COMPLETE
+Status: MILESTONE 2 COMPLETE
 
 ```text
 [x] Local model server — Ollama at http://127.0.0.1:11434
 [x] Model provider abstraction (ModelProvider ABC)
-[x] OllamaProvider (generate + stream + health + list_models)
-[x] Text model — qwen3.5:0.8b (873M Q8_0, context 262k, vision capable)
-[x] think: false flag to disable reasoning chain for fast responses
+[x] OllamaProvider (generate + stream + health + list_models + vision images)
+[x] Text & Vision model — qwen3.5:0.8b (873M Q8_0, context 262k, vision capable)
+[x] think: false flag to bypass reasoning chain for fast inference
 [ ] Model registry (multi-model)
-[ ] Vision model workflow
-[ ] Coding model
+[ ] Dedicated Coding model
 ```
 
 ## Multimodal
 
-Status: NOT STARTED
+Status: MILESTONE 2 COMPLETE
 
 ```text
-[ ] PDF extraction
-[ ] OCR
-[ ] Image processing
-[ ] Vision model
-[ ] Scanned document pipeline
+[x] PDF text extraction (PyMuPDF)
+[x] Image document processing (PNG, JPG, JPEG)
+[x] Local Vision Language Model transcription (qwen3.5:0.8b via base64)
+[x] Structured industrial document analysis
+[ ] Scanned PDF full page-rendering pipeline
 ```
 
 ## Knowledge Base
@@ -535,35 +546,35 @@ YYYY-MM-DD
 
 > Append meaningful changes here.
 
-### YYYY-MM-DD — <AI Agent>
+### 2026-08-25 — Milestone 2: Local Document Intelligence & Ingestion
 
 Implemented:
-
-```text
-- ...
-- ...
-- ...
-```
+- Secure local document upload pipeline (.pdf, .png, .jpg, .jpeg) with UUID generation and size/extension validation (MAX_UPLOAD_SIZE_MB=50)
+- PyMuPDF (`fitz`) text extraction for PDF inspection reports and technical documents
+- Ollama multimodal vision transcription for images (.png, .jpg, .jpeg) using `qwen3.5:0.8b` with base64 serialization
+- Local AI document audit analysis generating Executive Summary, Findings, Risk Assessment, and Corrective Actions
+- Document metadata persistent registry (`backend/data/documents/registry.json`)
+- React Document Workspace UI with drag-and-drop ingestion, real-time registry list, text viewer, prompt templates, and AI audit findings view
+- Navigation switcher in top-level app layout (Document Intelligence vs Direct AI Chat)
 
 Modified:
-
-```text
-- ...
-- ...
-```
+- `backend/requirements.txt` (added pymupdf, python-multipart)
+- `backend/app/config.py` (added MAX_UPLOAD_SIZE_MB, DOCUMENTS_DIR, OLLAMA_TIMEOUT_SECONDS=300)
+- `backend/app/models/schemas.py` (added images to ChatMessage; added DocumentResponse, DocumentExtractionResponse, DocumentAnalysisRequest, DocumentAnalysisResponse)
+- `backend/app/models/ollama_provider.py` (added message images support to generate and stream)
+- `backend/app/api/routes.py` (added /api/documents/* endpoints)
+- `frontend/src/types/index.ts` (added document interfaces)
+- `frontend/src/api/client.ts` (added document API client methods)
+- `frontend/src/App.tsx` (added navigation tabs and DocumentWorkspace integration)
 
 Created:
+- `backend/app/services/document_service.py`
+- `frontend/src/components/DocumentWorkspace.tsx`
 
-```text
-- ...
-- ...
-```
-
-Removed:
-
-```text
-- ...
-```
+Tested:
+- Automated test suite `scratch/run_document_tests.py` verifying Health check, EXE rejection (400), PDF upload (201), PNG upload (201), Document list (200), PyMuPDF extraction (200), Ollama Vision transcription (200), and Local AI document audit (200).
+- Edge cases test suite `scratch/test_edge_cases.py` verifying 404 for missing IDs and 400 for 0-byte files.
+- Frontend build `npm run build` passing with zero TypeScript/lint errors.
 
 ---
 
@@ -572,22 +583,23 @@ Removed:
 Maintain an accurate list of important project files.
 
 ```text
-frontend/
-backend/
-docker-compose.yml
-README.md
-MEMORY.md
-```
-
-As the project grows, update this section.
-
-Example:
-
-```text
-frontend/src/components/AgentCanvas.tsx
-frontend/src/components/AgentNode.tsx
-backend/app/workflow/engine.py
-backend/app/agents/pdf_auditor.py
+backend/app/config.py
+backend/app/models/schemas.py
+backend/app/models/base.py
+backend/app/models/ollama_provider.py
+backend/app/services/model_service.py
+backend/app/services/document_service.py
+backend/app/api/routes.py
+backend/app/main.py
+frontend/src/types/index.ts
+frontend/src/api/client.ts
+frontend/src/components/Header.tsx
+frontend/src/components/SystemStatus.tsx
+frontend/src/components/PromptBox.tsx
+frontend/src/components/ResponseViewer.tsx
+frontend/src/components/DocumentWorkspace.tsx
+frontend/src/App.tsx
+frontend/src/index.css
 ```
 
 ---
@@ -596,17 +608,20 @@ backend/app/agents/pdf_auditor.py
 
 > Tell future AI agents where important functionality lives.
 
-| Component       | File | Status          |
-| --------------- | ---- | --------------- |
-| Frontend entry  | TBD  | Not implemented |
-| Canvas          | TBD  | Not implemented |
-| Workflow engine | TBD  | Not implemented |
-| Agent runtime   | TBD  | Not implemented |
-| Model router    | TBD  | Not implemented |
-| RAG             | TBD  | Not implemented |
-| OCR             | TBD  | Not implemented |
-| Sandbox         | TBD  | Not implemented |
-| DOCX generator  | TBD  | Not implemented |
+| Component            | File                                      | Status        |
+| -------------------- | ----------------------------------------- | ------------- |
+| Backend Entry        | `backend/app/main.py`                     | Implemented   |
+| API Routes           | `backend/app/api/routes.py`               | Implemented   |
+| Model Provider ABC   | `backend/app/models/base.py`              | Implemented   |
+| Ollama Provider      | `backend/app/models/ollama_provider.py`   | Implemented   |
+| Model Service        | `backend/app/services/model_service.py`   | Implemented   |
+| Document Service     | `backend/app/services/document_service.py`| Implemented   |
+| Frontend Entry       | `frontend/src/App.tsx`                    | Implemented   |
+| Document Workspace   | `frontend/src/components/DocumentWorkspace.tsx` | Implemented |
+| System Status Widget | `frontend/src/components/SystemStatus.tsx`| Implemented   |
+| Direct Chat UI       | `frontend/src/components/PromptBox.tsx`    | Implemented   |
+| API Client           | `frontend/src/api/client.ts`              | Implemented   |
+| Document Registry    | `backend/data/documents/registry.json`    | Implemented   |
 
 ---
 
@@ -615,14 +630,22 @@ backend/app/agents/pdf_auditor.py
 ## Implemented APIs
 
 ```text
-None
+GET  /api/health
+GET  /api/models/health
+GET  /api/models
+POST /api/chat
+POST /api/documents/upload
+GET  /api/documents
+GET  /api/documents/{document_id}
+POST /api/documents/{document_id}/extract
+POST /api/documents/{document_id}/analyze
 ```
 
-## Planned APIs
+## Planned APIs (Milestone 3+)
 
 ```text
-GET  /api/health
-GET  /api/models
+POST /api/knowledge/ingest
+POST /api/knowledge/query
 GET  /api/workflows
 POST /api/workflows
 POST /api/executions
@@ -954,19 +977,51 @@ P0
 ## Automated Tests
 
 ```text
-Not implemented
+scratch/fresh_user_verification.py — PASSED (10/10 Fresh User Scenarios)
+  [PASS] 1. Backend System Health Check (200 OK, sovereign_mode: true)
+  [PASS] 2. Local Ollama Model Availability (qwen3.5:0.8b online at 127.0.0.1:11434)
+  [PASS] 3. PDF Document Ingestion (Upload fresh_pipeline_test.pdf -> 201 Created)
+  [PASS] 4. PDF Text Extraction (PyMuPDF -> 200 OK, 569 characters extracted)
+  [PASS] 5. PDF Local AI Document Audit (Ollama -> 200 OK, 2-bullet directive & timeline)
+  [PASS] 6. Image/Scanned Document Ingestion (Upload fresh_turbine_defect.png -> 201 Created)
+  [PASS] 7. Image Multimodal Vision Extraction (Ollama Vision -> 200 OK, transcribed optical scan)
+  [PASS] 8. Image Local AI Document Audit (Ollama -> 200 OK, asset identification & required action)
+  [PASS] 9. Local Document Registry Listing (GET /documents -> 200 OK, 4 documents on disk)
+  [PASS] 10. Direct AI Chat Mode (POST /chat -> 200 OK, 'SOVEREIGN_AI_READY')
+
+scratch/run_document_tests.py — PASSED (All 8 Test Cases)
+  [PASS] Health check (200 OK)
+  [PASS] Invalid file extension rejection (.exe -> 400 Bad Request)
+  [PASS] PDF document upload (201 Created)
+  [PASS] Image document upload (201 Created)
+  [PASS] List documents registry (200 OK)
+  [PASS] PyMuPDF PDF text extraction (200 OK)
+  [PASS] Ollama Vision multimodal transcription (200 OK)
+  [PASS] Local AI document audit analysis (200 OK)
+
+scratch/test_edge_cases.py — PASSED (All Edge Cases)
+  [PASS] 404 Not Found on missing document ID lookup
+  [PASS] 404 Not Found on missing document extract target
+  [PASS] 404 Not Found on missing document analyze target
+  [PASS] 400 Bad Request on empty 0-byte file upload
+
+frontend/ build — PASSED
+  [PASS] `npm run build` TypeScript compilation and Vite production bundle (0 errors)
 ```
 
 ## Manual Tests
 
 ```text
-Not implemented
+[PASS] Drag and drop upload in DocumentWorkspace UI
+[PASS] Document list rendering with status badges
+[PASS] Prompt template execution & real-time markdown audit rendering
+[PASS] Direct AI Chat switching via top navigation tabs
 ```
 
 ## Latest Successful Test
 
 ```text
-None
+2026-08-25 — Milestone 2 Fresh User Verification Suite (10/10 PASS) & Frontend Build (100% Pass)
 ```
 
 ---
@@ -975,7 +1030,7 @@ None
 
 ## Hero Workflow
 
-NOT READY
+IN PROGRESS (Document Ingestion & Local AI Audit Complete; RAG & Approval Node Next)
 
 ## Coding Workflow
 
@@ -983,11 +1038,11 @@ NOT READY
 
 ## Offline Demonstration
 
-NOT READY
+VERIFIED (All model inference routed to 127.0.0.1:11434, 0 cloud AI calls)
 
 ## Network/Sovereignty Proof
 
-NOT READY
+VERIFIED (Local file storage in backend/data/documents/, no remote transfers)
 
 ## Artifact Generation
 
@@ -999,21 +1054,15 @@ NOT READY
 
 ## Inspection Report
 
-```text
-TBD
-```
+`test_inspection_report.pdf` (Industrial boiler & turbine inspection report with wall thinning, vibration harmonics, and PRV overdue observations).
 
 ## Knowledge Documents
 
-```text
-TBD
-```
+TBD (Milestone 3)
 
 ## Coding Task
 
-```text
-TBD
-```
+TBD (Milestone 5)
 
 ---
 
@@ -1132,77 +1181,76 @@ WHAT TO DO NEXT
 # 35. CURRENT HANDOFF
 
 ## Last Agent
-
-None
+Antigravity Lead Engineer
 
 ## Last Session
-
-None
+Milestone 2 / Day 2 — Local Document Intelligence & Ingestion
 
 ## Last Completed Task
-
-None
+Full local document ingestion pipeline, PyMuPDF extraction, Ollama vision transcription, local AI document auditing, and React Document Workspace.
 
 ## Current Task
-
-Initialize project.
+Milestone 2 Complete.
 
 ## Next Task
-
-Create the initial frontend/backend project structure.
+Milestone 3 — Local Vector Store & Retrieval-Augmented Generation (RAG) for internal engineering standards and SOPs.
 
 ---
 
 # 36. CHANGE HISTORY
 
-> Keep a concise chronological record.
-
-| Date    | Agent | Phase   | Change            | Status |
-| ------- | ----- | ------- | ----------------- | ------ |
-| Initial | —     | Phase 0 | MEMORY.md created | Active |
+| Date       | Agent | Phase   | Change                                                    | Status |
+| ---------- | ----- | ------- | --------------------------------------------------------- | ------ |
+| 2026-08-24 | AGY   | Phase 0 | Milestone 1: Local AI Vertical Slice (Chat + Ollama)      | Done   |
+| 2026-08-25 | AGY   | Phase 1 | Milestone 2: Document Ingestion, PyMuPDF, Vision & Audits | Done   |
 
 ---
 
 # 37. CURRENT PROJECT SNAPSHOT
-
-This section should always remain concise.
 
 ```text
 PROJECT:
 Sovereign AI Workbench
 
 PHASE:
-Phase 0 — Foundation
+Phase 1 / Day 2 — Local Document Intelligence & Ingestion
 
 STATUS:
-Not Started
+Milestone 2 Complete (30% overall progress)
 
 WORKING:
-Nothing yet
+- Local Direct AI Chat with Ollama (qwen3.5:0.8b)
+- Document Upload (.pdf, .png, .jpg, .jpeg) with UUID & size validation
+- Local JSON Document Registry & Storage (backend/data/documents/)
+- PyMuPDF text extraction from multi-page PDFs
+- Ollama multimodal vision transcription for document images
+- Local AI technical document auditing & findings extraction
+- React Document Workspace UI with tabs, templates, and live status
+- Zero cloud AI dependencies
 
 BROKEN:
-Nothing known
+None known
 
 CURRENT TASK:
-Initialize project
+Milestone 2 complete
 
 NEXT:
-Frontend + Backend foundation
+Milestone 3 — Local Vector Store & RAG pipeline (chunking, embeddings, local similarity search)
 
 HERO WORKFLOW:
-Not implemented
+Document Ingestion + Vision Extraction + Local AI Audit working. RAG + Approval Gate + DOCX generation remaining.
 
 CODING WORKFLOW:
-Not implemented
+Not started (Scheduled for Day 5)
 
 OFFLINE MODE:
-Not tested
+Verified (100% on-premise)
 
 EXTERNAL AI CALLS:
-0 known
+0 (Guaranteed)
 
 LAST UPDATED:
-YYYY-MM-DD
+2026-08-25
 ```
 
 ---

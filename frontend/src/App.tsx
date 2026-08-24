@@ -3,7 +3,9 @@ import { Header } from './components/Header'
 import { SystemStatus } from './components/SystemStatus'
 import { PromptBox } from './components/PromptBox'
 import { ResponseViewer } from './components/ResponseViewer'
+import { DocumentWorkspace } from './components/DocumentWorkspace'
 import { sendChat } from './api/client'
+import { MessageSquare, FileText } from 'lucide-react'
 import type { AppSystemState, ChatResponse } from './types'
 
 const INITIAL_SYSTEM_STATE: AppSystemState = {
@@ -13,7 +15,10 @@ const INITIAL_SYSTEM_STATE: AppSystemState = {
   errorMessage: null,
 }
 
+type WorkbenchTab = 'documents' | 'chat'
+
 function App() {
+  const [activeTab, setActiveTab] = useState<WorkbenchTab>('documents')
   const [systemState, setSystemState] = useState<AppSystemState>(INITIAL_SYSTEM_STATE)
   const [isGenerating, setIsGenerating] = useState(false)
   const [response, setResponse] = useState<ChatResponse | null>(null)
@@ -42,8 +47,6 @@ function App() {
   }, [systemState.modelHealth?.default_model])
 
   const handleCancel = useCallback(() => {
-    // Cancellation of in-flight request is a future enhancement.
-    // For MVP we simply reset the loading state.
     setIsGenerating(false)
     setError('Request cancelled by user.')
   }, [])
@@ -53,12 +56,67 @@ function App() {
       <Header />
 
       <main className="main-content">
-        <div className="page-header">
-          <h1 className="page-title">AI Workbench</h1>
-          <p className="page-subtitle">
-            Sovereign local AI — all inference runs on your hardware via Ollama.
-            Zero external API calls.
-          </p>
+        <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h1 className="page-title">Sovereign AI Workbench</h1>
+            <p className="page-subtitle">
+              On-premise multimodal intelligence & agentic workflows. All inference runs locally via Ollama.
+            </p>
+          </div>
+
+          {/* Workbench Mode Tabs */}
+          <div
+            style={{
+              display: 'flex',
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-md)',
+              padding: '3px',
+              gap: '4px',
+            }}
+          >
+            <button
+              onClick={() => setActiveTab('documents')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                fontSize: '12px',
+                fontWeight: 600,
+                borderRadius: 'var(--radius-sm)',
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === 'documents' ? 'var(--color-accent)' : 'transparent',
+                color: activeTab === 'documents' ? '#fff' : 'var(--color-text-secondary)',
+                transition: 'all var(--transition-fast)',
+              }}
+            >
+              <FileText size={13} />
+              Document Intelligence
+            </button>
+
+            <button
+              onClick={() => setActiveTab('chat')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                fontSize: '12px',
+                fontWeight: 600,
+                borderRadius: 'var(--radius-sm)',
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === 'chat' ? 'var(--color-accent)' : 'transparent',
+                color: activeTab === 'chat' ? '#fff' : 'var(--color-text-secondary)',
+                transition: 'all var(--transition-fast)',
+              }}
+            >
+              <MessageSquare size={13} />
+              Direct AI Chat
+            </button>
+          </div>
         </div>
 
         {/* System status */}
@@ -66,24 +124,32 @@ function App() {
 
         <div className="divider" />
 
-        {/* Prompt input */}
-        <PromptBox
-          onSubmit={handleSubmit}
-          isGenerating={isGenerating}
-          onCancel={handleCancel}
-          systemState={systemState}
-        />
+        {/* Active Tab View */}
+        {activeTab === 'documents' ? (
+          <DocumentWorkspace systemState={systemState} />
+        ) : (
+          <>
+            {/* Prompt input */}
+            <PromptBox
+              onSubmit={handleSubmit}
+              isGenerating={isGenerating}
+              onCancel={handleCancel}
+              systemState={systemState}
+            />
 
-        {/* Response output */}
-        <ResponseViewer
-          response={response}
-          isGenerating={isGenerating}
-          error={error}
-          prompt={lastPrompt}
-        />
+            {/* Response output */}
+            <ResponseViewer
+              response={response}
+              isGenerating={isGenerating}
+              error={error}
+              prompt={lastPrompt}
+            />
+          </>
+        )}
       </main>
     </div>
   )
 }
 
 export default App
+

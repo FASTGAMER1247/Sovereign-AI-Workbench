@@ -1,8 +1,18 @@
 import logging
 from typing import Any, Dict, List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from app.config import Settings, get_settings
-from app.models.schemas import ChatRequest, ChatResponse, HealthResponse, ModelHealthResponse
+from app.models.schemas import (
+    ChatRequest,
+    ChatResponse,
+    DocumentAnalysisRequest,
+    DocumentAnalysisResponse,
+    DocumentExtractionResponse,
+    DocumentResponse,
+    HealthResponse,
+    ModelHealthResponse,
+)
+from app.services.document_service import DocumentService, get_document_service
 from app.services.model_service import ModelService, get_model_service
 
 logger = logging.getLogger(__name__)
@@ -70,3 +80,51 @@ async def chat_completion(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Chat generation encountered an error: {str(e)}",
         )
+
+
+# ─── Document Endpoints (Milestone 2) ───
+
+@router.post("/documents/upload", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
+async def upload_document(
+    file: UploadFile = File(...),
+    doc_service: DocumentService = Depends(get_document_service),
+) -> DocumentResponse:
+    """Upload and securely register a PDF or image document."""
+    return await doc_service.save_uploaded_file(file)
+
+
+@router.get("/documents", response_model=List[DocumentResponse])
+async def list_documents(
+    doc_service: DocumentService = Depends(get_document_service),
+) -> List[DocumentResponse]:
+    """List all ingested documents."""
+    return doc_service.list_documents()
+
+
+@router.get("/documents/{document_id}", response_model=DocumentResponse)
+async def get_document(
+    document_id: str,
+    doc_service: DocumentService = Depends(get_document_service),
+) -> DocumentResponse:
+    """Get metadata for a specific document."""
+    return doc_service.get_document(document_id)
+
+
+@router.post("/documents/{document_id}/extract", response_model=DocumentExtractionResponse)
+async def extract_document_text(
+    document_id: str,
+    doc_service: DocumentService = Depends(get_document_service),
+) -> DocumentExtractionResponse:
+    """Extract text from a document using PyMuPDF (for PDFs) or local Vision (for Images)."""
+    return await doc_service.extract_text(document_id)
+
+
+@router.post("/documents/{document_id}/analyze", response_model=DocumentAnalysisResponse)
+async def analyze_document(
+    document_id: str,
+    request: DocumentAnalysisRequest = DocumentAnalysisRequest(),
+    doc_service: DocumentService = Depends(get_document_service),
+) -> DocumentAnalysisResponse:
+    """Run local AI analysis on a document."""
+    return await doc_service.analyze_document(document_id, request)
+

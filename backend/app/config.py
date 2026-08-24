@@ -12,9 +12,13 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     # Ollama inference configuration
-    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_BASE_URL: str = "http://127.0.0.1:11434"
     DEFAULT_MODEL: str = "qwen3.5:0.8b"
-    OLLAMA_TIMEOUT_SECONDS: float = 60.0
+    OLLAMA_TIMEOUT_SECONDS: float = 300.0
+
+    # Document management configuration
+    MAX_UPLOAD_SIZE_MB: int = 50
+    DOCUMENTS_DIR: str = "data/documents"
 
     model_config = SettingsConfigDict(
         env_file=".env",

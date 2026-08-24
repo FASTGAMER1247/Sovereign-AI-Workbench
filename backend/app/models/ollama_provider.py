@@ -42,9 +42,16 @@ class OllamaProvider(ModelProvider):
         **kwargs: Any,
     ) -> ChatResponse:
         target_model = model or self.default_model
+        formatted_messages = []
+        for m in messages:
+            msg_dict: Dict[str, Any] = {"role": m.role, "content": m.content}
+            if getattr(m, "images", None):
+                msg_dict["images"] = m.images
+            formatted_messages.append(msg_dict)
+
         payload: Dict[str, Any] = {
             "model": target_model,
-            "messages": [{"role": m.role, "content": m.content} for m in messages],
+            "messages": formatted_messages,
             "stream": False,
             "think": False,
             "options": {
@@ -102,9 +109,16 @@ class OllamaProvider(ModelProvider):
         **kwargs: Any,
     ) -> AsyncGenerator[str, None]:
         target_model = model or self.default_model
+        formatted_messages = []
+        for m in messages:
+            msg_dict: Dict[str, Any] = {"role": m.role, "content": m.content}
+            if getattr(m, "images", None):
+                msg_dict["images"] = m.images
+            formatted_messages.append(msg_dict)
+
         payload: Dict[str, Any] = {
             "model": target_model,
-            "messages": [{"role": m.role, "content": m.content} for m in messages],
+            "messages": formatted_messages,
             "stream": True,
             "think": False,
             "options": {

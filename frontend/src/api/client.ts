@@ -1,7 +1,10 @@
-// API client — all communication goes through FastAPI backend (never directly to Ollama)
 import type {
   ChatRequest,
   ChatResponse,
+  DocumentAnalysisRequest,
+  DocumentAnalysisResponse,
+  DocumentExtractionResponse,
+  DocumentResponse,
   HealthResponse,
   ModelHealthResponse,
 } from '../types'
@@ -13,9 +16,18 @@ async function apiFetch<T>(
   options?: RequestInit,
 ): Promise<T> {
   const url = `${BASE_URL}${path}`
+  const headers: Record<string, string> = {
+    ...(options?.headers as Record<string, string>),
+  }
+
+  // Only set application/json if body is not FormData
+  if (!(options?.body instanceof FormData) && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json'
+  }
+
   const response = await fetch(url, {
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    headers,
   })
 
   if (!response.ok) {
@@ -54,3 +66,44 @@ export async function sendChat(request: ChatRequest): Promise<ChatResponse> {
     body: JSON.stringify(request),
   })
 }
+
+// ─── Document API Client (Milestone 2) ───
+
+/** Upload a document file (PDF, PNG, JPG, JPEG) */
+export async function uploadDocument(file: File): Promise<DocumentResponse> {
+  const formData = new FormData()
+  formData.append('file', file)
+  return apiFetch<DocumentResponse>('/documents/upload', {
+    method: 'POST',
+    body: formData,
+  })
+}
+
+/** List all uploaded documents */
+export async function getDocuments(): Promise<DocumentResponse[]> {
+  return apiFetch<DocumentResponse[]>('/documents')
+}
+
+/** Get a single document metadata */
+export async function getDocument(documentId: string): Promise<DocumentResponse> {
+  return apiFetch<DocumentResponse>(`/documents/${documentId}`)
+}
+
+/** Extract text from document using PyMuPDF or local Vision */
+export async function extractDocumentText(documentId: string): Promise<DocumentExtractionResponse> {
+  return apiFetch<DocumentExtractionResponse>(`/documents/${documentId}/extract`, {
+    method: 'POST',
+  })
+}
+
+/** Run local AI analysis on document */
+export async function analyzeDocument(
+  documentId: string,
+  request: DocumentAnalysisRequest = {},
+): Promise<DocumentAnalysisResponse> {
+  return apiFetch<DocumentAnalysisResponse>(`/documents/${documentId}/analyze`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+

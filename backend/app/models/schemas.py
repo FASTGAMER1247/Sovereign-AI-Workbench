@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 class ChatMessage(BaseModel):
     role: str = Field(..., description="Role of the message sender: 'system', 'user', or 'assistant'")
     content: str = Field(..., description="Text content of the message")
+    images: Optional[List[str]] = Field(None, description="Optional list of base64-encoded image strings for multimodal vision models")
 
 
 class ChatRequest(BaseModel):
@@ -55,3 +56,46 @@ class ModelHealthResponse(BaseModel):
     is_model_available: bool = Field(..., description="Whether default model is loaded in Ollama")
     available_models: List[str] = Field(default_factory=list, description="All installed local models")
     error: Optional[str] = Field(None, description="Error detail if unavailable")
+
+
+# ─── Document Schemas (Milestone 2) ───
+
+class DocumentResponse(BaseModel):
+    id: str = Field(..., description="Unique generated document ID")
+    filename: str = Field(..., description="Original sanitized filename")
+    file_type: str = Field(..., description="Detected file extension: pdf, png, jpg, jpeg")
+    size_bytes: int = Field(..., description="File size in bytes")
+    created_at: str = Field(..., description="ISO 8601 upload timestamp")
+    status: str = Field("uploaded", description="Status: 'uploaded', 'extracted', 'analyzed', 'error'")
+    extracted_text_preview: Optional[str] = Field(None, description="Short snippet of extracted text if available")
+    error_message: Optional[str] = Field(None, description="Error details if processing failed")
+
+
+class DocumentExtractionResponse(BaseModel):
+    document_id: str = Field(..., description="Document ID")
+    filename: str = Field(..., description="Original filename")
+    file_type: str = Field(..., description="File type")
+    extracted_text: str = Field(..., description="Full extracted text or vision description")
+    char_count: int = Field(..., description="Number of extracted characters")
+    method: str = Field(..., description="Extraction method: 'pymupdf' or 'ollama_vision'")
+
+
+class DocumentAnalysisRequest(BaseModel):
+    prompt: Optional[str] = Field(
+        None,
+        description="Custom prompt or question for document analysis (defaults to standard summary/findings analysis)"
+    )
+    model: Optional[str] = Field(None, description="Optional override model name")
+
+
+class DocumentAnalysisResponse(BaseModel):
+    document_id: str = Field(..., description="Document ID")
+    filename: str = Field(..., description="Original filename")
+    analysis: str = Field(..., description="AI-generated document analysis")
+    model: str = Field(..., description="Model used for analysis")
+    provider: str = Field("ollama", description="Provider used")
+    duration_ms: Optional[float] = Field(None, description="Duration of analysis in ms")
+    prompt_tokens: Optional[int] = Field(None, description="Prompt token count")
+    completion_tokens: Optional[int] = Field(None, description="Completion token count")
+    created_at: str = Field(..., description="ISO timestamp")
+
