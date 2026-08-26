@@ -20,6 +20,14 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE_MB: int = 50
     DOCUMENTS_DIR: str = "data/documents"
 
+    # Knowledge Base & Local Vector Store configuration
+    KNOWLEDGE_BASE_DIR: str = "data/knowledge_base"
+    CHROMA_PERSIST_DIR: str = "data/knowledge_base/chroma"
+    EMBEDDING_PROVIDER: str = "ollama"
+    EMBEDDING_MODEL: str = "nomic-embed-text"
+    CHUNK_SIZE: int = 600
+    CHUNK_OVERLAP: int = 120
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

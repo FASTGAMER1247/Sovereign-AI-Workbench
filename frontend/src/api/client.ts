@@ -6,7 +6,16 @@ import type {
   DocumentExtractionResponse,
   DocumentResponse,
   HealthResponse,
+  KnowledgeChunk,
+  KnowledgeDocument,
+  KnowledgeIngestRequest,
+  KnowledgeIngestResponse,
+  KnowledgeQueryRequest,
+  KnowledgeQueryResponse,
+  KnowledgeStatsResponse,
   ModelHealthResponse,
+  RAGAuditRequest,
+  RAGAuditResponse,
 } from '../types'
 
 const BASE_URL = '/api'
@@ -106,4 +115,65 @@ export async function analyzeDocument(
     body: JSON.stringify(request),
   })
 }
+
+// ─── Knowledge Base & RAG API Client (Milestone 3) ───
+
+/** Ingest a document or text into the local Knowledge Base vector store */
+export async function ingestKnowledge(
+  request: KnowledgeIngestRequest,
+): Promise<KnowledgeIngestResponse> {
+  return apiFetch<KnowledgeIngestResponse>('/knowledge/ingest', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+/** List all documents indexed in the local Knowledge Base */
+export async function getKnowledgeDocuments(): Promise<KnowledgeDocument[]> {
+  return apiFetch<KnowledgeDocument[]>('/knowledge/documents')
+}
+
+/** Get metadata for a specific indexed knowledge document */
+export async function getKnowledgeDocument(documentId: string): Promise<KnowledgeDocument> {
+  return apiFetch<KnowledgeDocument>(`/knowledge/documents/${documentId}`)
+}
+
+/** Inspect all chunks for an indexed knowledge document */
+export async function getKnowledgeDocumentChunks(documentId: string): Promise<KnowledgeChunk[]> {
+  return apiFetch<KnowledgeChunk[]>(`/knowledge/documents/${documentId}/chunks`)
+}
+
+/** Delete a document and its vectors from the Knowledge Base */
+export async function deleteKnowledgeDocument(documentId: string): Promise<{ status: string; document_id: string }> {
+  return apiFetch<{ status: string; document_id: string }>(`/knowledge/documents/${documentId}`, {
+    method: 'DELETE',
+  })
+}
+
+/** Query the Knowledge Base with natural language semantic search */
+export async function queryKnowledgeBase(
+  request: KnowledgeQueryRequest,
+): Promise<KnowledgeQueryResponse> {
+  return apiFetch<KnowledgeQueryResponse>('/knowledge/query', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+/** Get Knowledge Base and vector store statistics */
+export async function getKnowledgeStats(): Promise<KnowledgeStatsResponse> {
+  return apiFetch<KnowledgeStatsResponse>('/knowledge/stats')
+}
+
+/** Run a RAG-grounded document audit cross-referencing organizational standards */
+export async function ragAuditDocument(
+  documentId: string,
+  request: RAGAuditRequest = {},
+): Promise<RAGAuditResponse> {
+  return apiFetch<RAGAuditResponse>(`/documents/${documentId}/rag-audit`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
 

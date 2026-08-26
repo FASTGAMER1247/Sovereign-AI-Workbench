@@ -1,0 +1,23 @@
+STANDARD OPERATING PROCEDURE: REFINERY PIPING INTEGRITY (SOP-REF-570)
+Organization: Sovereign Refining & Petrochemicals Division
+Document ID: SOP-REF-570-REV4
+Effective Date: 2026-01-15
+Classification: CONFIDENTIAL / ORGANIZATIONAL STRICT
+
+SECTION 1: PURPOSE & APPLICABILITY
+1.1 This Standard Operating Procedure governs ultrasonic thickness (UT) inspection, remaining life evaluation, and mandatory repair timelines for metallic process piping in hydrocarbon and toxic chemical service across all refinery operating units.
+1.2 Compliance with this SOP is mandatory under PSU Safety Directive SD-2026-09.
+
+SECTION 2: THICKNESS THRESHOLDS & MINIMUM WALL REQUIREMENTS
+2.1 Carbon Steel Piping (ASTM A106 Grade B, Schedule 40/80):
+- Nominal wall thickness: 6.02 mm (for 4-inch nominal bore line 102).
+- Minimum design allowable thickness (t_min): 3.20 mm.
+- Critical Retirement Limit (t_retire): 2.50 mm.
+
+2.2 Any pipe section exhibiting a measured active wall thickness less than 2.50 mm represents a Critical Safety Hazard and mandates immediate line depressurization and emergency spool replacement within 48 hours.
+2.3 Pipe sections measuring between 2.50 mm and 3.20 mm require derating of operating pressure by 30% and mandatory weekly re-inspection until permanent replacement during the next scheduled turnaround (within 30 days maximum).
+
+SECTION 3: BOLTING & FLANGE INTEGRITY
+3.1 All Class 300 RF Flanges in hydrocarbon service must utilize ASTM A193 Grade B7 stud bolts with A194 Grade 2H heavy hex nuts.
+3.2 Spiral wound 316SS gaskets with flexible graphite filler must be replaced whenever a flange is uncoupled.
+3.3 Torque verification: Flange bolt tightening torque for Class 300 4-inch connections must be torqued to precisely 120-135 ft-lbs using cross-pattern sequence. Torques below 110 ft-lbs or exceeding 150 ft-lbs constitute non-compliance and require immediate re-torquing.

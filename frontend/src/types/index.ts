@@ -88,3 +88,96 @@ export interface DocumentAnalysisResponse {
   created_at: string
 }
 
+// ─── Knowledge Base & RAG Types (Milestone 3) ───
+
+export interface KnowledgeChunk {
+  id: string
+  document_id: string
+  filename: string
+  page_number?: number | null
+  chunk_index: number
+  content: string
+  char_count: number
+}
+
+export interface KnowledgeDocument {
+  id: string
+  filename: string
+  file_type: string
+  total_chunks: number
+  indexed_at: string
+  status: 'indexed' | 'processing' | 'error'
+  metadata: Record<string, unknown>
+}
+
+export interface KnowledgeIngestRequest {
+  document_id?: string
+  title?: string
+  content?: string
+  metadata?: Record<string, unknown>
+}
+
+export interface KnowledgeIngestResponse {
+  document_id: string
+  filename: string
+  total_chunks: number
+  indexed_at: string
+  message: string
+}
+
+export interface KnowledgeQueryRequest {
+  query: string
+  top_k?: number
+  similarity_threshold?: number
+  filter_document_id?: string
+}
+
+export interface ScoredKnowledgeChunk {
+  chunk: KnowledgeChunk
+  similarity_score: number
+}
+
+export interface KnowledgeQueryResponse {
+  query: string
+  results: ScoredKnowledgeChunk[]
+  total_matched: number
+  query_time_ms: number
+}
+
+export interface KnowledgeStatsResponse {
+  total_documents: number
+  total_chunks: number
+  embedding_engine: string
+  embedding_model: string
+  storage_path: string
+}
+
+export interface GroundedCitation {
+  document_name: string
+  page_number?: number | null
+  chunk_index: number
+  similarity_score: number
+  excerpt: string
+}
+
+export interface RAGAuditRequest {
+  prompt?: string
+  model?: string
+  top_k_standards?: number
+  filter_kb_document_ids?: string[]
+}
+
+export interface RAGAuditResponse {
+  document_id: string
+  filename: string
+  analysis: string
+  grounded_citations: GroundedCitation[]
+  model: string
+  provider: string
+  duration_ms?: number
+  prompt_tokens?: number
+  completion_tokens?: number
+  created_at: string
+}
+
+

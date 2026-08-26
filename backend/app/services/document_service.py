@@ -19,7 +19,11 @@ from app.models.schemas import (
     DocumentAnalysisResponse,
     DocumentExtractionResponse,
     DocumentResponse,
+    GroundedCitation,
+    RAGAuditRequest,
+    RAGAuditResponse,
 )
+from app.services.knowledge_service import KnowledgeService, get_knowledge_service
 from app.services.model_service import ModelService, get_model_service
 
 logger = logging.getLogger(__name__)
@@ -30,9 +34,15 @@ ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg"}
 class DocumentService:
     """Service managing document storage, metadata registry, extraction, and local AI analysis."""
 
-    def __init__(self, settings: Optional[Settings] = None, model_service: Optional[ModelService] = None):
+    def __init__(
+        self,
+        settings: Optional[Settings] = None,
+        model_service: Optional[ModelService] = None,
+        knowledge_service: Optional[KnowledgeService] = None,
+    ):
         self.settings = settings or get_settings()
         self.model_service = model_service or get_model_service()
+        self.knowledge_service = knowledge_service or get_knowledge_service()
         self.storage_dir = Path(self.settings.DOCUMENTS_DIR)
         self.registry_file = self.storage_dir / "registry.json"
         self._ensure_storage_dir()
@@ -374,6 +384,113 @@ class DocumentService:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=f"Local document analysis failed: {str(e)}"
+            )
+
+    async def rag_audit_document(
+        self,
+        document_id: str,
+        request: RAGAuditRequest = RAGAuditRequest(),
+    ) -> RAGAuditResponse:
+        """Run RAG-grounded document audit cross-referencing organizational standards/SOPs from ChromaDB."""
+        doc = self._registry.get(document_id)
+        if not doc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Document with ID '{document_id}' was not found in registry."
+            )
+
+        # Ensure text is extracted
+        if not doc.get("extracted_text"):
+            await self.extract_text(document_id)
+            doc = self._registry.get(document_id)
+
+        extracted_text = doc.get("extracted_text", "")
+        if not extracted_text:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Document contains no extractable text for RAG audit."
+            )
+
+        from app.services.retrieval_service import RetrievalService
+        from app.services.rag_service import RAGService
+        from app.services.embedding import get_embedding_provider
+        from app.services.vector_store import get_vector_store
+
+        embedding_provider = get_embedding_provider(self.settings)
+        vector_store = get_vector_store(self.settings)
+        retrieval_service = RetrievalService(embedding_provider=embedding_provider, vector_store=vector_store)
+        rag_service = RAGService(retrieval_service=retrieval_service, model_service=self.model_service)
+
+        try:
+            start_time = time.perf_counter()
+            # Retrieve relevant standard chunks from ChromaDB
+            retrieval_query = f"{doc['filename']} {request.prompt or ''} {extracted_text[:400]}"
+            scored_chunks = await retrieval_service.retrieve_top_chunks(
+                query=retrieval_query,
+                top_k=request.top_k_standards,
+            )
+
+            # Build grounded context & exact citations from ChromaDB metadata
+            grounded_context, citations = rag_service.build_grounded_context(scored_chunks)
+
+            system_instruction = (
+                "You are a Senior Sovereign Industrial Compliance Auditor for high-stakes PSU, defense, and refinery operations. "
+                "Your objective is to audit the provided inspection document strictly against the grounded organizational SOPs, "
+                "safety codes, and engineering standards provided in the context.\n\n"
+                "Produce a structured, rigorous Compliance Audit Report with the following sections:\n"
+                "1. EXECUTIVE SUMMARY & AUDIT SCOPE\n"
+                "2. OBSERVED FINDINGS & DEFECTS\n"
+                "3. APPLICABLE STANDARDS & COMPLIANCE EVALUATION (Explicitly cite the standard name and page/section for each rule!)\n"
+                "4. RISK MATRIX & SEVERITY RATING (Low / Medium / High / Critical with engineering justification)\n"
+                "5. MANDATORY CORRECTIVE ACTION PLAN & TIMELINE"
+            )
+
+            user_content = f"--- INSPECTION DOCUMENT UNDER AUDIT ({doc['filename']}) ---\n{extracted_text[:12000]}\n\n"
+            if grounded_context:
+                user_content += f"{grounded_context}\n\n"
+            else:
+                user_content += "(Note: No specific standard matched in knowledge base. Evaluating based on general engineering best practices.)\n\n"
+
+            if request.prompt:
+                user_content += f"Specific Auditor Instructions: {request.prompt}\n\n"
+
+            user_content += "Please perform the grounded technical compliance audit now citing the retrieved standards accurately."
+
+            messages = [
+                ChatMessage(role="system", content=system_instruction),
+                ChatMessage(role="user", content=user_content),
+            ]
+
+            chat_req = ChatRequest(
+                messages=messages,
+                model=request.model,
+                temperature=0.2,  # Low temperature for strict factual adherence to standards
+            )
+
+            response = await self.model_service.generate_chat(chat_req)
+            duration_ms = (time.perf_counter() - start_time) * 1000.0
+
+            doc["rag_analysis"] = response.response
+            doc["status"] = "analyzed"
+            self._save_registry()
+
+            return RAGAuditResponse(
+                document_id=doc["id"],
+                filename=doc["filename"],
+                analysis=response.response,
+                grounded_citations=citations,
+                model=response.model,
+                provider=response.provider,
+                duration_ms=round(duration_ms, 2),
+                prompt_tokens=response.prompt_eval_count,
+                completion_tokens=response.eval_count,
+                created_at=datetime.now(timezone.utc).isoformat(),
+            )
+        except Exception as e:
+            logger.exception(f"Error during RAG document audit for {document_id}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Local RAG document audit failed: {str(e)}"
             )
 
 

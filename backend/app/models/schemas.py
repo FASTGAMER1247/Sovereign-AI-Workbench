@@ -71,6 +71,16 @@ class DocumentResponse(BaseModel):
     error_message: Optional[str] = Field(None, description="Error details if processing failed")
 
 
+class DocumentRecord(BaseModel):
+    document_id: str = Field(..., description="Document ID")
+    original_filename: str = Field(..., description="Original filename")
+    file_type: str = Field(..., description="File extension")
+    file_size_bytes: int = Field(0, description="Size in bytes")
+    storage_path: str = Field("", description="Local disk storage path")
+    upload_timestamp: Optional[str] = Field(None, description="Upload timestamp")
+    extracted_text: Optional[str] = Field(None, description="Extracted text")
+
+
 class DocumentExtractionResponse(BaseModel):
     document_id: str = Field(..., description="Document ID")
     filename: str = Field(..., description="Original filename")
@@ -98,4 +108,101 @@ class DocumentAnalysisResponse(BaseModel):
     prompt_tokens: Optional[int] = Field(None, description="Prompt token count")
     completion_tokens: Optional[int] = Field(None, description="Completion token count")
     created_at: str = Field(..., description="ISO timestamp")
+
+
+# ─── Knowledge Base & RAG Schemas (Milestone 3) ───
+
+class KnowledgeChunk(BaseModel):
+    id: str = Field(..., description="Unique chunk ID")
+    document_id: str = Field(..., description="Parent document ID")
+    filename: str = Field(..., description="Source document filename")
+    page_number: Optional[int] = Field(None, description="Source page number if available")
+    chunk_index: int = Field(..., description="Zero-based index of this chunk within document")
+    content: str = Field(..., description="Text content of the chunk")
+    char_count: int = Field(..., description="Length in characters")
+
+
+class KnowledgeDocument(BaseModel):
+    id: str = Field(..., description="Unique document ID in knowledge base")
+    filename: str = Field(..., description="Sanitized filename")
+    file_type: str = Field(..., description="File extension")
+    total_chunks: int = Field(..., description="Number of indexed chunks")
+    indexed_at: str = Field(..., description="ISO timestamp of indexing")
+    status: str = Field("indexed", description="Indexing status: 'indexed', 'processing', 'error'")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Arbitrary metadata (e.g. standard type, department)")
+
+
+class KnowledgeIngestRequest(BaseModel):
+    document_id: Optional[str] = Field(None, description="ID of an existing uploaded document to index")
+    title: Optional[str] = Field(None, description="Title or name for direct text ingestion")
+    content: Optional[str] = Field(None, description="Direct raw text content if not referencing an uploaded document")
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Optional metadata tags (e.g. SOP, ASME, Manual)")
+
+
+class KnowledgeIngestResponse(BaseModel):
+    document_id: str = Field(..., description="Indexed document ID")
+    filename: str = Field(..., description="Filename or title")
+    total_chunks: int = Field(..., description="Total chunks created and indexed")
+    indexed_at: str = Field(..., description="ISO timestamp")
+    message: str = Field(..., description="Human-readable result summary")
+
+
+class KnowledgeQueryRequest(BaseModel):
+    query: str = Field(..., description="Natural language semantic search query")
+    top_k: int = Field(4, ge=1, le=20, description="Maximum number of relevant chunks to retrieve")
+    similarity_threshold: float = Field(0.0, ge=0.0, le=1.0, description="Minimum similarity threshold (0.0 to 1.0)")
+    filter_document_id: Optional[str] = Field(None, description="Optional document ID to restrict search within")
+
+
+class ScoredKnowledgeChunk(BaseModel):
+    chunk: KnowledgeChunk = Field(..., description="The matched chunk data")
+    similarity_score: float = Field(..., description="Cosine similarity score (0.0 to 1.0)")
+
+
+class KnowledgeQueryResponse(BaseModel):
+    query: str = Field(..., description="Original search query")
+    results: List[ScoredKnowledgeChunk] = Field(default_factory=list, description="Top-K matched chunks ranked by similarity")
+    total_matched: int = Field(..., description="Number of results matching threshold")
+    query_time_ms: float = Field(..., description="Search execution duration in milliseconds")
+
+
+class KnowledgeStatsResponse(BaseModel):
+    total_documents: int = Field(..., description="Total documents in knowledge base")
+    total_chunks: int = Field(..., description="Total vectors indexed")
+    embedding_engine: str = Field(..., description="Active embedding provider / engine")
+    embedding_model: str = Field(..., description="Embedding model name")
+    storage_path: str = Field(..., description="Local storage path")
+
+
+class GroundedCitation(BaseModel):
+    document_id: Optional[str] = Field(None, description="Source document ID")
+    document_name: str = Field(..., description="Source SOP or manual filename")
+    page_number: Optional[int] = Field(None, description="Page number if known")
+    chunk_index: int = Field(..., description="Chunk index")
+    similarity_score: float = Field(..., description="Similarity score")
+    excerpt: str = Field(..., description="Excerpt from the standard/SOP")
+
+
+class RAGAuditRequest(BaseModel):
+    prompt: Optional[str] = Field(
+        None,
+        description="Optional custom audit prompt or questions regarding compliance"
+    )
+    model: Optional[str] = Field(None, description="Optional override model name")
+    top_k_standards: int = Field(4, ge=1, le=10, description="Number of SOP/standard chunks to ground against")
+    filter_kb_document_ids: Optional[List[str]] = Field(None, description="Optional list of specific KB document IDs to cross-reference")
+
+
+class RAGAuditResponse(BaseModel):
+    document_id: str = Field(..., description="Document ID under audit")
+    filename: str = Field(..., description="Document filename")
+    analysis: str = Field(..., description="AI audit findings grounded with local standards")
+    grounded_citations: List[GroundedCitation] = Field(default_factory=list, description="Referenced standard excerpts and pages")
+    model: str = Field(..., description="Model used for analysis")
+    provider: str = Field("ollama", description="Model provider")
+    duration_ms: Optional[float] = Field(None, description="Total audit duration in ms")
+    prompt_tokens: Optional[int] = Field(None, description="Prompt token count")
+    completion_tokens: Optional[int] = Field(None, description="Completion token count")
+    created_at: str = Field(..., description="ISO timestamp")
+
 

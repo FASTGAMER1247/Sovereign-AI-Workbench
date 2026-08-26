@@ -12,17 +12,23 @@ import {
   Brain,
   Sparkles,
   ArrowRight,
+  Database,
+  BookOpen,
+  ShieldCheck,
 } from 'lucide-react'
 import {
   uploadDocument,
   getDocuments,
   extractDocumentText,
   analyzeDocument,
+  ragAuditDocument,
+  ingestKnowledge,
 } from '../api/client'
 import type {
   DocumentResponse,
   DocumentExtractionResponse,
   DocumentAnalysisResponse,
+  RAGAuditResponse,
   AppSystemState,
 } from '../types'
 
@@ -44,6 +50,10 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
   // Document Content & Analysis state
   const [extractedData, setExtractedData] = useState<DocumentExtractionResponse | null>(null)
   const [analysisData, setAnalysisData] = useState<DocumentAnalysisResponse | null>(null)
+  const [ragAuditData, setRagAuditData] = useState<RAGAuditResponse | null>(null)
+  const [isRagAuditing, setIsRagAuditing] = useState(false)
+  const [isIndexingToKB, setIsIndexingToKB] = useState(false)
+  const [kbIndexSuccess, setKbIndexSuccess] = useState<string | null>(null)
   const [customPrompt, setCustomPrompt] = useState('')
   const [activeViewTab, setActiveViewTab] = useState<'content' | 'analysis'>('content')
 
@@ -77,6 +87,8 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
   useEffect(() => {
     setExtractedData(null)
     setAnalysisData(null)
+    setRagAuditData(null)
+    setKbIndexSuccess(null)
     setActionError(null)
     setCustomPrompt('')
     setActiveViewTab('content')
@@ -149,6 +161,7 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
     if (!selectedDoc) return
     setIsAnalyzing(true)
     setActionError(null)
+    setRagAuditData(null)
     const promptToUse = promptOverride !== undefined ? promptOverride : customPrompt
     try {
       const res = await analyzeDocument(selectedDoc.id, {
@@ -163,6 +176,57 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
       setActionError(msg)
     } finally {
       setIsAnalyzing(false)
+    }
+  }
+
+  // Handle RAG-Grounded AI Compliance Audit
+  const handleRagAudit = async (promptOverride?: string) => {
+    if (!selectedDoc) return
+    setIsRagAuditing(true)
+    setActionError(null)
+    const promptToUse = promptOverride !== undefined ? promptOverride : customPrompt
+    try {
+      const res = await ragAuditDocument(selectedDoc.id, {
+        prompt: promptToUse || undefined,
+        model: systemState.modelHealth?.default_model,
+        top_k_standards: 4,
+      })
+      setRagAuditData(res)
+      setAnalysisData({
+        document_id: res.document_id,
+        filename: res.filename,
+        analysis: res.analysis,
+        model: res.model,
+        provider: res.provider,
+        duration_ms: res.duration_ms,
+        prompt_tokens: res.prompt_tokens,
+        completion_tokens: res.completion_tokens,
+        created_at: res.created_at,
+      })
+      setActiveViewTab('analysis')
+      fetchDocuments()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'RAG Grounded Audit failed'
+      setActionError(msg)
+    } finally {
+      setIsRagAuditing(false)
+    }
+  }
+
+  // Handle Ingesting Document into Knowledge Base
+  const handleIndexToKB = async () => {
+    if (!selectedDoc) return
+    setIsIndexingToKB(true)
+    setActionError(null)
+    setKbIndexSuccess(null)
+    try {
+      const res = await ingestKnowledge({ document_id: selectedDoc.id })
+      setKbIndexSuccess(`Indexed into Knowledge Base (${res.total_chunks} chunks).`)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Indexing to Knowledge Base failed'
+      setActionError(msg)
+    } finally {
+      setIsIndexingToKB(false)
     }
   }
 
@@ -357,13 +421,13 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <button
                     className="btn btn-ghost"
                     onClick={handleExtract}
-                    disabled={isExtracting || isAnalyzing}
+                    disabled={isExtracting || isAnalyzing || isRagAuditing}
                     title="Extract text or OCR transcript locally"
-                    style={{ fontSize: '12px', padding: '6px 12px' }}
+                    style={{ fontSize: '12px', padding: '6px 10px' }}
                   >
                     {isExtracting ? (
                       <>
@@ -379,10 +443,30 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
                   </button>
 
                   <button
-                    className="btn btn-primary"
+                    className="btn btn-ghost"
+                    onClick={handleIndexToKB}
+                    disabled={isIndexingToKB || isExtracting}
+                    title="Index this document into the Knowledge Base vector store"
+                    style={{ fontSize: '12px', padding: '6px 10px', color: 'var(--color-accent)' }}
+                  >
+                    {isIndexingToKB ? (
+                      <>
+                        <Loader2 size={12} style={{ animation: 'spin 0.7s linear infinite' }} />
+                        Indexing...
+                      </>
+                    ) : (
+                      <>
+                        <Database size={12} />
+                        Index to KB
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    className="btn btn-ghost"
                     onClick={() => handleAnalyze()}
-                    disabled={isExtracting || isAnalyzing || !isModelOnline}
-                    title="Run on-premise AI analysis"
+                    disabled={isExtracting || isAnalyzing || isRagAuditing || !isModelOnline}
+                    title="Run standard on-premise AI analysis"
                     style={{ fontSize: '12px', padding: '6px 12px' }}
                   >
                     {isAnalyzing ? (
@@ -393,12 +477,45 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
                     ) : (
                       <>
                         <Brain size={12} />
-                        Audit Document
+                        Standard Audit
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => handleRagAudit()}
+                    disabled={isExtracting || isAnalyzing || isRagAuditing || !isModelOnline}
+                    title="Run RAG compliance audit cross-referencing organizational standards"
+                    style={{
+                      fontSize: '12px',
+                      padding: '6px 14px',
+                      background: 'linear-gradient(135deg, var(--color-accent) 0%, #2563eb 100%)',
+                      border: 'none',
+                      boxShadow: '0 2px 8px rgba(59, 130, 246, 0.25)',
+                    }}
+                  >
+                    {isRagAuditing ? (
+                      <>
+                        <Loader2 size={12} style={{ animation: 'spin 0.7s linear infinite' }} />
+                        Grounding with SOPs...
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck size={13} />
+                        RAG Grounded Audit
                       </>
                     )}
                   </button>
                 </div>
               </div>
+
+              {kbIndexSuccess && (
+                <div style={{ padding: '8px 16px', background: 'rgba(16, 185, 129, 0.08)', borderBottom: '1px solid rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ShieldCheck size={13} color="var(--color-success)" />
+                  <span className="text-xs font-medium" style={{ color: 'var(--color-success)' }}>{kbIndexSuccess}</span>
+                </div>
+              )}
 
               {actionError && (
                 <div style={{ padding: '10px 20px', background: 'rgba(239, 68, 68, 0.08)', borderBottom: '1px solid rgba(239, 68, 68, 0.2)' }}>
@@ -555,7 +672,7 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
 
                     {/* AI Analysis View */}
                     {analysisData ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
                         <div
                           style={{
                             background: 'var(--color-bg)',
@@ -572,6 +689,75 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
                         >
                           {analysisData.analysis}
                         </div>
+
+                        {/* RAG Grounded Citations Section */}
+                        {ragAuditData && ragAuditData.grounded_citations.length > 0 && (
+                          <div
+                            style={{
+                              background: 'var(--color-surface-2)',
+                              border: '1px solid var(--color-border)',
+                              borderRadius: 'var(--radius-md)',
+                              padding: '12px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '8px',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: 'var(--color-accent)' }}>
+                                <BookOpen size={14} />
+                                Grounded SOP & Standard Citations ({ragAuditData.grounded_citations.length})
+                              </div>
+                              <span style={{ fontSize: '10px', color: 'var(--color-success)', fontWeight: 600 }}>
+                                100% LOCAL VECTOR GROUNDING
+                              </span>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '8px' }}>
+                              {ragAuditData.grounded_citations.map((cite, cIdx) => {
+                                const pct = Math.round(cite.similarity_score * 100)
+                                return (
+                                  <div
+                                    key={cIdx}
+                                    style={{
+                                      background: 'var(--color-bg)',
+                                      border: '1px solid var(--color-border-2)',
+                                      borderRadius: 'var(--radius-sm)',
+                                      padding: '8px 10px',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: '4px',
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
+                                      <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                                        {cite.document_name}
+                                      </span>
+                                      <span
+                                        style={{
+                                          background: 'rgba(59, 130, 246, 0.1)',
+                                          color: 'var(--color-accent)',
+                                          padding: '1px 5px',
+                                          borderRadius: '3px',
+                                          fontWeight: 700,
+                                          fontSize: '10px',
+                                        }}
+                                      >
+                                        {pct}% Match
+                                      </span>
+                                    </div>
+                                    <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
+                                      {cite.page_number ? `Page ${cite.page_number}` : 'Standard Reference'} • Chunk #{cite.chunk_index + 1}
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', lineHeight: 1.4, fontStyle: 'italic', background: 'var(--color-surface)', padding: '4px 6px', borderRadius: '2px' }}>
+                                      "{cite.excerpt}"
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Analysis Metrics */}
                         <div className="response-meta-bar" style={{ borderRadius: 'var(--radius-md)' }}>
@@ -596,14 +782,18 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
                             </div>
                           )}
                           <div className="response-meta-item" style={{ marginLeft: 'auto' }}>
-                            <span style={{ color: 'var(--color-sovereign)' }}>● LOCAL OLLAMA INFERENCE</span>
+                            <span style={{ color: 'var(--color-sovereign)' }}>
+                              {ragAuditData ? '● RAG-GROUNDED COMPLIANCE AUDIT' : '● LOCAL OLLAMA INFERENCE'}
+                            </span>
                           </div>
                         </div>
                       </div>
-                    ) : isAnalyzing ? (
+                    ) : isAnalyzing || isRagAuditing ? (
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', color: 'var(--color-accent)' }}>
                         <Loader2 size={28} style={{ animation: 'spin 0.7s linear infinite' }} />
-                        <span className="text-sm font-medium">Running local multimodal LLM audit...</span>
+                        <span className="text-sm font-medium">
+                          {isRagAuditing ? 'Cross-referencing local SOP vector store & generating compliance audit...' : 'Running local AI audit...'}
+                        </span>
                       </div>
                     ) : (
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--color-text-muted)' }}>
@@ -612,7 +802,7 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
                           Ready for Local AI Document Audit
                         </span>
                         <span className="text-xs">
-                          Select a template above or click Audit Document to generate findings.
+                          Select a template above or click <strong>RAG Grounded Audit</strong> to cross-reference organizational standards.
                         </span>
                       </div>
                     )}

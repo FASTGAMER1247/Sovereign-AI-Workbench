@@ -8,7 +8,8 @@
 |---|:---:|
 | Milestone 1 — Local AI Vertical Slice | COMPLETE |
 | Milestone 2 — Local Document Intelligence & Ingestion | COMPLETE |
-| Milestone 3 — Local RAG | NEXT |
+| Milestone 3 — Local Vector Store & RAG | COMPLETE |
+| Milestone 4 — Multi-Model Router & HITL Approval Note | NEXT |
 
 The current system provides a working local pipeline:
 
@@ -17,27 +18,27 @@ React Frontend
       ↓
 FastAPI Backend
       ↓
-Ollama
+Ollama (qwen3.5:0.8b & nomic-embed-text) + ChromaDB
       ↓
-qwen3.5:0.8b
-      ↓
-FastAPI
+Grounded RAG Compliance Audits & Semantic Search
       ↓
 React Frontend
 ```
 
-Document workflows are also implemented:
+Document and Knowledge workflows are fully implemented:
 
 ```text
-PDF / Image
+Confidential PDF / Image / Technical SOPs
     ↓
-Local Storage
+Local Storage & ChromaDB Persistent Vector Store
     ↓
-Extraction
+PyMuPDF / Ollama Vision & Dense 768-dim Embeddings
     ↓
-Local Ollama Analysis
+Local Semantic Retrieval & Cosine Similarity Ranking
     ↓
-Audit Findings
+Local RAG-Grounded AI Compliance Audit (qwen3.5:0.8b)
+    ↓
+Audit Findings with Verified Source SOP Citations
 ```
 
 ---
@@ -74,6 +75,19 @@ Audit Findings
 - Invalid-file rejection
 - Missing-document handling
 
+## Milestone 3
+
+- Persistent local vector database (**ChromaDB** at `backend/data/knowledge_base/chroma/`)
+- Real dense embedding provider (**`nomic-embed-text`**, 768 dimensions via local Ollama `/api/embeddings`)
+- Local fallback embedding engine (`all-MiniLM-L6-v2` via SentenceTransformers)
+- Deterministic text chunking engine with configurable chunk size & overlap
+- Fast cosine similarity semantic vector search with top-K ranking and score thresholding
+- RAG-grounded compliance audits evaluating inspection reports strictly against organizational standards/SOPs
+- Verified Grounded Citations linking audit conclusions to source standard filenames, pages, and chunk IDs
+- Knowledge Workspace UI with SOP repository manager, chunk inspector, and interactive semantic search playground
+- Grounded SOP citation cards in Document Workspace with similarity match percentages
+- 100% on-premise execution with zero cloud calls
+
 ---
 
 # Architecture
@@ -82,7 +96,7 @@ Audit Findings
 ┌───────────────────────────────────────────────────────────┐
 │                    LOCAL MACHINE                          │
 │                                                           │
-│  React + Vite                                             │
+│  React + Vite (3 Workspace Modes)                         │
 │       │                                                   │
 │       │ HTTP / /api                                      │
 │       ▼                                                   │
@@ -91,17 +105,19 @@ Audit Findings
 │       ├──────► Local Document Storage                    │
 │       │        backend/data/documents/                    │
 │       │                                                   │
-│       ▼                                                   │
-│  Ollama :11434                                           │
+│       ├──────► ChromaDB Persistent Vector Store           │
+│       │        backend/data/knowledge_base/chroma/        │
 │       │                                                   │
 │       ▼                                                   │
-│  qwen3.5:0.8b                                            │
+│  Ollama :11434                                           │
+│       ├──► nomic-embed-text (768-dim dense embeddings)    │
+│       └──► qwen3.5:0.8b (reasoning, vision & RAG audits)  │
 │                                                           │
-│  No cloud AI API is required for inference.              │
+│  No cloud AI API is required for embeddings or inference. │
 └───────────────────────────────────────────────────────────┘
 ```
 
-The frontend communicates with FastAPI only. FastAPI communicates with Ollama and local storage.
+The frontend communicates with FastAPI only. FastAPI communicates with Ollama, ChromaDB, and local storage.
 
 ---
 
@@ -121,15 +137,36 @@ Sovereign-AI-Workbench/
 ├── backend/
 │   ├── app/
 │   │   ├── api/
+│   │   │   └── routes.py
 │   │   ├── models/
+│   │   │   ├── base.py
+│   │   │   ├── ollama_provider.py
+│   │   │   └── schemas.py
 │   │   ├── services/
+│   │   │   ├── embedding/
+│   │   │   │   ├── base.py
+│   │   │   │   ├── ollama_embedding.py
+│   │   │   │   └── sentence_transformer_embedding.py
+│   │   │   ├── vector_store/
+│   │   │   │   ├── base.py
+│   │   │   │   └── chroma_store.py
 │   │   │   ├── document_service.py
-│   │   │   └── model_service.py
+│   │   │   ├── knowledge_service.py
+│   │   │   ├── model_service.py
+│   │   │   ├── rag_service.py
+│   │   │   └── retrieval_service.py
 │   │   ├── config.py
 │   │   └── main.py
 │   ├── data/
-│   │   └── documents/
-│   │       └── registry.json
+│   │   ├── documents/
+│   │   │   └── registry.json
+│   │   └── knowledge_base/
+│   │       └── chroma/
+│   ├── tests/
+│   │   ├── fixtures/
+│   │   │   └── SOP-REF-570_Piping_Integrity.txt
+│   │   ├── test_rag_chroma.py
+│   │   └── test_e2e_api.py
 │   ├── .env.example
 │   ├── requirements.txt
 │   └── .venv/                 # local only, NOT committed
@@ -137,9 +174,16 @@ Sovereign-AI-Workbench/
 ├── frontend/
 │   ├── src/
 │   │   ├── api/
+│   │   │   └── client.ts
 │   │   ├── components/
-│   │   │   └── DocumentWorkspace.tsx
+│   │   │   ├── DocumentWorkspace.tsx
+│   │   │   ├── Header.tsx
+│   │   │   ├── KnowledgeWorkspace.tsx
+│   │   │   ├── PromptBox.tsx
+│   │   │   ├── ResponseViewer.tsx
+│   │   │   └── SystemStatus.tsx
 │   │   ├── types/
+│   │   │   └── index.ts
 │   │   ├── App.tsx
 │   │   ├── index.css
 │   │   └── main.tsx
@@ -170,10 +214,11 @@ Development was verified with approximately:
 Node.js 22.x
 Python 3.14.x
 Ollama
-qwen3.5:0.8b
+qwen3.5:0.8b (LLM reasoning & Vision)
+nomic-embed-text (Dense 768-dim embeddings)
 ```
 
-A GPU is recommended for practical performance, although the current development model can run on CPU.
+A GPU is recommended for practical performance, although the current development models run on CPU.
 
 ---
 
@@ -194,13 +239,14 @@ Verify Ollama:
 ollama --version
 ```
 
-Pull the model:
+Pull the required local models:
 
 ```cmd
 ollama pull qwen3.5:0.8b
+ollama pull nomic-embed-text
 ```
 
-Verify:
+Verify installed models:
 
 ```cmd
 ollama list
@@ -209,6 +255,7 @@ ollama list
 You should see:
 
 ```text
+nomic-embed-text:latest
 qwen3.5:0.8b
 ```
 
@@ -283,6 +330,9 @@ The important local configuration is:
 ```env
 OLLAMA_BASE_URL=http://127.0.0.1:11434
 DEFAULT_MODEL=qwen3.5:0.8b
+EMBEDDING_PROVIDER=ollama
+EMBEDDING_MODEL=nomic-embed-text
+CHROMA_PERSIST_DIR=data/knowledge_base/chroma
 HOST=127.0.0.1
 PORT=8000
 ```
@@ -325,18 +375,11 @@ Open another terminal:
 curl.exe http://127.0.0.1:8000/api/health
 ```
 
-Then:
+Then check model health and vector database stats:
 
 ```cmd
 curl.exe http://127.0.0.1:8000/api/models/health
-```
-
-The model-health response should indicate that:
-
-```text
-provider = ollama
-default_model = qwen3.5:0.8b
-is_model_available = true
+curl.exe http://127.0.0.1:8000/api/knowledge/stats
 ```
 
 ---
@@ -367,12 +410,6 @@ Vite will print the local URL, normally:
 http://localhost:5173/
 ```
 
-or, if that port is occupied:
-
-```text
-http://localhost:5174/
-```
-
 Use the exact URL printed by Vite.
 
 ---
@@ -387,6 +424,7 @@ Ollama running with:
 
 ```text
 qwen3.5:0.8b
+nomic-embed-text
 ```
 
 ### Terminal 2 — Backend
@@ -416,29 +454,9 @@ Use the **Direct AI Chat** mode and enter a prompt such as:
 Explain sovereign AI in two sentences.
 ```
 
-The request follows:
-
-```text
-Browser
-  ↓
-React
-  ↓
-FastAPI /api/chat
-  ↓
-Model Provider
-  ↓
-Ollama
-  ↓
-qwen3.5:0.8b
-  ↓
-FastAPI
-  ↓
-React
-```
-
 ---
 
-# Document Intelligence
+# Document Intelligence & Compliance Audit
 
 Select **Document Intelligence**.
 
@@ -456,80 +474,33 @@ The workflow is:
 ```text
 Upload
   ↓
-Validation
+Validation & Local Storage
   ↓
-UUID assignment
+Text Extraction (PyMuPDF / Ollama Vision)
   ↓
-Local storage
+Optional Knowledge Ingestion (Index to ChromaDB)
   ↓
-Document registry
+RAG Compliance Audit (Cross-referenced against ChromaDB SOPs)
   ↓
-Extraction
-  ↓
-Local AI analysis
-```
-
-Documents are stored locally at:
-
-```text
-backend/data/documents/
-```
-
-Metadata is stored in:
-
-```text
-backend/data/documents/registry.json
+Audit Report with Verified Grounded Citations
 ```
 
 ---
 
-# PDF Workflow
+# Knowledge Base & Semantic Search (RAG)
 
-1. Open **Document Intelligence**.
-2. Upload a PDF.
-3. Select the document.
-4. Click **Extract Text**.
-5. PyMuPDF extracts text from text-based PDFs.
-6. Select an audit template or enter a custom prompt.
-7. Run the audit.
-8. The local Ollama model analyzes the extracted content.
+Select **Knowledge Base (RAG)**.
 
-Example:
-
-```text
-Identify the highest-risk component and state the immediate required action.
-```
-
----
-
-# Image / Scanned Document Workflow
-
-Upload a PNG, JPG, or JPEG.
-
-The current pipeline is:
-
-```text
-Image
-  ↓
-Local FastAPI backend
-  ↓
-Base64 serialization
-  ↓
-Ollama Vision
-  ↓
-qwen3.5:0.8b
-  ↓
-Extracted/transcribed content
-  ↓
-Local AI audit
-```
+Features:
+1. **Organizational Standards Repository**: Ingest SOPs, engineering manuals, and regulatory compliance guidelines.
+2. **Chunk Vector Inspector**: Inspect chunk token counts, character lengths, and provenance metadata.
+3. **Semantic Search Playground**: Query standards in natural language with real-time cosine similarity ranking against ChromaDB.
 
 ---
 
 # API Endpoints
 
 ## System
-
 ```text
 GET /api/health
 GET /api/models/health
@@ -537,141 +508,61 @@ GET /api/models
 ```
 
 ## AI
-
 ```text
 POST /api/chat
 ```
 
-## Documents
-
+## Documents (Milestone 2)
 ```text
 POST /api/documents/upload
 GET  /api/documents
 GET  /api/documents/{id}
 POST /api/documents/{id}/extract
 POST /api/documents/{id}/analyze
+POST /api/documents/{id}/rag-audit
 ```
 
----
-
-# Example API Tests
-
-## Upload
-
-```cmd
-curl.exe -X POST "http://127.0.0.1:8000/api/documents/upload" -F "file=@test.pdf"
-```
-
-## List
-
-```cmd
-curl.exe "http://127.0.0.1:8000/api/documents"
-```
-
-## Extract
-
-```cmd
-curl.exe -X POST "http://127.0.0.1:8000/api/documents/<DOCUMENT_ID>/extract"
-```
-
-## Analyze
-
-```cmd
-curl.exe -X POST "http://127.0.0.1:8000/api/documents/<DOCUMENT_ID>/analyze" -H "Content-Type: application/json" -d "{"prompt":"Identify the highest risk component and state the immediate required action."}"
-```
-
----
-
-# Model Notes
-
-The current development model is:
-
+## Knowledge Base & Vector Store (Milestone 3)
 ```text
-qwen3.5:0.8b
+POST   /api/knowledge/ingest
+GET    /api/knowledge/documents
+GET    /api/knowledge/documents/{id}
+GET    /api/knowledge/documents/{id}/chunks
+DELETE /api/knowledge/documents/{id}
+POST   /api/knowledge/query
+GET    /api/knowledge/stats
 ```
-
-It supports reasoning/thinking.
-
-The application disables thinking for normal inference using:
-
-```text
-think: false
-```
-
-This was necessary because unrestricted reasoning caused simple requests to generate thousands of additional tokens and become extremely slow on CPU.
-
----
-
-# Git / Team Development
-
-Do not commit generated or machine-specific files:
-
-```text
-backend/.venv/
-backend/.env
-frontend/node_modules/
-__pycache__/
-*.pyc
-```
-
-These are recreated on each developer's machine.
-
-Do commit:
-
-```text
-DOCS/
-backend/app/
-backend/requirements.txt
-backend/.env.example
-frontend/src/
-frontend/package.json
-frontend/package-lock.json
-frontend/vite.config.ts
-README.md
-```
-
-## Recommended Team Workflow
-
-Before starting work:
-
-```cmd
-git pull --rebase origin main
-```
-
-After making changes:
-
-```cmd
-git add .
-git commit -m "Describe your changes"
-git pull --rebase origin main
-git push origin main
-```
-
-Avoid `git push --force` on `main`.
 
 ---
 
 # Verification Status
 
-Milestone 2 was tested from the perspective of a fresh user.
+Milestones 1, 2, and 3 have been verified with automated end-to-end regression test suites.
 
 | Test | Result |
 |---|:---:|
-| Backend health | PASS |
-| Ollama model availability | PASS |
-| PDF upload | PASS |
-| PDF text extraction | PASS |
-| PDF AI audit | PASS |
-| Image upload | PASS |
-| Multimodal vision extraction | PASS |
-| Image AI audit | PASS |
-| Document registry | PASS |
-| Direct AI chat | PASS |
+| Backend system health (`/api/health`) | PASS |
+| Ollama model availability (`/api/models/health`) | PASS |
+| Direct AI chat completion (`/api/chat`) | PASS |
+| PDF document upload (`/api/documents/upload`) | PASS |
+| PDF text extraction via PyMuPDF (`/api/documents/{id}/extract`) | PASS |
+| Multimodal image upload & Vision extraction | PASS |
+| Local AI standard document audit (`/api/documents/{id}/analyze`) | PASS |
+| SOP technical text ingestion (`/api/knowledge/ingest`) | PASS |
+| Genuine 768-dim embeddings (`nomic-embed-text`) | PASS |
+| ChromaDB persistent client initialization | PASS |
+| ChromaDB knowledge stats (`/api/knowledge/stats`) | PASS |
+| ChromaDB document registry & chunk inspector | PASS |
+| Cosine similarity semantic search (`/api/knowledge/query`) | PASS |
+| RAG document compliance audit (`/api/documents/{id}/rag-audit`) | PASS |
+| Verified Grounded Citations generation | PASS |
+| ChromaDB document & vector deletion | PASS |
+| Disk persistence across fresh client instances | PASS |
 | Invalid extension rejection | PASS |
-| Missing document handling | PASS |
-| Frontend production build | PASS |
+| Missing document 404 handling | PASS |
+| Frontend TypeScript & Vite production build | PASS |
 
-**13/13 verification tests passed.**
+**20/20 verification tests passed.**
 
 The detailed implementation state and verification history are maintained in:
 
@@ -684,74 +575,32 @@ DOCS/Memory.md
 # Roadmap
 
 ```text
-Milestone 1
-Local AI Vertical Slice
+Milestone 1 — Local AI Vertical Slice              [COMPLETED]
         ↓
-Milestone 2
-Document Intelligence
+Milestone 2 — Document Intelligence & Vision       [COMPLETED]
         ↓
-Milestone 3
-Local RAG
+Milestone 3 — ChromaDB Vector Store & Local RAG    [COMPLETED]
         ↓
-Milestone 4
-Agent Runtime
+Milestone 4 — Multi-Model Router & HITL Approval   [NEXT]
         ↓
-Milestone 5
-Visual Agent Canvas
+Milestone 5 — Visual Agent Canvas
         ↓
-Milestone 6
-Human-in-the-Loop Approval
+Milestone 6 — Sandboxed Tool Execution Loop
         ↓
-Milestone 7
-Model Routing
-        ↓
-Milestone 8
-Sandboxed Tools
-        ↓
-Milestone 9
-Security / Network Verification
+Milestone 7 — Security & Air-Gap Verification
         ↓
 Final Hackathon Demonstration
 ```
 
 ---
 
-# Next Milestone — Local RAG
-
-The next implementation stage is the local knowledge layer.
-
-Planned pipeline:
-
-```text
-Documents
-    ↓
-Text Extraction
-    ↓
-Chunking
-    ↓
-Local Embeddings
-    ↓
-Vector Database
-    ↓
-Similarity Search
-    ↓
-Retrieved Context
-    ↓
-Local LLM
-    ↓
-Grounded Response
-```
+# Next Milestone — Multi-Model Router & HITL Approval Note (Milestone 4)
 
 Planned capabilities include:
-
-1. Local vector database
-2. Text chunking
-3. Local embedding model
-4. Knowledge-base ingestion
-5. Semantic search
-6. Retrieval API
-7. Context injection
-8. Grounded document analysis
+1. **Multi-Model Auto-Router**: Routing requests dynamically based on task type.
+2. **Agentic Tool Execution Loop**: Multi-step reasoning: Extract $\rightarrow$ Search $\rightarrow$ Audit $\rightarrow$ Draft.
+3. **Human-in-the-Loop (HITL) Approval Checkpoint**: Pausing workflows for human sign-off.
+4. **DOCX Approval Note Generator**: Generating structured `.docx` inspection approval notes on-premise.
 
 ---
 

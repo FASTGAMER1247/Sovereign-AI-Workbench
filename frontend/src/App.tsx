@@ -4,8 +4,9 @@ import { SystemStatus } from './components/SystemStatus'
 import { PromptBox } from './components/PromptBox'
 import { ResponseViewer } from './components/ResponseViewer'
 import { DocumentWorkspace } from './components/DocumentWorkspace'
+import { KnowledgeWorkspace } from './components/KnowledgeWorkspace'
 import { sendChat } from './api/client'
-import { MessageSquare, FileText } from 'lucide-react'
+import { MessageSquare, FileText, Database } from 'lucide-react'
 import type { AppSystemState, ChatResponse } from './types'
 
 const INITIAL_SYSTEM_STATE: AppSystemState = {
@@ -15,7 +16,7 @@ const INITIAL_SYSTEM_STATE: AppSystemState = {
   errorMessage: null,
 }
 
-type WorkbenchTab = 'documents' | 'chat'
+type WorkbenchTab = 'documents' | 'knowledge' | 'chat'
 
 function App() {
   const [activeTab, setActiveTab] = useState<WorkbenchTab>('documents')
@@ -56,7 +57,7 @@ function App() {
       <Header />
 
       <main className="main-content">
-        <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <h1 className="page-title">Sovereign AI Workbench</h1>
             <p className="page-subtitle">
@@ -97,6 +98,27 @@ function App() {
             </button>
 
             <button
+              onClick={() => setActiveTab('knowledge')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                fontSize: '12px',
+                fontWeight: 600,
+                borderRadius: 'var(--radius-sm)',
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === 'knowledge' ? 'var(--color-accent)' : 'transparent',
+                color: activeTab === 'knowledge' ? '#fff' : 'var(--color-text-secondary)',
+                transition: 'all var(--transition-fast)',
+              }}
+            >
+              <Database size={13} />
+              Knowledge Base (RAG)
+            </button>
+
+            <button
               onClick={() => setActiveTab('chat')}
               style={{
                 display: 'flex',
@@ -127,6 +149,8 @@ function App() {
         {/* Active Tab View */}
         {activeTab === 'documents' ? (
           <DocumentWorkspace systemState={systemState} />
+        ) : activeTab === 'knowledge' ? (
+          <KnowledgeWorkspace systemState={systemState} />
         ) : (
           <>
             {/* Prompt input */}

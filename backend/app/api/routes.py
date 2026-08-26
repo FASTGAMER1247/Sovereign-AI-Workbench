@@ -10,9 +10,19 @@ from app.models.schemas import (
     DocumentExtractionResponse,
     DocumentResponse,
     HealthResponse,
+    KnowledgeChunk,
+    KnowledgeDocument,
+    KnowledgeIngestRequest,
+    KnowledgeIngestResponse,
+    KnowledgeQueryRequest,
+    KnowledgeQueryResponse,
+    KnowledgeStatsResponse,
     ModelHealthResponse,
+    RAGAuditRequest,
+    RAGAuditResponse,
 )
 from app.services.document_service import DocumentService, get_document_service
+from app.services.knowledge_service import KnowledgeService, get_knowledge_service
 from app.services.model_service import ModelService, get_model_service
 
 logger = logging.getLogger(__name__)
@@ -127,4 +137,179 @@ async def analyze_document(
 ) -> DocumentAnalysisResponse:
     """Run local AI analysis on a document."""
     return await doc_service.analyze_document(document_id, request)
+
+
+@router.post("/documents/{document_id}/rag-audit", response_model=RAGAuditResponse)
+async def rag_audit_document(
+    document_id: str,
+    request: RAGAuditRequest = RAGAuditRequest(),
+    doc_service: DocumentService = Depends(get_document_service),
+) -> RAGAuditResponse:
+    """Run RAG-grounded document audit cross-referencing organizational standards and SOPs."""
+    return await doc_service.rag_audit_document(document_id, request)
+
+
+# ─── Knowledge Base & Vector Store Endpoints (Milestone 3) ───
+
+_global_knowledge_service = None
+_global_retrieval_service = None
+
+
+def get_knowledge_service(settings: Settings = Depends(get_settings)) -> KnowledgeService:
+    global _global_knowledge_service
+    if _global_knowledge_service is None:
+        from app.services.embedding import get_embedding_provider
+        from app.services.vector_store import get_vector_store
+        
+        embedding_provider = get_embedding_provider(settings)
+        vector_store = get_vector_store(settings)
+        _global_knowledge_service = KnowledgeService(
+            vector_store=vector_store,
+            embedding_provider=embedding_provider,
+            chunk_size=settings.CHUNK_SIZE,
+            chunk_overlap=settings.CHUNK_OVERLAP,
+        )
+    return _global_knowledge_service
+
+
+def get_retrieval_service(settings: Settings = Depends(get_settings)):
+    global _global_retrieval_service
+    if _global_retrieval_service is None:
+        from app.services.embedding import get_embedding_provider
+        from app.services.vector_store import get_vector_store
+        from app.services.retrieval_service import RetrievalService
+
+        embedding_provider = get_embedding_provider(settings)
+        vector_store = get_vector_store(settings)
+        _global_retrieval_service = RetrievalService(
+            embedding_provider=embedding_provider,
+            vector_store=vector_store,
+        )
+    return _global_retrieval_service
+
+
+@router.post("/knowledge/ingest", response_model=KnowledgeIngestResponse, status_code=status.HTTP_201_CREATED)
+async def ingest_knowledge(
+    request: KnowledgeIngestRequest,
+    kb_service: KnowledgeService = Depends(get_knowledge_service),
+    doc_service: DocumentService = Depends(get_document_service),
+) -> KnowledgeIngestResponse:
+    """Ingest a registered document or direct standard text into the persistent ChromaDB vector store."""
+    if request.document_id:
+        doc = doc_service.get_document(request.document_id)
+        if not doc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Document with ID '{request.document_id}' not found in registry."
+            )
+        
+        # Ensure document text is extracted
+        raw_doc = doc_service._registry.get(request.document_id, {})
+        extracted_text = raw_doc.get("extracted_text")
+        if not extracted_text:
+            extracted_res = await doc_service.extract_text(request.document_id)
+            extracted_text = extracted_res.extracted_text
+
+        from app.models.schemas import DocumentRecord
+        doc_record = DocumentRecord(
+            document_id=doc.id,
+            original_filename=doc.filename,
+            file_type=doc.file_type,
+            file_size_bytes=doc.size_bytes,
+            storage_path=raw_doc.get("storage_path", ""),
+            upload_timestamp=raw_doc.get("created_at"),
+            extracted_text=extracted_text,
+        )
+
+        return await kb_service.ingest_extracted_document(
+            doc_record=doc_record,
+            extracted_text=extracted_text,
+        )
+    elif request.content and request.title:
+        return await kb_service.ingest_text(
+            title=request.title,
+            content=request.content,
+            metadata=request.metadata or {"source": "direct_text_entry"},
+        )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Must provide either 'document_id' or both 'title' and 'content'."
+        )
+
+
+@router.get("/knowledge/documents", response_model=List[KnowledgeDocument])
+async def list_knowledge_documents(
+    kb_service: KnowledgeService = Depends(get_knowledge_service),
+) -> List[KnowledgeDocument]:
+    """List all organizational documents and standards indexed in ChromaDB."""
+    return await kb_service.get_all_documents()
+
+
+@router.get("/knowledge/documents/{document_id}", response_model=KnowledgeDocument)
+async def get_knowledge_document(
+    document_id: str,
+    kb_service: KnowledgeService = Depends(get_knowledge_service),
+) -> KnowledgeDocument:
+    """Get metadata for a specific indexed document."""
+    docs = await kb_service.get_all_documents()
+    for d in docs:
+        if d.id == document_id:
+            return d
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Knowledge document with ID '{document_id}' not found in ChromaDB."
+    )
+
+
+@router.get("/knowledge/documents/{document_id}/chunks", response_model=List[KnowledgeChunk])
+async def get_knowledge_document_chunks(
+    document_id: str,
+    kb_service: KnowledgeService = Depends(get_knowledge_service),
+) -> List[KnowledgeChunk]:
+    """Inspect all chunks for a specific indexed document from ChromaDB."""
+    chunks = await kb_service.get_document_chunks(document_id)
+    if not chunks:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No chunks found for document ID '{document_id}' in ChromaDB."
+        )
+    return chunks
+
+
+@router.delete("/knowledge/documents/{document_id}")
+async def delete_knowledge_document(
+    document_id: str,
+    kb_service: KnowledgeService = Depends(get_knowledge_service),
+) -> Dict[str, Any]:
+    """Delete a document and all associated embeddings from ChromaDB."""
+    deleted = await kb_service.delete_document(document_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Knowledge document '{document_id}' not found in ChromaDB."
+        )
+    return {"status": "deleted", "document_id": document_id}
+
+
+@router.post("/knowledge/query", response_model=KnowledgeQueryResponse)
+async def query_knowledge(
+    request: KnowledgeQueryRequest,
+    retrieval_service = Depends(get_retrieval_service),
+) -> KnowledgeQueryResponse:
+    """Execute natural language semantic search across indexed standards in ChromaDB."""
+    return await retrieval_service.search(
+        query=request.query,
+        top_k=request.top_k,
+        filter_document_id=request.filter_document_id,
+    )
+
+
+@router.get("/knowledge/stats", response_model=KnowledgeStatsResponse)
+async def get_knowledge_stats(
+    kb_service: KnowledgeService = Depends(get_knowledge_service),
+) -> KnowledgeStatsResponse:
+    """Get ChromaDB vector store statistics, total chunks, and active embedding model info."""
+    return kb_service.get_stats()
+
 
