@@ -9,7 +9,8 @@
 | Milestone 1 — Local AI Vertical Slice | COMPLETE |
 | Milestone 2 — Local Document Intelligence & Ingestion | COMPLETE |
 | Milestone 3 — Local Vector Store & RAG | COMPLETE |
-| Milestone 4 — Multi-Model Router & HITL Approval Note | NEXT |
+| Milestone 4 — Multi-Model Router, Workflow Engine & HITL DOCX | COMPLETE |
+| Milestone 5 — Visual Agent Canvas & Execution Graph | NEXT |
 
 The current system provides a working local pipeline:
 
@@ -20,12 +21,14 @@ FastAPI Backend
       ↓
 Ollama (qwen3.5:0.8b & nomic-embed-text) + ChromaDB
       ↓
-Grounded RAG Compliance Audits & Semantic Search
+Autonomous Hero Workflow Engine + Multi-Model Router
       ↓
-React Frontend
+Human-in-the-Loop (HITL) Checkpoint (PAUSE & SIGN-OFF)
+      ↓
+On-Premise Formatted DOCX Compliance Approval Note (.docx)
 ```
 
-Document and Knowledge workflows are fully implemented:
+Document, Knowledge, and Autonomous Agentic workflows are fully implemented:
 
 ```text
 Confidential PDF / Image / Technical SOPs
@@ -36,9 +39,11 @@ PyMuPDF / Ollama Vision & Dense 768-dim Embeddings
     ↓
 Local Semantic Retrieval & Cosine Similarity Ranking
     ↓
-Local RAG-Grounded AI Compliance Audit (qwen3.5:0.8b)
+Autonomous Hero Pipeline (Step 1: Extract → Step 2: Search SOPs → Step 3: RAG Audit)
     ↓
-Audit Findings with Verified Source SOP Citations
+Step 4: Human-in-the-Loop Checkpoint (Pipeline Pauses for Approver Sign-off)
+    ↓
+Step 5: Formatted Industrial DOCX Approval Note Compilation & Direct Download
 ```
 
 ---
@@ -88,6 +93,19 @@ Audit Findings with Verified Source SOP Citations
 - Grounded SOP citation cards in Document Workspace with similarity match percentages
 - 100% on-premise execution with zero cloud calls
 
+## Milestone 4
+
+- **Multi-Model Auto-Router**: Dynamic capability inference matching task requirements (`vision`, `coding`, `reasoning`, `rag_audit`, `embeddings`) to optimal local open-weight models with fallback handling.
+- **Autonomous Hero Workflow Engine**: Stateful 5-step industrial execution pipeline:
+  1. `Document Extraction & OCR`
+  2. `Local SOP Knowledge Search` (ChromaDB)
+  3. `RAG Compliance & Risk Audit`
+  4. `Human-in-the-Loop (HITL) Checkpoint` (Mandatory pause for human approval)
+  5. `DOCX Approval Note Generation`
+- **Interactive Human-in-the-Loop (HITL) Checkpoint**: Real-time pipeline pausing at Step 4; lets human approvers review findings, edit mandated remediation timelines, and approve or reject.
+- **On-Premise DOCX Generator**: Generates styled `.docx` executive approval notes with defect findings tables, ChromaDB citations table, risk matrix, mandatory remediation timeline, and human sign-off block.
+- **Agent Workflows & HITL Workspace**: 4th navigation tab with live pipeline graph, step stepper, interactive review card, and direct `.docx` artifact download.
+
 ---
 
 # Architecture
@@ -96,17 +114,17 @@ Audit Findings with Verified Source SOP Citations
 ┌───────────────────────────────────────────────────────────┐
 │                    LOCAL MACHINE                          │
 │                                                           │
-│  React + Vite (3 Workspace Modes)                         │
+│  React + Vite (4 Workspace Modes)                         │
 │       │                                                   │
 │       │ HTTP / /api                                      │
 │       ▼                                                   │
 │  FastAPI + Uvicorn                                       │
 │       │                                                   │
-│       ├──────► Local Document Storage                    │
-│       │        backend/data/documents/                    │
-│       │                                                   │
-│       ├──────► ChromaDB Persistent Vector Store           │
-│       │        backend/data/knowledge_base/chroma/        │
+│       ├──────► Model Router Service (Task & Model Dispatch)│
+│       ├──────► Autonomous Workflow Engine (Hero Pipeline) │
+│       ├──────► On-Premise DOCX Generator (Artifacts)      │
+│       ├──────► Local Document Storage (PDF/Images)        │
+│       ├──────► ChromaDB Persistent Vector Store (SOPs)    │
 │       │                                                   │
 │       ▼                                                   │
 │  Ollama :11434                                           │
@@ -151,13 +169,17 @@ Sovereign-AI-Workbench/
 │   │   │   │   ├── base.py
 │   │   │   │   └── chroma_store.py
 │   │   │   ├── document_service.py
+│   │   │   ├── docx_service.py
 │   │   │   ├── knowledge_service.py
 │   │   │   ├── model_service.py
 │   │   │   ├── rag_service.py
-│   │   │   └── retrieval_service.py
+│   │   │   ├── retrieval_service.py
+│   │   │   ├── router_service.py
+│   │   │   └── workflow_engine.py
 │   │   ├── config.py
 │   │   └── main.py
 │   ├── data/
+│   │   ├── artifacts/
 │   │   ├── documents/
 │   │   │   └── registry.json
 │   │   └── knowledge_base/
@@ -165,8 +187,11 @@ Sovereign-AI-Workbench/
 │   ├── tests/
 │   │   ├── fixtures/
 │   │   │   └── SOP-REF-570_Piping_Integrity.txt
+│   │   ├── test_docx_service.py
+│   │   ├── test_e2e_all_milestones.py
 │   │   ├── test_rag_chroma.py
-│   │   └── test_e2e_api.py
+│   │   ├── test_router.py
+│   │   └── test_workflow_engine.py
 │   ├── .env.example
 │   ├── requirements.txt
 │   └── .venv/                 # local only, NOT committed
@@ -181,7 +206,8 @@ Sovereign-AI-Workbench/
 │   │   │   ├── KnowledgeWorkspace.tsx
 │   │   │   ├── PromptBox.tsx
 │   │   │   ├── ResponseViewer.tsx
-│   │   │   └── SystemStatus.tsx
+│   │   │   ├── SystemStatus.tsx
+│   │   │   └── WorkflowWorkspace.tsx
 │   │   ├── types/
 │   │   │   └── index.ts
 │   │   ├── App.tsx
@@ -533,11 +559,21 @@ POST   /api/knowledge/query
 GET    /api/knowledge/stats
 ```
 
+## Multi-Model Router & Agentic Workflows (Milestone 4)
+```text
+POST /api/router/route
+POST /api/workflows/execute
+GET  /api/workflows/executions
+GET  /api/workflows/executions/{id}
+POST /api/workflows/executions/{id}/approve
+GET  /api/workflows/executions/{id}/artifact
+```
+
 ---
 
 # Verification Status
 
-Milestones 1, 2, and 3 have been verified with automated end-to-end regression test suites.
+Milestones 1, 2, 3, and 4 have been verified with automated end-to-end regression test suites.
 
 | Test | Result |
 |---|:---:|
@@ -560,9 +596,17 @@ Milestones 1, 2, and 3 have been verified with automated end-to-end regression t
 | Disk persistence across fresh client instances | PASS |
 | Invalid extension rejection | PASS |
 | Missing document 404 handling | PASS |
-| Frontend TypeScript & Vite production build | PASS |
+| Multi-Model Auto-Router task inference (`/api/router/route`) | PASS |
+| Multi-Model Vision, Coding, RAG & Embedding classification | PASS |
+| DOCX Generation with tables, citations & signatures (`test_docx_service.py`) | PASS |
+| Autonomous Hero Workflow execution (`/api/workflows/execute`) | PASS |
+| Workflow live polling & execution graph state tracking | PASS |
+| Human-in-the-Loop Checkpoint (PAUSE in `waiting_for_approval`) | PASS |
+| Human Sign-off Approval decision (`/api/workflows/executions/{id}/approve`) | PASS |
+| Generated DOCX Approval Note download (`/api/workflows/executions/{id}/artifact`) | PASS |
+| Frontend TypeScript & Vite production build (`npm run build`) | PASS |
 
-**20/20 verification tests passed.**
+**28/28 verification tests passed.**
 
 The detailed implementation state and verification history are maintained in:
 
@@ -581,9 +625,9 @@ Milestone 2 — Document Intelligence & Vision       [COMPLETED]
         ↓
 Milestone 3 — ChromaDB Vector Store & Local RAG    [COMPLETED]
         ↓
-Milestone 4 — Multi-Model Router & HITL Approval   [NEXT]
+Milestone 4 — Multi-Model Router & HITL DOCX       [COMPLETED]
         ↓
-Milestone 5 — Visual Agent Canvas
+Milestone 5 — Visual Agent Canvas & Flow Graph     [NEXT]
         ↓
 Milestone 6 — Sandboxed Tool Execution Loop
         ↓
@@ -594,13 +638,13 @@ Final Hackathon Demonstration
 
 ---
 
-# Next Milestone — Multi-Model Router & HITL Approval Note (Milestone 4)
+# Next Milestone — Visual Agent Canvas & Execution Graph (Milestone 5)
 
 Planned capabilities include:
-1. **Multi-Model Auto-Router**: Routing requests dynamically based on task type.
-2. **Agentic Tool Execution Loop**: Multi-step reasoning: Extract $\rightarrow$ Search $\rightarrow$ Audit $\rightarrow$ Draft.
-3. **Human-in-the-Loop (HITL) Approval Checkpoint**: Pausing workflows for human sign-off.
-4. **DOCX Approval Note Generator**: Generating structured `.docx` inspection approval notes on-premise.
+1. **React Flow Visual Canvas**: Interactive drag-and-drop node graph for designing custom agentic workflows.
+2. **Dynamic Node Configuration**: Custom inspector panels for Document Loader, Router, SOP Retriever, LLM Auditor, HITL Gate, and Artifact Exporter nodes.
+3. **Real-time Live Execution Highlighting**: Visual edge animation and node status pulsation matching background workflow state machine events.
+4. **Zustand State Store**: Synchronized flow state and execution logs.
 
 ---
 

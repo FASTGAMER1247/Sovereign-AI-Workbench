@@ -180,4 +180,82 @@ export interface RAGAuditResponse {
   created_at: string
 }
 
+// ─── Multi-Model Router & Workflow Types (Milestone 4) ───
+
+export interface ModelRouteRequest {
+  task_type?: 'chat' | 'reasoning' | 'vision' | 'coding' | 'rag_audit' | 'embeddings' | string
+  prompt?: string
+  has_images?: boolean
+  preferred_model?: string
+}
+
+export interface ModelRouteResponse {
+  task_type: string
+  selected_model: string
+  provider: string
+  capabilities: string[]
+  reason: string
+  fallback_model?: string | null
+}
+
+export interface WorkflowStep {
+  id: string
+  name: string
+  title: string
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'waiting_approval'
+  tool_name?: string | null
+  output_summary?: string | null
+  output_data?: Record<string, unknown>
+  error?: string | null
+  started_at?: string | null
+  completed_at?: string | null
+}
+
+export interface WorkflowExecution {
+  id: string
+  workflow_type: string
+  status: 'running' | 'waiting_for_approval' | 'approved' | 'rejected' | 'completed' | 'failed'
+  document_id: string
+  document_name: string
+  steps: WorkflowStep[]
+  current_step_index: number
+  extracted_text?: string | null
+  grounded_citations: GroundedCitation[]
+  audit_analysis?: string | null
+  approval_status?: 'waiting' | 'approved' | 'rejected' | null
+  reviewer_name?: string | null
+  reviewer_notes?: string | null
+  edited_recommendations?: string | null
+  artifact_filename?: string | null
+  artifact_path?: string | null
+  artifact_url?: string | null
+  duration_ms?: number | null
+  error?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface WorkflowExecuteRequest {
+  document_id: string
+  custom_prompt?: string
+  sop_document_ids?: string[]
+  reviewer_name?: string
+}
+
+export interface ApprovalDecisionRequest {
+  decision: 'approve' | 'reject'
+  reviewer_name: string
+  reviewer_notes?: string
+  edited_recommendations?: string
+}
+
+export interface ApprovalDecisionResponse {
+  execution_id: string
+  decision: string
+  status: string
+  artifact_ready: boolean
+  artifact_url?: string | null
+  message: string
+}
+
 

@@ -70,3 +70,28 @@ class RetrievalService:
         """
         resp = await self.search(query=query, top_k=top_k, filter_document_id=filter_document_id)
         return resp.results
+
+    async def retrieve_relevant_chunks(
+        self,
+        query: str,
+        top_k: int = 4,
+        filter_document_id: Optional[str] = None,
+    ) -> List[ScoredKnowledgeChunk]:
+        """Alias for retrieve_top_chunks."""
+        return await self.retrieve_top_chunks(query=query, top_k=top_k, filter_document_id=filter_document_id)
+
+
+# Singleton factory
+_retrieval_service_instance: Optional[RetrievalService] = None
+
+
+def get_retrieval_service() -> RetrievalService:
+    global _retrieval_service_instance
+    if _retrieval_service_instance is None:
+        from app.services.embedding import get_embedding_provider
+        from app.services.vector_store import get_vector_store
+        _retrieval_service_instance = RetrievalService(
+            embedding_provider=get_embedding_provider(),
+            vector_store=get_vector_store(),
+        )
+    return _retrieval_service_instance

@@ -1,8 +1,12 @@
 import logging
-from typing import Any, Dict, List
+import os
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
 from app.config import Settings, get_settings
 from app.models.schemas import (
+    ApprovalDecisionRequest,
+    ApprovalDecisionResponse,
     ChatRequest,
     ChatResponse,
     DocumentAnalysisRequest,
@@ -18,12 +22,19 @@ from app.models.schemas import (
     KnowledgeQueryResponse,
     KnowledgeStatsResponse,
     ModelHealthResponse,
+    ModelRouteRequest,
+    ModelRouteResponse,
     RAGAuditRequest,
     RAGAuditResponse,
+    WorkflowExecuteRequest,
+    WorkflowExecution,
 )
 from app.services.document_service import DocumentService, get_document_service
 from app.services.knowledge_service import KnowledgeService, get_knowledge_service
 from app.services.model_service import ModelService, get_model_service
+from app.services.retrieval_service import RetrievalService, get_retrieval_service
+from app.services.router_service import ModelRouterService, get_router_service
+from app.services.workflow_engine import WorkflowEngine, get_workflow_engine
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["Sovereign AI"])
@@ -311,5 +322,136 @@ async def get_knowledge_stats(
 ) -> KnowledgeStatsResponse:
     """Get ChromaDB vector store statistics, total chunks, and active embedding model info."""
     return kb_service.get_stats()
+
+
+# ─── Multi-Model Router Endpoints (Milestone 4) ───
+
+@router.post("/router/route", response_model=ModelRouteResponse)
+async def route_task(
+    request: ModelRouteRequest,
+    router_service: ModelRouterService = Depends(get_router_service),
+) -> ModelRouteResponse:
+    """Evaluate task requirements and determine the optimal local open-weight model."""
+    return await router_service.route_task(request)
+
+
+# ─── Agentic Workflow & HITL Endpoints (Milestone 4) ───
+
+@router.post("/workflows/execute", response_model=WorkflowExecution, status_code=status.HTTP_201_CREATED)
+async def execute_hero_workflow(
+    request: WorkflowExecuteRequest,
+    workflow_engine: WorkflowEngine = Depends(get_workflow_engine),
+) -> WorkflowExecution:
+    """
+    Trigger the autonomous Hero Workflow for an uploaded document.
+    Executes extraction, ChromaDB SOP retrieval, and RAG compliance audit, then pauses at the HITL Checkpoint.
+    """
+    try:
+        return await workflow_engine.start_hero_execution(
+            document_id=request.document_id,
+            custom_prompt=request.custom_prompt,
+            sop_document_ids=request.sop_document_ids,
+            reviewer_name=request.reviewer_name,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
+    except Exception as e:
+        logger.error(f"Failed to trigger workflow execution: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Workflow execution initialization failed: {str(e)}",
+        )
+
+
+@router.get("/workflows/executions", response_model=List[WorkflowExecution])
+async def list_workflow_executions(
+    workflow_engine: WorkflowEngine = Depends(get_workflow_engine),
+) -> List[WorkflowExecution]:
+    """List all workflow execution sessions and their live statuses."""
+    return workflow_engine.list_executions()
+
+
+@router.get("/workflows/executions/{execution_id}", response_model=WorkflowExecution)
+async def get_workflow_execution(
+    execution_id: str,
+    workflow_engine: WorkflowEngine = Depends(get_workflow_engine),
+) -> WorkflowExecution:
+    """Get the real-time execution graph, step statuses, and findings for a specific session."""
+    execution = workflow_engine.get_execution(execution_id)
+    if not execution:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Workflow execution session '{execution_id}' not found.",
+        )
+    return execution
+
+
+@router.post("/workflows/executions/{execution_id}/cancel", response_model=WorkflowExecution)
+async def cancel_workflow_execution(
+    execution_id: str,
+    workflow_engine: WorkflowEngine = Depends(get_workflow_engine),
+) -> WorkflowExecution:
+    """Cancel an in-flight workflow execution session immediately."""
+    execution = workflow_engine.cancel_execution(execution_id)
+    if not execution:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Workflow execution session '{execution_id}' not found.",
+        )
+    return execution
+
+
+@router.post("/workflows/executions/{execution_id}/approve", response_model=ApprovalDecisionResponse)
+async def submit_workflow_approval(
+    execution_id: str,
+    request: ApprovalDecisionRequest,
+    workflow_engine: WorkflowEngine = Depends(get_workflow_engine),
+) -> ApprovalDecisionResponse:
+    """
+    Human-in-the-Loop (HITL) Checkpoint decision submission.
+    Approves or rejects the compliance audit and triggers DOCX approval note generation upon approval.
+    """
+    try:
+        return await workflow_engine.submit_human_decision(execution_id, request)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except Exception as e:
+        logger.error(f"Approval submission failed for {execution_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Approval submission failed: {str(e)}",
+        )
+
+
+@router.get("/workflows/executions/{execution_id}/artifact")
+async def download_workflow_artifact(
+    execution_id: str,
+    workflow_engine: WorkflowEngine = Depends(get_workflow_engine),
+):
+    """Download the generated DOCX compliance approval note artifact."""
+    execution = workflow_engine.get_execution(execution_id)
+    if not execution:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Workflow execution '{execution_id}' not found.",
+        )
+
+    if not execution.artifact_path or not os.path.exists(execution.artifact_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Artifact for execution '{execution_id}' has not been generated or approved yet.",
+        )
+
+    return FileResponse(
+        path=execution.artifact_path,
+        filename=execution.artifact_filename or f"Approval_Note_{execution_id[:8]}.docx",
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
 
 

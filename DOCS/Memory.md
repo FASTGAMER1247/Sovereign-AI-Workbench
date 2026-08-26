@@ -62,25 +62,25 @@ A user should be able to:
 
 ## Overall Status
 
-IN PROGRESS — MILESTONE 3 COMPLETE
+IN PROGRESS — MILESTONE 4 COMPLETE
 
 ## Current Phase
 
-PHASE 3 / DAY 3 — LOCAL VECTOR STORE & RETRIEVAL-AUGMENTED GENERATION (RAG)
+PHASE 4 / DAY 4 — MULTI-MODEL ROUTER, AGENTIC WORKFLOW & HITL DOCX
 
 ## Current Day
 
-DAY 3 / 7
+DAY 4 / 7
 
 ## Overall Completion
 
-45%
+60%
 
 ## Current Objective
 
-Milestone 3 complete. 100% on-premise persistent vector store (`backend/data/knowledge_base/`), document chunking engine, local embedding service (Ollama + local vectorizer fallback), semantic similarity search, RAG-grounded document compliance audit with exact SOP citations, and React Knowledge Workspace are implemented and verified.
+Milestone 4 complete. Multi-Model Auto-Router (`router_service.py`), stateful 5-step autonomous Hero Workflow Engine (`workflow_engine.py`) with real Human-in-the-Loop approval checkpoint (pausing execution in `waiting_for_approval`), on-premise `.docx` document generation engine (`docx_service.py`), and React Agent Workflows & HITL Workspace (`WorkflowWorkspace.tsx`) are implemented and fully verified with automated test suites.
 
-Next: Milestone 4 — Multi-Model Auto-Router, Agentic Tool Execution Loop, Human-in-the-Loop (HITL) Approval Checkpoint, and DOCX Approval Note Generator.
+Next: Milestone 5 — Visual Agent Canvas & Interactive Node Flow Graph (React Flow + Zustand).
 
 ---
 
@@ -105,9 +105,14 @@ Next: Milestone 4 — Multi-Model Auto-Router, Agentic Tool Execution Loop, Huma
 - `DELETE /api/knowledge/documents/{document_id}` → Remove document and vectors from knowledge base ✅
 - `POST /api/knowledge/query` → Fast cosine similarity semantic search across all indexed chunks (< 2ms) ✅
 - `GET /api/knowledge/stats` → Vector store statistics and active embedding engine info ✅
-- React + Vite + TypeScript frontend with 3 workspace modes: **Document Intelligence**, **Knowledge Base (RAG)**, and **Direct AI Chat** ✅
-- Knowledge Workspace UI with SOP repository, chunk inspector modal, and interactive semantic search playground ✅
-- Grounded SOP citation cards in Document Workspace showing source standard, page/chunk number, and relevance percentage ✅
+- `POST /api/router/route` → Dynamic capability inference matching task requirements (`vision`, `coding`, `reasoning`, `rag_audit`, `embeddings`) to optimal local open-weight models ✅
+- `POST /api/workflows/execute` → Trigger stateful 5-step autonomous Hero Workflow (Extract → SOP Search → RAG Audit → HITL Pause → DOCX Generation) ✅
+- `GET /api/workflows/executions` → List all workflow execution sessions and live statuses ✅
+- `GET /api/workflows/executions/{id}` → Retrieve execution graph, current step status, extracted findings, and citations ✅
+- `POST /api/workflows/executions/{id}/approve` → Submit human sign-off decision (approves audit, applies edited recommendations, and triggers DOCX creation) ✅
+- `GET /api/workflows/executions/{id}/artifact` → Download formatted `.docx` industrial compliance approval note with tables, citations, and signatures ✅
+- React + Vite + TypeScript frontend with 4 workspace modes: **Document Intelligence**, **Knowledge Base (RAG)**, **Agent Workflows & HITL**, and **Direct AI Chat** ✅
+- Agent Workflows & HITL Workspace with live pipeline graph, stepper, interactive review card, and `.docx` download button ✅
 - Zero external API calls — 100% on-premise execution with local persistence ✅
 
 ---
@@ -566,6 +571,24 @@ YYYY-MM-DD
 
 # 10. LATEST CHANGES
 
+### 2026-08-26 — Milestone 4: Multi-Model Router, Autonomous Workflow Engine & HITL DOCX
+
+Implemented, verified, and integrated Milestone 4:
+- **Multi-Model Auto-Router (`router_service.py`)**: Dynamic capability routing inspecting prompts and task metadata to select optimal local open-weight models (`vision`, `coding`, `reasoning`, `rag_audit`, `embeddings`) with graceful fallbacks and user override support.
+- **Autonomous Hero Workflow Engine (`workflow_engine.py`)**: Implemented stateful 5-step industrial execution engine (`industrial_hero_audit`):
+  1. `step_extract` (Document text & OCR via `DocumentService`)
+  2. `step_search_sops` (Local SOP retrieval via ChromaDB `RetrievalService`)
+  3. `step_audit` (Grounded compliance evaluation via `RAGService`)
+  4. `step_hitl_checkpoint` (**PAUSES** execution graph in `waiting_for_approval` state for human sign-off)
+  5. `step_generate_docx` (Resumes upon human approval to generate styled `.docx` note; halts on rejection)
+- **On-Premise DOCX Generator (`docx_service.py`)**: Implemented styled industrial approval note generation using `python-docx` containing executive summary, defect findings table, ChromaDB grounded citations table, risk matrix, mandatory remediation timeline, and human sign-off block.
+- **Agent Workflows & HITL UI (`WorkflowWorkspace.tsx`)**: Created comprehensive React interface with live pipeline graph, step execution stepper, auto-router tester, interactive HITL Review Card with editable recommendations, and direct `.docx` artifact download.
+- **Verification Suite**:
+  - `test_router.py`: Verified vision, coding, RAG, and embedding task routing (100% PASS).
+  - `test_docx_service.py`: Verified DOCX structure, styling, tables, citations, and signatures (37KB file, 100% PASS).
+  - `test_workflow_engine.py`: Verified end-to-end execution, Step 4 HITL pause, approval resume, and `.docx` artifact creation (100% PASS).
+  - Frontend: `npm run build` passed with 0 TypeScript/Vite errors.
+
 ### 2026-08-26 — Milestone 3: Local Vector Store & RAG Architecture Hardening
 
 Audited, hardened, and verified Milestone 3 to strict sovereign architectural standards:
@@ -610,11 +633,18 @@ backend/app/services/document_service.py
 backend/app/services/knowledge_service.py
 backend/app/services/retrieval_service.py
 backend/app/services/rag_service.py
+backend/app/services/router_service.py
+backend/app/services/docx_service.py
+backend/app/services/workflow_engine.py
 backend/app/api/routes.py
 backend/app/main.py
 backend/tests/fixtures/SOP-REF-570_Piping_Integrity.txt
 backend/tests/test_rag_chroma.py
 backend/tests/test_e2e_api.py
+backend/tests/test_router.py
+backend/tests/test_docx_service.py
+backend/tests/test_workflow_engine.py
+backend/tests/test_e2e_all_milestones.py
 frontend/src/types/index.ts
 frontend/src/api/client.ts
 frontend/src/components/Header.tsx
@@ -623,6 +653,7 @@ frontend/src/components/PromptBox.tsx
 frontend/src/components/ResponseViewer.tsx
 frontend/src/components/DocumentWorkspace.tsx
 frontend/src/components/KnowledgeWorkspace.tsx
+frontend/src/components/WorkflowWorkspace.tsx
 frontend/src/App.tsx
 frontend/src/index.css
 ```
@@ -637,6 +668,9 @@ frontend/src/index.css
 | -------------------- | ----------------------------------------- | ------------- |
 | Backend Entry        | `backend/app/main.py`                     | Implemented   |
 | API Routes           | `backend/app/api/routes.py`               | Implemented   |
+| Model Router Service | `backend/app/services/router_service.py`  | Implemented   |
+| Workflow Engine      | `backend/app/services/workflow_engine.py` | Implemented   |
+| DOCX Service         | `backend/app/services/docx_service.py`    | Implemented   |
 | Model Provider ABC   | `backend/app/models/base.py`              | Implemented   |
 | Ollama Provider      | `backend/app/models/ollama_provider.py`   | Implemented   |
 | Embedding Providers  | `backend/app/services/embedding/`         | Implemented   |
@@ -646,13 +680,16 @@ frontend/src/index.css
 | Knowledge Service    | `backend/app/services/knowledge_service.py`| Implemented  |
 | Document Service     | `backend/app/services/document_service.py`| Implemented   |
 | Frontend Entry       | `frontend/src/App.tsx`                    | Implemented   |
+| Workflow Workspace   | `frontend/src/components/WorkflowWorkspace.tsx` | Implemented |
 | Knowledge Workspace  | `frontend/src/components/KnowledgeWorkspace.tsx` | Implemented |
 | Document Workspace   | `frontend/src/components/DocumentWorkspace.tsx` | Implemented |
 | System Status Widget | `frontend/src/components/SystemStatus.tsx`| Implemented   |
 | Direct Chat UI       | `frontend/src/components/PromptBox.tsx`    | Implemented   |
 | API Client           | `frontend/src/api/client.ts`              | Implemented   |
 | Document Registry    | `backend/data/documents/registry.json`    | Implemented   |
+| Document Registry    | `backend/data/documents/registry.json`    | Implemented   |
 | ChromaDB Store       | `backend/data/knowledge_base/chroma/`     | Implemented   |
+| Artifacts Store      | `backend/data/artifacts/`                 | Implemented   |
 
 ---
 
@@ -678,19 +715,21 @@ GET    /api/knowledge/documents/{document_id}/chunks
 DELETE /api/knowledge/documents/{document_id}
 POST   /api/knowledge/query
 GET    /api/knowledge/stats
+POST   /api/router/route
+POST   /api/workflows/execute
+GET    /api/workflows/executions
+GET    /api/workflows/executions/{execution_id}
+POST   /api/workflows/executions/{execution_id}/approve
+GET    /api/workflows/executions/{execution_id}/artifact
 ```
 
-## Planned APIs (Milestone 4+)
+## Planned APIs (Milestone 5+)
 
 ```text
-POST /api/knowledge/ingest
-POST /api/knowledge/query
-GET  /api/workflows
-POST /api/workflows
-POST /api/executions
-GET  /api/executions/{id}
-POST /api/approvals/{id}
-GET  /api/artifacts
+GET  /api/workflows/templates
+POST /api/workflows/custom
+POST /api/sandbox/execute
+GET  /api/sandbox/status
 ```
 
 ---
@@ -979,11 +1018,10 @@ P2
 > A new AI agent should start here after understanding the current state.
 
 ```text
-1. Initialize frontend
-2. Initialize backend
-3. Connect frontend to backend
-4. Start local model server
-5. Verify local inference
+1. Integrate React Flow canvas for visual drag-and-drop agentic workflow modeling (Milestone 5)
+2. Implement dynamic node inspectors for Document Loader, Router, SOP Retriever, LLM Auditor, HITL Checkpoint, and DOCX Exporter
+3. Implement live edge execution highlighting and event streaming for workflow nodes
+4. Connect frontend workflow canvas directly to backend WorkflowEngine state machine
 ```
 
 ---
@@ -1022,51 +1060,42 @@ P0
 ## Automated Tests
 
 ```text
-scratch/fresh_user_verification.py — PASSED (10/10 Fresh User Scenarios)
-  [PASS] 1. Backend System Health Check (200 OK, sovereign_mode: true)
-  [PASS] 2. Local Ollama Model Availability (qwen3.5:0.8b online at 127.0.0.1:11434)
-  [PASS] 3. PDF Document Ingestion (Upload fresh_pipeline_test.pdf -> 201 Created)
-  [PASS] 4. PDF Text Extraction (PyMuPDF -> 200 OK, 569 characters extracted)
-  [PASS] 5. PDF Local AI Document Audit (Ollama -> 200 OK, 2-bullet directive & timeline)
-  [PASS] 6. Image/Scanned Document Ingestion (Upload fresh_turbine_defect.png -> 201 Created)
-  [PASS] 7. Image Multimodal Vision Extraction (Ollama Vision -> 200 OK, transcribed optical scan)
-  [PASS] 8. Image Local AI Document Audit (Ollama -> 200 OK, asset identification & required action)
-  [PASS] 9. Local Document Registry Listing (GET /documents -> 200 OK, 4 documents on disk)
-  [PASS] 10. Direct AI Chat Mode (POST /chat -> 200 OK, 'SOVEREIGN_AI_READY')
+backend/tests/test_router.py — PASSED (5/5 Router Scenarios)
+  [PASS] 1. Vision Task Routing (qwen3.5:0.8b with vision capability)
+  [PASS] 2. Embedding Task Routing (nomic-embed-text:latest 768-dim)
+  [PASS] 3. Coding Task Heuristic Routing (qwen3.5:0.8b with coding capability)
+  [PASS] 4. RAG Compliance Audit Heuristic Routing (qwen3.5:0.8b with rag_audit capability)
+  [PASS] 5. Preferred Model Override Routing
 
-scratch/run_document_tests.py — PASSED (All 8 Test Cases)
-  [PASS] Health check (200 OK)
-  [PASS] Invalid file extension rejection (.exe -> 400 Bad Request)
-  [PASS] PDF document upload (201 Created)
-  [PASS] Image document upload (201 Created)
-  [PASS] List documents registry (200 OK)
-  [PASS] PyMuPDF PDF text extraction (200 OK)
-  [PASS] Ollama Vision multimodal transcription (200 OK)
-  [PASS] Local AI document audit analysis (200 OK)
+backend/tests/test_docx_service.py — PASSED (All Steps)
+  [PASS] 1. Formatted DOCX generation (37,327 bytes with executive summary, tables, risk matrix, citations, and signature block)
+  [PASS] 2. DOCX structure, text corpus, and section readability validation
 
-scratch/test_edge_cases.py — PASSED (All Edge Cases)
-  [PASS] 404 Not Found on missing document ID lookup
-  [PASS] 404 Not Found on missing document extract target
-  [PASS] 404 Not Found on missing document analyze target
-  [PASS] 400 Bad Request on empty 0-byte file upload
+backend/tests/test_workflow_engine.py — PASSED (All 5 Hero Pipeline Steps)
+  [PASS] 1. SOP Knowledge Base verification
+  [PASS] 2. Inspection document upload & registration
+  [PASS] 3. Autonomous Hero Workflow execution trigger
+  [PASS] 4. Pipeline execution monitoring & HITL Checkpoint PAUSE in 'waiting_for_approval' state
+  [PASS] 5. Human Sign-Off approval decision & DOCX artifact compilation
 
 frontend/ build — PASSED
-  [PASS] `npm run build` TypeScript compilation and Vite production bundle (0 errors)
+  [PASS] `npm.cmd run build` TypeScript compilation and Vite production bundle (0 errors, 1824 modules transformed)
 ```
 
 ## Manual Tests
 
 ```text
-[PASS] Drag and drop upload in DocumentWorkspace UI
-[PASS] Document list rendering with status badges
-[PASS] Prompt template execution & real-time markdown audit rendering
-[PASS] Direct AI Chat switching via top navigation tabs
+[PASS] Agent Workflows & HITL workspace tab navigation
+[PASS] Multi-Model Router testing widget with instant classification
+[PASS] Real-time Hero Pipeline step stepper and badge updates
+[PASS] Interactive HITL Review Card with editable recommendations and human reviewer notes
+[PASS] Immediate on-premise DOCX artifact download
 ```
 
 ## Latest Successful Test
 
 ```text
-2026-08-25 — Milestone 2 Fresh User Verification Suite (10/10 PASS) & Frontend Build (100% Pass)
+2026-08-26 — Milestone 4 Autonomous Workflow Engine, HITL Checkpoint & DOCX Test Suite (100% PASS)
 ```
 
 ---
@@ -1075,11 +1104,11 @@ frontend/ build — PASSED
 
 ## Hero Workflow
 
-IN PROGRESS (Document Ingestion & Local AI Audit Complete; RAG & Approval Node Next)
+100% COMPLETE & VERIFIED (Document Ingestion → OCR/Vision → ChromaDB SOP Search → RAG Compliance Audit → Human-in-the-Loop Approval Checkpoint → Formatted DOCX Generation)
 
 ## Coding Workflow
 
-NOT READY
+NOT READY (Scheduled for Milestone 6)
 
 ## Offline Demonstration
 
@@ -1087,11 +1116,11 @@ VERIFIED (All model inference routed to 127.0.0.1:11434, 0 cloud AI calls)
 
 ## Network/Sovereignty Proof
 
-VERIFIED (Local file storage in backend/data/documents/, no remote transfers)
+VERIFIED (Local file storage in backend/data/, no remote transfers)
 
 ## Artifact Generation
 
-NOT READY
+100% WORKING (On-premise `.docx` compliance approval notes generated in `backend/data/artifacts/`)
 
 ---
 
@@ -1099,15 +1128,15 @@ NOT READY
 
 ## Inspection Report
 
-`test_inspection_report.pdf` (Industrial boiler & turbine inspection report with wall thinning, vibration harmonics, and PRV overdue observations).
+`inspection_Line102_wf_test.pdf` (Ultrasonic NDT inspection of Carbon Steel Spool A, Line 102 exhibiting wall thinning down to 2.15 mm).
 
 ## Knowledge Documents
 
-TBD (Milestone 3)
+`SOP-REF-570_Piping_Integrity.txt` (Refinery piping safety standard mandating immediate line depressurization and replacement if wall thickness is < 2.50 mm).
 
 ## Coding Task
 
-TBD (Milestone 5)
+TBD (Milestone 6)
 
 ---
 
@@ -1229,25 +1258,27 @@ WHAT TO DO NEXT
 Antigravity Lead Engineer
 
 ## Last Session
-Milestone 2 / Day 2 — Local Document Intelligence & Ingestion
+Milestone 4 / Day 4 — Multi-Model Router, Autonomous Workflow Engine, HITL Checkpoint & DOCX Generation
 
 ## Last Completed Task
-Full local document ingestion pipeline, PyMuPDF extraction, Ollama vision transcription, local AI document auditing, and React Document Workspace.
+Implemented `router_service.py` (capability-based task routing), `docx_service.py` (industrial DOCX approval notes with tables and risk matrices), `workflow_engine.py` (5-step Hero Pipeline state machine with real HITL pause/resume), API routes, and React `WorkflowWorkspace.tsx` frontend tab. Verified with unit and automated end-to-end tests.
 
 ## Current Task
-Milestone 2 Complete.
+Milestone 4 Complete.
 
 ## Next Task
-Milestone 3 — Local Vector Store & Retrieval-Augmented Generation (RAG) for internal engineering standards and SOPs.
+Milestone 5 — Visual Agent Canvas & Interactive Node Flow Graph (React Flow + Zustand).
 
 ---
 
 # 36. CHANGE HISTORY
 
-| Date       | Agent | Phase   | Change                                                    | Status |
-| ---------- | ----- | ------- | --------------------------------------------------------- | ------ |
-| 2026-08-24 | AGY   | Phase 0 | Milestone 1: Local AI Vertical Slice (Chat + Ollama)      | Done   |
-| 2026-08-25 | AGY   | Phase 1 | Milestone 2: Document Ingestion, PyMuPDF, Vision & Audits | Done   |
+| Date       | Agent | Phase   | Change                                                               | Status |
+| ---------- | ----- | ------- | -------------------------------------------------------------------- | ------ |
+| 2026-08-24 | AGY   | Phase 0 | Milestone 1: Local AI Vertical Slice (Chat + Ollama)                 | Done   |
+| 2026-08-25 | AGY   | Phase 1 | Milestone 2: Document Ingestion, PyMuPDF, Vision & Audits            | Done   |
+| 2026-08-26 | AGY   | Phase 2 | Milestone 3: Local Vector Store & ChromaDB RAG Hardening             | Done   |
+| 2026-08-26 | AGY   | Phase 3 | Milestone 4: Multi-Model Router, Hero Workflow, HITL & DOCX Creation | Done   |
 
 ---
 
@@ -1258,10 +1289,10 @@ PROJECT:
 Sovereign AI Workbench
 
 PHASE:
-Phase 1 / Day 2 — Local Document Intelligence & Ingestion
+Phase 3 / Day 4 — Multi-Model Router, Agentic Workflows & HITL DOCX
 
 STATUS:
-Milestone 2 Complete (30% overall progress)
+Milestone 4 Complete (60% overall progress)
 
 WORKING:
 - Local Direct AI Chat with Ollama (qwen3.5:0.8b)
@@ -1270,8 +1301,15 @@ WORKING:
 - PyMuPDF text extraction from multi-page PDFs
 - Ollama multimodal vision transcription for document images
 - Local AI technical document auditing & findings extraction
-- React Document Workspace UI with tabs, templates, and live status
-- Zero cloud AI dependencies
+- Local persistent ChromaDB vector store (backend/data/knowledge_base/chroma/)
+- Dense 768-dim embeddings via local Ollama nomic-embed-text
+- Semantic similarity search & RAG compliance audit with grounded citations
+- Multi-Model Auto-Router with capability-based matching & fallback handling
+- Autonomous 5-step Hero Pipeline state machine
+- Human-in-the-Loop (HITL) Checkpoint with mandatory PAUSE in waiting_for_approval state
+- On-premise formatted DOCX approval note generation (backend/data/artifacts/)
+- React Frontend with 4 workspaces: Document Intelligence, Knowledge Base (RAG), Agent Workflows & HITL, and Direct AI Chat
+- Zero cloud AI dependencies (100% on-premise execution)
 
 BROKEN:
 None known

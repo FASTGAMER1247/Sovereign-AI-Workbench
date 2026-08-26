@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE_MB: int = 50
     DOCUMENTS_DIR: str = "data/documents"
 
+    # Data storage directory
+    DATA_DIR: str = "data"
+
     # Knowledge Base & Local Vector Store configuration
     KNOWLEDGE_BASE_DIR: str = "data/knowledge_base"
     CHROMA_PERSIST_DIR: str = "data/knowledge_base/chroma"
@@ -42,3 +45,6 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
+
+
+settings = get_settings()

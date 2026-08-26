@@ -22,3 +22,10 @@ backend/data/knowledge_base/vector_index.json
 
 # Local/generated data
 backend/data/documents/registry.json
+
+# Local/generated workflow artifacts
+backend/data/artifacts/
+backend/data/workflows/
+
+# Local runtime data accidentally generated at project root
+data/

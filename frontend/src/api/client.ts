@@ -176,4 +176,64 @@ export async function ragAuditDocument(
   })
 }
 
+// ─── Multi-Model Router & Workflow API Client (Milestone 4) ───
+
+import type {
+  ApprovalDecisionRequest,
+  ApprovalDecisionResponse,
+  ModelRouteRequest,
+  ModelRouteResponse,
+  WorkflowExecuteRequest,
+  WorkflowExecution,
+} from '../types'
+
+/** Auto-route task to optimal local model */
+export async function routeModel(request: ModelRouteRequest): Promise<ModelRouteResponse> {
+  return apiFetch<ModelRouteResponse>('/router/route', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+/** Trigger autonomous Hero Workflow execution */
+export async function executeWorkflow(request: WorkflowExecuteRequest): Promise<WorkflowExecution> {
+  return apiFetch<WorkflowExecution>('/workflows/execute', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+/** List all workflow executions */
+export async function listWorkflowExecutions(): Promise<WorkflowExecution[]> {
+  return apiFetch<WorkflowExecution[]>('/workflows/executions')
+}
+
+/** Fetch specific execution graph & live step status */
+export async function getWorkflowExecution(executionId: string): Promise<WorkflowExecution> {
+  return apiFetch<WorkflowExecution>(`/workflows/executions/${executionId}`)
+}
+
+/** Submit Human-in-the-Loop approval/rejection */
+export async function submitWorkflowApproval(
+  executionId: string,
+  request: ApprovalDecisionRequest,
+): Promise<ApprovalDecisionResponse> {
+  return apiFetch<ApprovalDecisionResponse>(`/workflows/executions/${executionId}/approve`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+/** Cancel a running workflow execution */
+export async function cancelWorkflowExecution(executionId: string): Promise<WorkflowExecution> {
+  return apiFetch<WorkflowExecution>(`/workflows/executions/${executionId}/cancel`, {
+    method: 'POST',
+  })
+}
+
+/** Get download URL for generated DOCX approval note */
+export function getArtifactDownloadUrl(executionId: string): string {
+  return `/api/workflows/executions/${executionId}/artifact`
+}
+
 

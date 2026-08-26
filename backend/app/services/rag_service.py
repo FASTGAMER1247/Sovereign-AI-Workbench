@@ -111,6 +111,7 @@ class RAGService:
                 ChatMessage(role="user", content=user_content),
             ],
             temperature=0.2,
+            max_tokens=1200,
         )
         chat_resp = await self.model_service.generate_chat(chat_req)
 
@@ -126,3 +127,19 @@ class RAGService:
             completion_tokens=chat_resp.eval_count,
             created_at=datetime.now(timezone.utc).isoformat(),
         )
+
+
+# Singleton factory
+_rag_service_instance: Optional[RAGService] = None
+
+
+def get_rag_service() -> RAGService:
+    global _rag_service_instance
+    if _rag_service_instance is None:
+        from app.services.model_service import get_model_service
+        from app.services.retrieval_service import get_retrieval_service
+        _rag_service_instance = RAGService(
+            retrieval_service=get_retrieval_service(),
+            model_service=get_model_service(),
+        )
+    return _rag_service_instance

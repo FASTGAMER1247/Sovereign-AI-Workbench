@@ -206,3 +206,101 @@ class RAGAuditResponse(BaseModel):
     created_at: str = Field(..., description="ISO timestamp")
 
 
+# ─── Multi-Model Router Schemas (Milestone 4) ───
+
+class ModelRouteRequest(BaseModel):
+    task_type: Optional[str] = Field(None, description="Type of task: 'chat', 'reasoning', 'vision', 'coding', 'rag_audit', 'embeddings'")
+    prompt: Optional[str] = Field(None, description="User prompt text to auto-classify if task_type not explicitly given")
+    has_images: bool = Field(False, description="Whether the request contains images/visual data")
+    required_capabilities: Optional[List[str]] = Field(None, description="Explicit list of capabilities required")
+    preferred_model: Optional[str] = Field(None, description="User preferred model override")
+
+
+class ModelRouteResponse(BaseModel):
+    task_type: str = Field(..., description="Detected or requested task type")
+    selected_model: str = Field(..., description="Optimal local model selected")
+    provider: str = Field("ollama", description="Model provider")
+    capabilities: List[str] = Field(default_factory=list, description="Capabilities supported by selected model")
+    reason: str = Field(..., description="Human-readable routing rationale")
+    fallback_model: Optional[str] = Field(None, description="Fallback model if primary fails")
+
+
+# ─── Agentic Workflow & HITL Schemas (Milestone 4) ───
+
+class WorkflowStep(BaseModel):
+    id: str = Field(..., description="Step unique ID (e.g. 'step_extract')")
+    name: str = Field(..., description="Step identifier")
+    title: str = Field(..., description="Human-readable title")
+    status: str = Field("pending", description="'pending', 'running', 'completed', 'failed', 'waiting_approval'")
+    tool_name: Optional[str] = Field(None, description="Name of tool invoked")
+    output_summary: Optional[str] = Field(None, description="Short summary of step output")
+    output_data: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Structured step payload")
+    error: Optional[str] = Field(None, description="Error detail if step failed")
+    started_at: Optional[str] = Field(None, description="ISO timestamp")
+    completed_at: Optional[str] = Field(None, description="ISO timestamp")
+
+
+class WorkflowExecuteRequest(BaseModel):
+    document_id: str = Field(..., description="Document ID to process through the hero workflow")
+    custom_prompt: Optional[str] = Field(None, description="Optional custom compliance audit directive")
+    sop_document_ids: Optional[List[str]] = Field(None, description="Optional specific SOP document IDs to cross-reference")
+    reviewer_name: Optional[str] = Field("Chief Plant Engineer", description="Default reviewer name for approval note")
+
+
+class WorkflowExecution(BaseModel):
+    id: str = Field(..., description="Unique workflow execution ID")
+    workflow_type: str = Field("industrial_hero_audit", description="Workflow graph identifier")
+    status: str = Field("running", description="'running', 'waiting_for_approval', 'approved', 'rejected', 'completed', 'failed'")
+    document_id: str = Field(..., description="Target document ID")
+    document_name: str = Field(..., description="Target document filename")
+    steps: List[WorkflowStep] = Field(default_factory=list, description="Ordered workflow execution steps")
+    current_step_index: int = Field(0, description="Index of currently active step")
+    extracted_text: Optional[str] = Field(None, description="Extracted document findings text")
+    grounded_citations: List[GroundedCitation] = Field(default_factory=list, description="Citations retrieved from knowledge base")
+    audit_analysis: Optional[str] = Field(None, description="Generated RAG compliance report")
+    approval_status: Optional[str] = Field(None, description="'waiting', 'approved', 'rejected'")
+    reviewer_name: Optional[str] = Field(None, description="Name of human approver")
+    reviewer_notes: Optional[str] = Field(None, description="Human reviewer comments/modifications")
+    edited_recommendations: Optional[str] = Field(None, description="Human modified corrective actions")
+    artifact_filename: Optional[str] = Field(None, description="Generated DOCX filename")
+    artifact_path: Optional[str] = Field(None, description="Local disk path to generated DOCX")
+    artifact_url: Optional[str] = Field(None, description="API endpoint to download DOCX")
+    duration_ms: Optional[float] = Field(None, description="Total execution duration in ms")
+    error: Optional[str] = Field(None, description="Failure reason if any")
+    created_at: str = Field(..., description="ISO creation timestamp")
+    updated_at: str = Field(..., description="ISO last updated timestamp")
+
+
+class ApprovalDecisionRequest(BaseModel):
+    decision: str = Field(..., description="'approve' or 'reject'")
+    reviewer_name: str = Field("Chief Plant Engineer", description="Full name and title of human approver")
+    reviewer_notes: Optional[str] = Field(None, description="Operator sign-off remarks or rejection rationale")
+    edited_recommendations: Optional[str] = Field(None, description="Optional override/edit of AI-suggested recommendations")
+
+
+class ApprovalDecisionResponse(BaseModel):
+    execution_id: str = Field(..., description="Workflow execution ID")
+    decision: str = Field(..., description="'approved' or 'rejected'")
+    status: str = Field(..., description="Updated workflow status")
+    artifact_ready: bool = Field(False, description="Whether the DOCX approval note was generated")
+    artifact_url: Optional[str] = Field(None, description="Direct download URL if ready")
+    message: str = Field(..., description="Summary status message")
+
+
+class ApprovalNoteContent(BaseModel):
+    title: str = Field("SOVEREIGN INDUSTRIAL COMPLIANCE APPROVAL NOTE", description="Document Title")
+    reference_id: str = Field(..., description="Approval note tracking ID")
+    date: str = Field(..., description="Date of approval note")
+    plant_area: str = Field("Area 4 - Fluid Catalytic Cracking Unit (FCCU)", description="Plant facility or unit")
+    equipment_id: str = Field("Line 102 - Carbon Steel Spool A", description="Inspected equipment or tag")
+    inspector_name: str = Field("Industrial NDT Inspection Team", description="Inspection author")
+    approver_name: str = Field("Chief Plant Engineer", description="Signing authority")
+    executive_summary: str = Field(..., description="High-level executive summary")
+    inspection_findings: str = Field(..., description="Measured inspection parameters and defects")
+    sop_evaluations: List[GroundedCitation] = Field(default_factory=list, description="Cross-referenced SOP clauses and citations")
+    risk_severity: str = Field("CRITICAL", description="'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'")
+    mandatory_actions: str = Field(..., description="Mandated maintenance or corrective actions")
+    compliance_verdict: str = Field("NON-COMPLIANT - MANDATORY SPOOL REPLACEMENT", description="Final compliance determination")
+    reviewer_notes: Optional[str] = Field(None, description="Human reviewer comments")
+
+
