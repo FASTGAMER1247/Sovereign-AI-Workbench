@@ -23,9 +23,16 @@ backend/data/knowledge_base/vector_index.json
 # Local/generated data
 backend/data/documents/registry.json
 
-# Local/generated workflow artifacts
+# Local/generated workflow & coding artifacts
 backend/data/artifacts/
 backend/data/workflows/
+backend/data/coding_runs/
+backend/data/sandbox/
 
 # Local runtime data accidentally generated at project root
 data/
+*.log
+*.tmp
+.pytest_cache/
+.DS_Store
+Thumbs.db

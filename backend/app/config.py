@@ -22,6 +22,9 @@ class Settings(BaseSettings):
 
     # Data storage directory
     DATA_DIR: str = "data"
+    ARTIFACTS_DIR: str = "data/artifacts"
+    SANDBOX_DIR: str = "data/sandbox_runs"
+    CODING_RUNS_DIR: str = "data/coding_runs"
 
     # Knowledge Base & Local Vector Store configuration
     KNOWLEDGE_BASE_DIR: str = "data/knowledge_base"

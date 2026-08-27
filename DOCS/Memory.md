@@ -62,25 +62,25 @@ A user should be able to:
 
 ## Overall Status
 
-IN PROGRESS — MILESTONE 4 COMPLETE
+IN PROGRESS — PHASE 5 COMPLETE
 
 ## Current Phase
 
-PHASE 4 / DAY 4 — MULTI-MODEL ROUTER, AGENTIC WORKFLOW & HITL DOCX
+PHASE 5 / DAY 5 — SECURE CODING AGENT & SANDBOXED TOOL EXECUTION LOOP (WORKFLOW B)
 
 ## Current Day
 
-DAY 4 / 7
+DAY 5 / 7
 
 ## Overall Completion
 
-60%
+75%
 
 ## Current Objective
 
-Milestone 4 complete. Multi-Model Auto-Router (`router_service.py`), stateful 5-step autonomous Hero Workflow Engine (`workflow_engine.py`) with real Human-in-the-Loop approval checkpoint (pausing execution in `waiting_for_approval`), on-premise `.docx` document generation engine (`docx_service.py`), and React Agent Workflows & HITL Workspace (`WorkflowWorkspace.tsx`) are implemented and fully verified with automated test suites.
+Phase 5 complete. Static AST Air-Gap Security Policy Guard (`security_guard.py`), isolated Docker/subprocess sandboxed test runner (`sandbox_service.py`), autonomous Coding Agent with 3-iteration automated self-repair loop (`coding_agent.py`), Workflow B API endpoints, and single-cockpit Workflow B visual studio canvas (`CodingWorkspace.tsx` in `UnifiedStudio.tsx`) are implemented and fully verified with automated test suites.
 
-Next: Milestone 5 — Visual Agent Canvas & Interactive Node Flow Graph (React Flow + Zustand).
+Next: Phase 6 — Sovereignty & Air-Gap Verification (Zero egress validation, network lockdown tests).
 
 ---
 
@@ -111,9 +111,18 @@ Next: Milestone 5 — Visual Agent Canvas & Interactive Node Flow Graph (React F
 - `GET /api/workflows/executions/{id}` → Retrieve execution graph, current step status, extracted findings, and citations ✅
 - `POST /api/workflows/executions/{id}/approve` → Submit human sign-off decision (approves audit, applies edited recommendations, and triggers DOCX creation) ✅
 - `GET /api/workflows/executions/{id}/artifact` → Download formatted `.docx` industrial compliance approval note with tables, citations, and signatures ✅
-- React + Vite + TypeScript frontend with 4 workspace modes: **Document Intelligence**, **Knowledge Base (RAG)**, **Agent Workflows & HITL**, and **Direct AI Chat** ✅
-- Agent Workflows & HITL Workspace with live pipeline graph, stepper, interactive review card, and `.docx` download button ✅
-- Zero external API calls — 100% on-premise execution with local persistence ✅
+- `POST /api/coding/execute` → Trigger Autonomous Coding Workflow B with AST security validation, sandboxed execution, and self-repair loop ✅
+- `GET /api/coding/executions` → List coding workflow execution sessions and live progress ✅
+- `GET /api/coding/executions/{id}` → Retrieve code snapshots, test results, sandbox logs, and self-repair iteration history ✅
+- `POST /api/coding/executions/{id}/cancel` → Cancel in-flight coding run immediately ✅
+- `GET /api/coding/executions/{id}/artifact` → Download verified `.py` script artifact ✅
+- `GET /api/coding/sandbox/status` → Real-time sandbox health probe (Docker vs Subprocess isolation mode) ✅
+- Static AST Air-Gap Security Guard (`security_guard.py`) blocking all sockets, network imports, subprocess, and dynamic execution vectors ✅
+- Isolated Subprocess and Docker Sandbox Test Runner (`sandbox_service.py`) with memory limits and 5.0s timeout cap ✅
+- Automated 3-Iteration Self-Repair Loop (`coding_agent.py`) feeding failure tracebacks back into local LLM for automated patching ✅
+- Unified Studio single-cockpit UI with top workflow switcher between **Workflow A (Compliance & DOCX)** and **Workflow B (Secure Coding & Sandbox)** ✅
+- Conversational AI Copilot Chat Drawer (`CopilotDrawer.tsx`) with markdown code highlighting, copy buttons, and smooth scrolling ✅
+- Zero external API calls — 100% on-premise air-gapped execution with local persistence ✅
 
 ---
 

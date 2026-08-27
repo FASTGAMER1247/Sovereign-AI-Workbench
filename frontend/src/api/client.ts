@@ -1,6 +1,8 @@
 import type {
   ChatRequest,
   ChatResponse,
+  CodingWorkflowExecution,
+  CodingWorkflowRequest,
   DocumentAnalysisRequest,
   DocumentAnalysisResponse,
   DocumentExtractionResponse,
@@ -16,6 +18,7 @@ import type {
   ModelHealthResponse,
   RAGAuditRequest,
   RAGAuditResponse,
+  SandboxStatusResponse,
 } from '../types'
 
 const BASE_URL = '/api'
@@ -234,6 +237,45 @@ export async function cancelWorkflowExecution(executionId: string): Promise<Work
 /** Get download URL for generated DOCX approval note */
 export function getArtifactDownloadUrl(executionId: string): string {
   return `/api/workflows/executions/${executionId}/artifact`
+}
+
+// ─── Phase 5: Coding Agent & Sandbox Client API ───
+
+/** Launch Autonomous Coding Workflow B */
+export async function executeCodingWorkflow(
+  request: CodingWorkflowRequest,
+): Promise<CodingWorkflowExecution> {
+  return apiFetch<CodingWorkflowExecution>('/coding/execute', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+/** List all coding workflow executions */
+export async function listCodingExecutions(): Promise<CodingWorkflowExecution[]> {
+  return apiFetch<CodingWorkflowExecution[]>('/coding/executions')
+}
+
+/** Fetch specific coding execution status, code, tests, and repair timeline */
+export async function getCodingExecution(executionId: string): Promise<CodingWorkflowExecution> {
+  return apiFetch<CodingWorkflowExecution>(`/coding/executions/${executionId}`)
+}
+
+/** Cancel a running coding workflow */
+export async function cancelCodingExecution(executionId: string): Promise<CodingWorkflowExecution> {
+  return apiFetch<CodingWorkflowExecution>(`/coding/executions/${executionId}/cancel`, {
+    method: 'POST',
+  })
+}
+
+/** Get download URL for verified Python script artifact */
+export function getCodingArtifactDownloadUrl(executionId: string): string {
+  return `/api/coding/executions/${executionId}/artifact`
+}
+
+/** Fetch current sandbox engine health and mode */
+export async function getSandboxStatus(): Promise<SandboxStatusResponse> {
+  return apiFetch<SandboxStatusResponse>('/coding/sandbox/status')
 }
 
 

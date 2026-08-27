@@ -258,4 +258,66 @@ export interface ApprovalDecisionResponse {
   message: string
 }
 
+// ─── Phase 5: Coding Agent & Sandbox Types (Workflow B) ───
+
+export interface CodingExecutionStep {
+  id: string
+  name: string
+  title: string
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'repaired'
+  duration_ms?: number | null
+  output_summary?: string | null
+}
+
+export interface CodingRepairAttempt {
+  attempt_number: number
+  error_traceback: string
+  patch_applied: string
+  code_snapshot: string
+  test_result_success: boolean
+  duration_ms: number
+}
+
+export interface CodingWorkflowRequest {
+  prompt: string
+  language?: string
+  max_repairs?: number
+  model?: string
+}
+
+export interface CodingWorkflowExecution {
+  id: string
+  status: 'running' | 'completed' | 'failed' | 'cancelled'
+  prompt: string
+  model_used: string
+  steps: CodingExecutionStep[]
+  current_step_index: number
+  solution_code?: string | null
+  test_code?: string | null
+  ast_security_passed: boolean
+  ast_violations: string[]
+  tests_total: number
+  tests_passed: number
+  tests_failed: number
+  sandbox_stdout: string
+  sandbox_stderr: string
+  sandbox_mode: 'docker_isolated' | 'subprocess_isolated' | string
+  repairs_conducted: number
+  repair_history: CodingRepairAttempt[]
+  artifact_filename?: string | null
+  artifact_url?: string | null
+  duration_ms?: number | null
+  error?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SandboxStatusResponse {
+  docker_available: boolean
+  active_engine: string
+  security_guard_enforced: boolean
+  timeout_limit_seconds: number
+  memory_limit_mb: number
+}
+
 

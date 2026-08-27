@@ -9,92 +9,48 @@
 | Milestone 1 — Local AI Vertical Slice | COMPLETE |
 | Milestone 2 — Local Document Intelligence & Ingestion | COMPLETE |
 | Milestone 3 — Local Vector Store & RAG | COMPLETE |
-| Milestone 4 — Multi-Model Router, Workflow Engine & HITL DOCX | COMPLETE |
-| Milestone 5 — Visual Agent Canvas & Execution Graph | NEXT |
+| Milestone 4 — Multi-Model Router, Workflow Engine & HITL DOCX (Workflow A) | COMPLETE |
+| Milestone 5 — Secure Coding Agent & Sandboxed Execution Loop (Workflow B) | COMPLETE |
+| Milestone 6 — Sovereignty & Air-Gap Verification | IN PROGRESS |
 
-The current system provides a working local pipeline:
+The platform delivers two complete, production-grade autonomous agentic workflows:
 
-```text
-React Frontend
-      ↓
-FastAPI Backend
-      ↓
-Ollama (qwen3.5:0.8b & nomic-embed-text) + ChromaDB
-      ↓
-Autonomous Hero Workflow Engine + Multi-Model Router
-      ↓
-Human-in-the-Loop (HITL) Checkpoint (PAUSE & SIGN-OFF)
-      ↓
-On-Premise Formatted DOCX Compliance Approval Note (.docx)
-```
-
-Document, Knowledge, and Autonomous Agentic workflows are fully implemented:
-
-```text
-Confidential PDF / Image / Technical SOPs
-    ↓
-Local Storage & ChromaDB Persistent Vector Store
-    ↓
-PyMuPDF / Ollama Vision & Dense 768-dim Embeddings
-    ↓
-Local Semantic Retrieval & Cosine Similarity Ranking
-    ↓
-Autonomous Hero Pipeline (Step 1: Extract → Step 2: Search SOPs → Step 3: RAG Audit)
-    ↓
-Step 4: Human-in-the-Loop Checkpoint (Pipeline Pauses for Approver Sign-off)
-    ↓
-Step 5: Formatted Industrial DOCX Approval Note Compilation & Direct Download
-```
+- **⚡ Hero Workflow A (Industrial Compliance Audit & DOCX Note)**:
+  `Raw PDF/Scan` $\rightarrow$ `PyMuPDF / Vision OCR` $\rightarrow$ `ChromaDB Dense SOP Search` $\rightarrow$ `Grounded RAG Audit` $\rightarrow$ `Mandatory Human-in-the-Loop Approval Gate` $\rightarrow$ `Formal Word .docx Approval Note`.
+- **💻 Hero Workflow B (Secure Coding Agent & Sandbox Execution)**:
+  `Technical Prompt` $\rightarrow$ `Specification & Edge-Case Breakdown` $\rightarrow$ `Python + Unittest Synthesis` $\rightarrow$ `AST Air-Gap Policy Guard` $\rightarrow$ `Isolated Sandbox Execution` $\rightarrow$ `Automated 3-Pass Self-Repair Loop` $\rightarrow$ `Verified .py Script Download`.
 
 ---
 
 # Features
 
 ## Milestone 1
-
 - React + TypeScript frontend
 - FastAPI backend
 - Ollama integration
 - `qwen3.5:0.8b` local model
 - Model-provider abstraction
 - Backend/model health checks
-- Direct AI chat
+- Direct AI chat & Copilot
 - Industrial control-room UI
 - Local inference
 
 ## Milestone 2
-
-- PDF upload
-- PNG/JPG/JPEG upload
-- File validation
-- UUID-based document IDs
-- Local document storage
-- Persistent `registry.json`
-- PDF text extraction using PyMuPDF
+- PDF upload & PNG/JPG/JPEG upload
+- UUID-based document IDs & local persistent `registry.json`
+- High-speed PDF text extraction using PyMuPDF (`fitz`)
 - Image/scanned-document understanding through Ollama Vision
-- Local AI document auditing
-- Risk-oriented analysis
-- Document registry UI
-- Extracted-content inspector
-- Audit prompt templates
-- Invalid-file rejection
-- Missing-document handling
+- Local AI document auditing with risk-oriented analysis
 
 ## Milestone 3
-
-- Persistent local vector database (**ChromaDB** at `backend/data/knowledge_base/chroma/`)
-- Real dense embedding provider (**`nomic-embed-text`**, 768 dimensions via local Ollama `/api/embeddings`)
+- Persistent local vector database (**ChromaDB**)
+- Real dense embedding provider (**`nomic-embed-text`**, 768 dimensions via local Ollama)
 - Local fallback embedding engine (`all-MiniLM-L6-v2` via SentenceTransformers)
 - Deterministic text chunking engine with configurable chunk size & overlap
-- Fast cosine similarity semantic vector search with top-K ranking and score thresholding
-- RAG-grounded compliance audits evaluating inspection reports strictly against organizational standards/SOPs
-- Verified Grounded Citations linking audit conclusions to source standard filenames, pages, and chunk IDs
-- Knowledge Workspace UI with SOP repository manager, chunk inspector, and interactive semantic search playground
-- Grounded SOP citation cards in Document Workspace with similarity match percentages
-- 100% on-premise execution with zero cloud calls
+- Fast cosine similarity semantic vector search (< 2ms)
+- RAG-grounded compliance audits with verified Grounded Citations linking conclusions to source standard filenames, pages, and chunk IDs
 
-## Milestone 4
-
+## Milestone 4 (Hero Workflow A: Document Compliance & DOCX)
 - **Multi-Model Auto-Router**: Dynamic capability inference matching task requirements (`vision`, `coding`, `reasoning`, `rag_audit`, `embeddings`) to optimal local open-weight models with fallback handling.
 - **Autonomous Hero Workflow Engine**: Stateful 5-step industrial execution pipeline:
   1. `Document Extraction & OCR`
@@ -104,31 +60,44 @@ Step 5: Formatted Industrial DOCX Approval Note Compilation & Direct Download
   5. `DOCX Approval Note Generation`
 - **Interactive Human-in-the-Loop (HITL) Checkpoint**: Real-time pipeline pausing at Step 4; lets human approvers review findings, edit mandated remediation timelines, and approve or reject.
 - **On-Premise DOCX Generator**: Generates styled `.docx` executive approval notes with defect findings tables, ChromaDB citations table, risk matrix, mandatory remediation timeline, and human sign-off block.
-- **Agent Workflows & HITL Workspace**: 4th navigation tab with live pipeline graph, step stepper, interactive review card, and direct `.docx` artifact download.
+
+## Milestone 5 (Hero Workflow B: Secure Coding Agent & Sandbox)
+- **Static AST Air-Gap Policy Guard**: AST static analysis blocking all prohibited network modules (`socket`, `requests`, `urllib`, `http`, `aiohttp`, `httpx`), shell execution (`subprocess`, `os.system`, `os.popen`), and dynamic execution (`eval`, `exec`, `compile`, `__import__`).
+- **Isolated Sandboxed Execution Engine**: Dual-mode execution via Docker container (`--network none`, `--memory 128m`) or isolated subprocess with clean environment and strict 5.0-second timeout cap to prevent runaway execution.
+- **Autonomous Multi-Pass Self-Repair Loop**: Synthesizes Python code and companion `unittest` test suites. When tests fail, automatically captures tracebacks, re-feeds errors into local LLM, patches code, and re-runs sandbox tests (up to 3 automated iterations).
+- **Single-Cockpit Unified Studio**: Interactive mode switcher between **Workflow A (Compliance & DOCX)** and **Workflow B (Secure Coding & Sandbox)** with real-time 6-node visual execution graph, syntax-highlighted code viewer, sandbox terminal console, and one-click `.py` script artifact download.
 
 ---
 
 # Architecture
 
 ```text
-┌───────────────────────────────────────────────────────────┐
-│                    LOCAL MACHINE                          │
-│                                                           │
-│  React + Vite (4 Workspace Modes)                         │
-│       │                                                   │
-│       │ HTTP / /api                                      │
-│       ▼                                                   │
-│  FastAPI + Uvicorn                                       │
-│       │                                                   │
-│       ├──────► Model Router Service (Task & Model Dispatch)│
-│       ├──────► Autonomous Workflow Engine (Hero Pipeline) │
-│       ├──────► On-Premise DOCX Generator (Artifacts)      │
-│       ├──────► Local Document Storage (PDF/Images)        │
-│       ├──────► ChromaDB Persistent Vector Store (SOPs)    │
-│       │                                                   │
-│       ▼                                                   │
-│  Ollama :11434                                           │
-│       ├──► nomic-embed-text (768-dim dense embeddings)    │
+┌───────────────────────────────────────────────────────────────────────────┐
+│                           LOCAL ON-PREMISE MACHINE                        │
+│                                                                           │
+│  React + Vite Single-Cockpit Studio (Workflow A & Workflow B Switcher)    │
+│       │                                                                   │
+│       │ HTTP REST /api                                                    │
+│       ▼                                                                   │
+│  FastAPI + Uvicorn                                                        │
+│       │                                                                   │
+│       ├──────► Multi-Model Router (Capability-based dispatch)             │
+│       ├──────► Workflow A Engine (PyMuPDF → ChromaDB → RAG → HITL → DOCX) │
+│       ├──────► Workflow B Coding Agent (Spec → AST Guard → Sandbox Repair)│
+│       ├──────► AST Security Policy Guard (Zero network/shell egress)      │
+│       ├──────► Sandboxed Runner (Docker / Subprocess with 5s timeout)     │
+│       ├──────► ChromaDB Persistent Vector Store (SOPs & Standards)        │
+│       └──────► Local Document Storage (data/documents, data/artifacts)    │
+│       │                                                                   │
+│       ▼                                                                   │
+│  Ollama :11434                                                            │
+│       ├──► nomic-embed-text (768-dim dense embeddings)                    │
+│       └──► qwen3.5:0.8b / qwen2.5-coder (reasoning & code synthesis)      │
+│                                                                           │
+│  100% AIR-GAPPED: Zero external API calls or telemetry.                   │
+└───────────────────────────────────────────────────────────────────────────┘
+```
+    ├──► nomic-embed-text (768-dim dense embeddings)    │
 │       └──► qwen3.5:0.8b (reasoning, vision & RAG audits)  │
 │                                                           │
 │  No cloud AI API is required for embeddings or inference. │
@@ -168,6 +137,7 @@ Sovereign-AI-Workbench/
 │   │   │   ├── vector_store/
 │   │   │   │   ├── base.py
 │   │   │   │   └── chroma_store.py
+│   │   │   ├── coding_agent.py
 │   │   │   ├── document_service.py
 │   │   │   ├── docx_service.py
 │   │   │   ├── knowledge_service.py
@@ -175,6 +145,8 @@ Sovereign-AI-Workbench/
 │   │   │   ├── rag_service.py
 │   │   │   ├── retrieval_service.py
 │   │   │   ├── router_service.py
+│   │   │   ├── sandbox_service.py
+│   │   │   ├── security_guard.py
 │   │   │   └── workflow_engine.py
 │   │   ├── config.py
 │   │   └── main.py

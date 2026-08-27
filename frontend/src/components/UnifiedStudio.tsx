@@ -18,6 +18,7 @@ import {
   Sliders,
   Code2,
   RotateCcw,
+  ChevronRight,
 } from 'lucide-react'
 import {
   cancelWorkflowExecution,
@@ -33,6 +34,7 @@ import {
 import { KnowledgeWorkspace } from './KnowledgeWorkspace'
 import { DocumentWorkspace } from './DocumentWorkspace'
 import { CopilotDrawer } from './CopilotDrawer'
+import { CodingWorkspace } from './CodingWorkspace'
 import type {
   AppSystemState,
   DocumentResponse,
@@ -45,6 +47,9 @@ interface UnifiedStudioProps {
 }
 
 export const UnifiedStudio: React.FC<UnifiedStudioProps> = ({ systemState }) => {
+  // Top Workflow Mode ('workflow_a' = Industrial Compliance / DOCX, 'workflow_b' = Secure Coding / Sandbox)
+  const [workflowMode, setWorkflowMode] = useState<'workflow_a' | 'workflow_b'>('workflow_a')
+
   // Asset state
   const [documents, setDocuments] = useState<DocumentResponse[]>([])
   const [selectedDocId, setSelectedDocId] = useState<string>('')
@@ -376,9 +381,78 @@ export const UnifiedStudio: React.FC<UnifiedStudioProps> = ({ systemState }) => 
               </span>
             </div>
             <p style={{ fontSize: '11px', margin: 0, color: 'var(--color-text-muted)' }}>
-              Unified Studio · Operating Workflow A (Industrial Compliance Audit & DOCX Generation)
+              {workflowMode === 'workflow_a'
+                ? 'Operating Workflow A (Document Compliance Audit & DOCX Generation)'
+                : 'Operating Workflow B (Secure Coding Agent, AST Security Guard & Sandbox Runner)'}
             </p>
           </div>
+        </div>
+
+        {/* Workflow Mode Switcher */}
+        <div
+          style={{
+            display: 'flex',
+            background: 'var(--color-bg)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '3px',
+            gap: '3px',
+          }}
+        >
+          <button
+            onClick={() => setWorkflowMode('workflow_a')}
+            style={{
+              background: workflowMode === 'workflow_a' ? 'var(--color-surface)' : 'transparent',
+              border: workflowMode === 'workflow_a' ? '1px solid var(--color-border)' : '1px solid transparent',
+              borderRadius: 'var(--radius-sm)',
+              padding: '5px 12px',
+              fontSize: '11px',
+              fontWeight: workflowMode === 'workflow_a' ? 700 : 500,
+              color: workflowMode === 'workflow_a' ? 'var(--color-accent)' : 'var(--color-text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all var(--transition-fast)',
+            }}
+          >
+            <Sliders size={13} />
+            <span>Workflow A: Compliance & DOCX</span>
+          </button>
+
+          <button
+            onClick={() => setWorkflowMode('workflow_b')}
+            style={{
+              background: workflowMode === 'workflow_b' ? 'var(--color-surface)' : 'transparent',
+              border: workflowMode === 'workflow_b' ? '1px solid var(--color-border)' : '1px solid transparent',
+              borderRadius: 'var(--radius-sm)',
+              padding: '5px 12px',
+              fontSize: '11px',
+              fontWeight: workflowMode === 'workflow_b' ? 700 : 500,
+              color: workflowMode === 'workflow_b' ? 'var(--color-accent)' : 'var(--color-text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all var(--transition-fast)',
+            }}
+          >
+            <Code2 size={13} />
+            <span>Workflow B: Coding & Sandbox</span>
+            <span
+              style={{
+                fontSize: '9px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 700,
+                background: 'rgba(99, 102, 241, 0.2)',
+                padding: '1px 5px',
+                borderRadius: '8px',
+                color: 'var(--color-accent)',
+              }}
+            >
+              PHASE 5
+            </span>
+          </button>
         </div>
 
         {/* Quick Tool Triggers */}
@@ -484,16 +558,23 @@ export const UnifiedStudio: React.FC<UnifiedStudioProps> = ({ systemState }) => 
         </div>
       )}
 
-      {/* ── 3-Panel Grid System ── */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '260px 1fr 340px',
-          gap: '16px',
-          minHeight: '620px',
-          alignItems: 'stretch',
-        }}
-      >
+      {/* ── Workflow Views ── */}
+      {workflowMode === 'workflow_b' ? (
+        <CodingWorkspace
+          systemState={systemState}
+          onSwitchToWorkflowA={() => setWorkflowMode('workflow_a')}
+        />
+      ) : (
+        /* ── 3-Panel Grid System (Workflow A) ── */
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '260px 1fr 340px',
+            gap: '16px',
+            minHeight: '620px',
+            alignItems: 'stretch',
+          }}
+        >
         
         {/* ── LEFT PANEL: Asset & Tool Navigator ── */}
         <div
@@ -706,26 +787,32 @@ export const UnifiedStudio: React.FC<UnifiedStudioProps> = ({ systemState }) => 
             </div>
           )}
 
-          {/* Section: Future Phase 5 Placeholder */}
+          {/* Section: Workflow B Quick Switch */}
           <div
+            onClick={() => setWorkflowMode('workflow_b')}
             style={{
               marginTop: 'auto',
-              background: 'rgba(22, 28, 45, 0.4)',
-              border: '1px dashed var(--color-border)',
+              background: 'rgba(99, 102, 241, 0.08)',
+              border: '1px solid rgba(99, 102, 241, 0.3)',
               borderRadius: 'var(--radius-sm)',
               padding: '10px',
               fontSize: '11px',
-              color: 'var(--color-text-muted)',
+              color: 'var(--color-text-secondary)',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              transition: 'all var(--transition-fast)',
             }}
           >
-            <Code2 size={15} />
-            <div>
-              <div style={{ fontWeight: 600, color: 'var(--color-text-secondary)' }}>Coding Agent & Sandbox</div>
-              <div style={{ fontSize: '9px' }}>Phase 5 Objective</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Code2 size={16} color="var(--color-accent)" />
+              <div>
+                <div style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>Coding Agent & Sandbox</div>
+                <div style={{ fontSize: '9px', color: 'var(--color-accent)' }}>Workflow B · Phase 5 Ready</div>
+              </div>
             </div>
+            <ChevronRight size={14} color="var(--color-text-muted)" />
           </div>
 
         </div>
@@ -1296,6 +1383,7 @@ export const UnifiedStudio: React.FC<UnifiedStudioProps> = ({ systemState }) => 
         </div>
 
       </div>
+      )}
 
       {/* ── SOP KNOWLEDGE BASE MODAL ── */}
       {showSopModal && (

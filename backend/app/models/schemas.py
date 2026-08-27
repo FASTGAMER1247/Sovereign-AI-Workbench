@@ -304,3 +304,65 @@ class ApprovalNoteContent(BaseModel):
     reviewer_notes: Optional[str] = Field(None, description="Human reviewer comments")
 
 
+# ─── Phase 5: Coding Agent & Sandbox Schemas (Workflow B) ───
+
+class CodingExecutionStep(BaseModel):
+    id: str = Field(..., description="Step ID")
+    name: str = Field(..., description="Machine name of the step")
+    title: str = Field(..., description="User-facing title")
+    status: str = Field("pending", description="'pending', 'running', 'completed', 'failed', 'repaired'")
+    duration_ms: Optional[float] = Field(None, description="Duration in ms")
+    output_summary: Optional[str] = Field(None, description="Brief summary of output")
+
+
+class CodingRepairAttempt(BaseModel):
+    attempt_number: int = Field(..., description="Iteration number (1, 2, or 3)")
+    error_traceback: str = Field(..., description="Error message or test failure traceback")
+    patch_applied: str = Field(..., description="Explanation of fix applied")
+    code_snapshot: str = Field(..., description="Code after repair attempt")
+    test_result_success: bool = Field(False, description="Whether tests passed after this repair")
+    duration_ms: float = Field(0.0, description="Repair iteration duration in ms")
+
+
+class CodingWorkflowRequest(BaseModel):
+    prompt: str = Field(..., description="Coding task request (e.g. 'Write Python function to calculate monthly loan EMI with edge case tests')")
+    language: str = Field("python", description="Target programming language (defaults to python)")
+    max_repairs: int = Field(3, ge=1, le=5, description="Maximum automated self-repair attempts")
+    model: Optional[str] = Field(None, description="Optional override model name")
+
+
+class CodingWorkflowExecution(BaseModel):
+    id: str = Field(..., description="Unique execution ID (e.g. 'code_exec_...')")
+    status: str = Field("running", description="'running', 'completed', 'failed', 'cancelled'")
+    prompt: str = Field(..., description="Original user prompt")
+    model_used: str = Field(..., description="Model dispatched for coding")
+    steps: List[CodingExecutionStep] = Field(default_factory=list, description="Execution step timeline")
+    current_step_index: int = Field(0, description="Active step index")
+    solution_code: Optional[str] = Field(None, description="Generated Python solution code")
+    test_code: Optional[str] = Field(None, description="Generated unittest/pytest suite")
+    ast_security_passed: bool = Field(False, description="Whether AST policy validation passed")
+    ast_violations: List[str] = Field(default_factory=list, description="Security policy violations if any")
+    tests_total: int = Field(0, description="Total unit tests run")
+    tests_passed: int = Field(0, description="Passed unit tests count")
+    tests_failed: int = Field(0, description="Failed unit tests count")
+    sandbox_stdout: str = Field("", description="Raw stdout from sandboxed test runner")
+    sandbox_stderr: str = Field("", description="Raw stderr from sandboxed test runner")
+    sandbox_mode: str = Field("subprocess_isolated", description="'docker_isolated' or 'subprocess_isolated'")
+    repairs_conducted: int = Field(0, description="Total repair iterations performed")
+    repair_history: List[CodingRepairAttempt] = Field(default_factory=list, description="History of repair attempts")
+    artifact_filename: Optional[str] = Field(None, description="Filename of verified script artifact")
+    artifact_url: Optional[str] = Field(None, description="Download URL for verified script")
+    duration_ms: Optional[float] = Field(None, description="Total workflow duration in ms")
+    error: Optional[str] = Field(None, description="Failure reason if unrecoverable")
+    created_at: str = Field(..., description="ISO timestamp")
+    updated_at: str = Field(..., description="ISO timestamp")
+
+
+class SandboxStatusResponse(BaseModel):
+    docker_available: bool = Field(..., description="Whether Docker daemon is running on host")
+    active_engine: str = Field(..., description="'docker_isolated' or 'subprocess_isolated'")
+    security_guard_enforced: bool = Field(True, description="Whether static AST guard is active")
+    timeout_limit_seconds: float = Field(5.0, description="Maximum execution timeout")
+    memory_limit_mb: int = Field(128, description="Memory ceiling")
+
+
