@@ -16,6 +16,7 @@ import {
   Boxes,
   Sparkles,
   RotateCcw,
+  Cpu,
 } from 'lucide-react'
 import {
   executeCodingWorkflow,
@@ -67,7 +68,10 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
   systemState,
   onSwitchToWorkflowA,
 }) => {
-  const [prompt, setPrompt] = useState<string>(PRESET_CODING_TASKS[0].prompt)
+  const [prompt, setPrompt] = useState<string>(() => {
+    return sessionStorage.getItem('sovereign_coding_prompt') || ''
+  })
+  const [selectedModel, setSelectedModel] = useState<string>('')
   const [maxRepairs, setMaxRepairs] = useState<number>(3)
   const [activeExecution, setActiveExecution] = useState<CodingWorkflowExecution | null>(null)
   const [recentExecutions, setRecentExecutions] = useState<CodingWorkflowExecution[]>([])
@@ -78,6 +82,13 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const pollingRef = useRef<number | null>(null)
+
+  // Persist prompt changes in session storage
+  useEffect(() => {
+    if (prompt) {
+      sessionStorage.setItem('sovereign_coding_prompt', prompt)
+    }
+  }, [prompt])
 
   // Load sandbox status & executions
   useEffect(() => {
@@ -98,8 +109,20 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
         setRecentExecutions(execs)
         if (!activeExecution) {
           setActiveExecution(execs[0])
+          const stored = sessionStorage.getItem('sovereign_coding_prompt')
+          if (stored && stored.trim()) {
+            setPrompt(stored)
+          } else if (execs[0].prompt) {
+            setPrompt(execs[0].prompt)
+          } else {
+            setPrompt(PRESET_CODING_TASKS[0].prompt)
+          }
         }
+      } else {
+        const stored = sessionStorage.getItem('sovereign_coding_prompt')
+        setPrompt(stored && stored.trim() ? stored : PRESET_CODING_TASKS[0].prompt)
       }
+
     } catch {
       // Ignore initial load error
     }
@@ -136,6 +159,7 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
       const exec = await executeCodingWorkflow({
         prompt: prompt.trim(),
         max_repairs: maxRepairs,
+        model: selectedModel || undefined,
       })
       setActiveExecution(exec)
       setActiveTab('code')
@@ -259,13 +283,54 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
                 </span>
               </div>
               <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                Model: <strong style={{ color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }}>{systemState.modelHealth?.default_model || 'qwen3.5:0.8b'}</strong> · Static AST Policy Guard, Sandboxed Unit Tests & Automated Self-Repair.
+                Active Model: <strong style={{ color: 'var(--color-accent-teal)', fontFamily: 'var(--font-mono)' }}>{selectedModel || activeExecution?.model_used || systemState.modelHealth?.default_model || 'qwen2.5-coder:1.5b'}</strong> · Static AST Policy Guard, Sandboxed Unit Tests & Automated Self-Repair.
               </span>
             </div>
           </div>
 
-          {/* Sandbox Engine Status Badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Toolbar Controls: Model Selector & Sandbox Badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            {/* Model Selector Dropdown */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '3px 8px',
+                background: 'var(--color-surface-2)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '11px',
+              }}
+            >
+              <Cpu size={13} color="var(--color-accent)" />
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                disabled={isRunning}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--color-text-primary)',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  cursor: isRunning ? 'not-allowed' : 'pointer',
+                  outline: 'none',
+                }}
+              >
+                <option value="" style={{ background: '#0f172a' }}>
+                  Auto-Router (Optimal Coder)
+                </option>
+                {systemState.modelHealth?.available_models
+                  ?.filter((m) => !m.includes('embed'))
+                  .map((m) => (
+                    <option key={m} value={m} style={{ background: '#0f172a' }}>
+                      {m}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
             <div
               style={{
                 display: 'flex',

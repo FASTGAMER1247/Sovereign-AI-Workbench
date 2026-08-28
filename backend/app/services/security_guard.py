@@ -171,6 +171,18 @@ class SecurityGuard:
         if visitor.violations:
             violation_msgs = [str(v) for v in visitor.violations]
             logger.warning(f"Security policy violations detected: {violation_msgs}")
+
+            try:
+                from app.services.audit_logger import audit_logger
+                audit_logger.record_event(
+                    event_type="AST_POLICY_BLOCK",
+                    severity="SECURITY_ALERT",
+                    actor="ast_security_guard",
+                    details={"violations": violation_msgs, "violation_count": len(violation_msgs)}
+                )
+            except Exception as err:
+                logger.debug(f"Audit log emission skipped: {err}")
+
             return False, violation_msgs
 
         return True, []

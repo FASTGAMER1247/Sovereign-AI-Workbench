@@ -96,7 +96,8 @@ async def run_chroma_rag_verification():
     print("STEP 4 PASSED: ChromaDB semantic search accurately retrieved critical SOP section!")
 
     # 5. Test RAG Compliance Audit with Citations
-    print("\n[STEP 5] Executing RAG Compliance Audit via qwen3.5:0.8b...")
+    print("\n[STEP 5] Executing RAG Compliance Audit via qwen2.5-coder:1.5b...")
+
     model_service = get_model_service()
     rag_service = RAGService(
         retrieval_service=retrieval_service,

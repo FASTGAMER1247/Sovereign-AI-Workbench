@@ -62,25 +62,25 @@ A user should be able to:
 
 ## Overall Status
 
-IN PROGRESS — PHASE 5 COMPLETE
+IN PROGRESS — PHASE 6 COMPLETE
 
 ## Current Phase
 
-PHASE 5 / DAY 5 — SECURE CODING AGENT & SANDBOXED TOOL EXECUTION LOOP (WORKFLOW B)
+PHASE 6 / DAY 6 — SOVEREIGNTY & AIR-GAP VERIFICATION, AUDIT LEDGER & SECURITY DASHBOARD
 
 ## Current Day
 
-DAY 5 / 7
+DAY 6 / 7
 
 ## Overall Completion
 
-75%
+90%
 
 ## Current Objective
 
-Phase 5 complete. Static AST Air-Gap Security Policy Guard (`security_guard.py`), isolated Docker/subprocess sandboxed test runner (`sandbox_service.py`), autonomous Coding Agent with 3-iteration automated self-repair loop (`coding_agent.py`), Workflow B API endpoints, and single-cockpit Workflow B visual studio canvas (`CodingWorkspace.tsx` in `UnifiedStudio.tsx`) are implemented and fully verified with automated test suites.
+Phase 6 complete. Cryptographic SHA-256 Hash-Chained Audit Ledger (`audit_logger.py`), Zero-Egress Network Prober & Sovereignty Service (`sovereignty_service.py`), 5 security REST endpoints (`routes.py`), and interactive Security & Air-Gap Dashboard (`SecurityDashboard.tsx` in `UnifiedStudio.tsx`) are implemented and fully verified with automated test suites.
 
-Next: Phase 6 — Sovereignty & Air-Gap Verification (Zero egress validation, network lockdown tests).
+Next: Phase 7 — Final End-to-End Polish, Performance Optimizations & Hackathon Demo Package.
 
 ---
 
@@ -90,14 +90,16 @@ Next: Phase 6 — Sovereignty & Air-Gap Verification (Zero egress validation, ne
 
 - FastAPI backend running at `http://127.0.0.1:8000` (uvicorn, Python 3.14.4) ✅
 - `GET /api/health` → `{"status":"ok","sovereign_mode":true}` ✅
-- `GET /api/models/health` → Ollama connected, `qwen3.5:0.8b` available ✅
+- `GET /api/models/health` → Ollama connected, `qwen2.5-coder:1.5b` + `nomic-embed-text:latest` available ✅
 - `GET /api/models` → Returns installed local model list ✅
-- `POST /api/chat` → Real completions from `qwen3.5:0.8b` via Ollama ✅
+- `POST /api/chat` → Real completions from local models via Ollama ✅
+- Multi-Model Dynamic Router prioritizing specialized coder models (`qwen2.5-coder:1.5b`) for code synthesis, AST verification, and self-repair loops ✅
 - `POST /api/documents/upload` → Secure local document upload (.pdf, .png, .jpg, .jpeg) with UUID & metadata registry ✅
 - `GET /api/documents` → Returns list of all ingested documents ✅
 - `GET /api/documents/{document_id}` → Returns single document metadata ✅
 - `POST /api/documents/{document_id}/extract` → Fast text extraction from PDF using PyMuPDF (`fitz`) and multimodal visual transcription for images using Ollama Vision ✅
-- `POST /api/documents/{document_id}/analyze` → Local AI document analysis (Executive summary, Findings, Risk Assessment, Recommendations) using `qwen3.5:0.8b` ✅
+- `POST /api/documents/{document_id}/analyze` → Local AI document analysis (Executive summary, Findings, Risk Assessment, Recommendations) using `qwen2.5-coder:1.5b` ✅
+
 - `POST /api/documents/{document_id}/rag-audit` → RAG-grounded compliance audit cross-referencing organizational standards and SOPs with grounded citations ✅
 - `POST /api/knowledge/ingest` → Ingest uploaded documents or direct text/standards into the local persistent vector store ✅
 - `GET /api/knowledge/documents` → List all indexed standards and SOPs in vector store ✅
@@ -120,8 +122,14 @@ Next: Phase 6 — Sovereignty & Air-Gap Verification (Zero egress validation, ne
 - Static AST Air-Gap Security Guard (`security_guard.py`) blocking all sockets, network imports, subprocess, and dynamic execution vectors ✅
 - Isolated Subprocess and Docker Sandbox Test Runner (`sandbox_service.py`) with memory limits and 5.0s timeout cap ✅
 - Automated 3-Iteration Self-Repair Loop (`coding_agent.py`) feeding failure tracebacks back into local LLM for automated patching ✅
-- Unified Studio single-cockpit UI with top workflow switcher between **Workflow A (Compliance & DOCX)** and **Workflow B (Secure Coding & Sandbox)** ✅
-- Conversational AI Copilot Chat Drawer (`CopilotDrawer.tsx`) with markdown code highlighting, copy buttons, and smooth scrolling ✅
+- `GET /api/sovereignty/status` → Live Sovereignty scorecard, network score, and bound host interface (`127.0.0.1`) ✅
+- `POST /api/sovereignty/probe` → Trigger active outbound socket probes against external DNS/Cloud AI targets to test air-gap isolation ✅
+- `GET /api/audit/ledger` → Retrieve cryptographic SHA-256 hash-chained audit events with event-type filtering ✅
+- `GET /api/audit/verify` → Validate mathematical integrity of entire SHA-256 hash chain and detect any tampered blocks ✅
+- `GET /api/audit/export` → Export immutable audit ledger as standard CSV or JSONL for defense / regulatory audits ✅
+- Cryptographic SHA-256 Hash-Chained Audit Ledger (`audit_logger.py`) with tamper-evident sequential block chaining ✅
+- Zero-Egress Network Isolation Prober (`sovereignty_service.py`) testing socket connections to known external telemetry sinks ✅
+- Interactive Security & Air-Gap Dashboard (`SecurityDashboard.tsx`) with Defense Scorecard, Probe Table, and Hash Chain Inspector in Unified Studio ✅
 - Zero external API calls — 100% on-premise air-gapped execution with local persistence ✅
 
 ---

@@ -28,8 +28,9 @@ The platform delivers two complete, production-grade autonomous agentic workflow
 - React + TypeScript frontend
 - FastAPI backend
 - Ollama integration
-- `qwen3.5:0.8b` local model
+- `qwen2.5-coder:1.5b` local model
 - Model-provider abstraction
+
 - Backend/model health checks
 - Direct AI chat & Copilot
 - Industrial control-room UI
@@ -92,16 +93,11 @@ The platform delivers two complete, production-grade autonomous agentic workflow
 │       ▼                                                                   │
 │  Ollama :11434                                                            │
 │       ├──► nomic-embed-text (768-dim dense embeddings)                    │
-│       └──► qwen3.5:0.8b / qwen2.5-coder (reasoning & code synthesis)      │
+│       └──► qwen2.5-coder:1.5b (reasoning, code synthesis & RAG audits)    │
 │                                                                           │
 │  100% AIR-GAPPED: Zero external API calls or telemetry.                   │
 └───────────────────────────────────────────────────────────────────────────┘
-```
-    ├──► nomic-embed-text (768-dim dense embeddings)    │
-│       └──► qwen3.5:0.8b (reasoning, vision & RAG audits)  │
-│                                                           │
-│  No cloud AI API is required for embeddings or inference. │
-└───────────────────────────────────────────────────────────┘
+
 ```
 
 The frontend communicates with FastAPI only. FastAPI communicates with Ollama, ChromaDB, and local storage.
@@ -212,7 +208,7 @@ Development was verified with approximately:
 Node.js 22.x
 Python 3.14.x
 Ollama
-qwen3.5:0.8b (LLM reasoning & Vision)
+qwen2.5-coder:1.5b (LLM reasoning, Code synthesis & Audits)
 nomic-embed-text (Dense 768-dim embeddings)
 ```
 
@@ -240,7 +236,7 @@ ollama --version
 Pull the required local models:
 
 ```cmd
-ollama pull qwen3.5:0.8b
+ollama pull qwen2.5-coder:1.5b
 ollama pull nomic-embed-text
 ```
 
@@ -254,8 +250,9 @@ You should see:
 
 ```text
 nomic-embed-text:latest
-qwen3.5:0.8b
+qwen2.5-coder:1.5b
 ```
+
 
 Check the API:
 
@@ -327,13 +324,14 @@ The important local configuration is:
 
 ```env
 OLLAMA_BASE_URL=http://127.0.0.1:11434
-DEFAULT_MODEL=qwen3.5:0.8b
+DEFAULT_MODEL=qwen2.5-coder:1.5b
 EMBEDDING_PROVIDER=ollama
 EMBEDDING_MODEL=nomic-embed-text
 CHROMA_PERSIST_DIR=data/knowledge_base/chroma
 HOST=127.0.0.1
 PORT=8000
 ```
+
 
 Do not commit `backend/.env`.
 
@@ -421,9 +419,10 @@ You normally need:
 Ollama running with:
 
 ```text
-qwen3.5:0.8b
+qwen2.5-coder:1.5b
 nomic-embed-text
 ```
+
 
 ### Terminal 2 — Backend
 
@@ -701,8 +700,9 @@ curl.exe http://127.0.0.1:11434/api/tags
 If the model is missing:
 
 ```cmd
-ollama pull qwen3.5:0.8b
+ollama pull qwen2.5-coder:1.5b
 ```
+
 
 Check `.env`:
 

@@ -51,7 +51,7 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
       content:
         '👋 Welcome to the **Sovereign AI Copilot**. All inference executes **100% on-premise** on your local hardware with zero external telemetry. How can I assist with your documents, workflows, or SOP queries today?',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      model: systemState.modelHealth?.default_model || 'qwen3.5:0.8b',
+      model: systemState.modelHealth?.default_model || 'qwen2.5-coder:1.5b',
     },
   ])
   const [inputText, setInputText] = useState('')
@@ -326,7 +326,7 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
               </span>
             </div>
             <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
-              Model: {systemState.modelHealth?.default_model || 'qwen3.5:0.8b'} · 100% Air-Gapped
+              Model: {systemState.modelHealth?.default_model || 'qwen2.5-coder:1.5b'} · 100% Air-Gapped
             </div>
           </div>
         </div>

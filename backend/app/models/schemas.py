@@ -366,3 +366,51 @@ class SandboxStatusResponse(BaseModel):
     memory_limit_mb: int = Field(128, description="Memory ceiling")
 
 
+# ─── Phase 6: Sovereignty & Cryptographic Audit Ledger Schemas ───
+
+class AuditEvent(BaseModel):
+    index: int = Field(..., description="Sequential block index in ledger")
+    timestamp: str = Field(..., description="ISO timestamp of event")
+    event_type: str = Field(
+        ...,
+        description="Event category: 'DOCUMENT_INGEST', 'VECTOR_SEARCH', 'RAG_AUDIT', 'HITL_APPROVAL', 'AST_POLICY_BLOCK', 'SANDBOX_EXECUTION', 'SELF_REPAIR', 'EGRESS_PROBE'"
+    )
+    severity: str = Field("INFO", description="'INFO', 'WARNING', 'CRITICAL', 'SECURITY_ALERT'")
+    actor: str = Field("system", description="User or service triggering event")
+    details: Dict[str, Any] = Field(default_factory=dict, description="Structured event payload")
+    prev_hash: str = Field(..., description="SHA-256 hash of previous block")
+    block_hash: str = Field(..., description="SHA-256 hash of current block")
+
+
+class AuditLedgerResponse(BaseModel):
+    total_events: int = Field(..., description="Total events in ledger")
+    chain_valid: bool = Field(..., description="Whether hash-chain is cryptographically unbroken")
+    events: List[AuditEvent] = Field(default_factory=list, description="List of audit events")
+
+
+class LedgerIntegrityResponse(BaseModel):
+    is_valid: bool = Field(..., description="True if hash-chain is unbroken and tamper-free")
+    total_blocks_checked: int = Field(..., description="Total blocks verified")
+    tampered_block_index: Optional[int] = Field(None, description="Index of first tampered block if invalid")
+    message: str = Field(..., description="Human-readable verification summary")
+    verified_at: str = Field(..., description="ISO timestamp of verification run")
+
+
+class EgressProbeResult(BaseModel):
+    target: str = Field(..., description="Probed hostname / IP")
+    target_type: str = Field(..., description="'DNS', 'PUBLIC_IP', 'CLOUD_AI_API'")
+    blocked: bool = Field(..., description="True if connection failed/blocked as required by air-gap")
+    duration_ms: float = Field(..., description="Probe duration in ms")
+    detail: str = Field(..., description="Probe result message")
+
+
+class SovereigntyStatusResponse(BaseModel):
+    is_air_gapped: bool = Field(..., description="True if all external egress probes were blocked")
+    sovereignty_score_pct: float = Field(..., description="Compliance score (0-100%)")
+    grade: str = Field(..., description="'A+ Sovereign Grade', 'A', 'B', 'FAIL'")
+    bound_host: str = Field("127.0.0.1", description="Host interface binding")
+    dns_leaks_detected: bool = Field(False, description="Whether DNS resolution succeeded for public domains")
+    egress_probes: List[EgressProbeResult] = Field(default_factory=list, description="Individual probe test results")
+    probed_at: str = Field(..., description="ISO timestamp")
+
+

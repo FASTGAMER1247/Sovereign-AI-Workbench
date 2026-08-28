@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # Ollama inference configuration
     OLLAMA_BASE_URL: str = "http://127.0.0.1:11434"
-    DEFAULT_MODEL: str = "qwen3.5:0.8b"
+    DEFAULT_MODEL: str = "qwen2.5-coder:1.5b"
     OLLAMA_TIMEOUT_SECONDS: float = 300.0
 
     # Document management configuration
@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     ARTIFACTS_DIR: str = "data/artifacts"
     SANDBOX_DIR: str = "data/sandbox_runs"
     CODING_RUNS_DIR: str = "data/coding_runs"
+    AUDIT_DIR: str = "data/audit"
+    AUDIT_LEDGER_PATH: str = "data/audit/audit_ledger.jsonl"
 
     # Knowledge Base & Local Vector Store configuration
     KNOWLEDGE_BASE_DIR: str = "data/knowledge_base"

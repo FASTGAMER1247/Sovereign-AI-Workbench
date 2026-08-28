@@ -13,7 +13,7 @@ class RAGService:
     """
     Retrieval-Augmented Generation Service.
     Coordinates retrieval of grounded standards from ChromaDB, constructs context
-    with exact provenance metadata, and invokes local LLM (qwen3.5:0.8b) for deterministic audits.
+    with exact provenance metadata, and invokes local LLM (qwen2.5-coder:1.5b) for deterministic audits.
     """
 
     def __init__(self, retrieval_service: RetrievalService, model_service: ModelService):

@@ -20,7 +20,7 @@ class OllamaProvider(ModelProvider):
     def __init__(
         self,
         base_url: str = "http://localhost:11434",
-        default_model: str = "qwen3.5:0.8b",
+        default_model: str = "qwen2.5-coder:1.5b",
         timeout_seconds: float = 60.0,
     ):
         self.base_url = base_url.rstrip("/")

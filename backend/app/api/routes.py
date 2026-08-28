@@ -32,7 +32,13 @@ from app.models.schemas import (
     SandboxStatusResponse,
     WorkflowExecuteRequest,
     WorkflowExecution,
+    AuditEvent,
+    AuditLedgerResponse,
+    LedgerIntegrityResponse,
+    SovereigntyStatusResponse,
+    EgressProbeResult,
 )
+from app.services.audit_logger import AuditLogger, audit_logger
 from app.services.coding_agent import CodingAgent, get_coding_agent
 from app.services.document_service import DocumentService, get_document_service
 from app.services.knowledge_service import KnowledgeService, get_knowledge_service
@@ -40,6 +46,7 @@ from app.services.model_service import ModelService, get_model_service
 from app.services.retrieval_service import RetrievalService, get_retrieval_service
 from app.services.router_service import ModelRouterService, get_router_service
 from app.services.sandbox_service import SandboxService, get_sandbox_service
+from app.services.sovereignty_service import SovereigntyService, sovereignty_service
 from app.services.workflow_engine import WorkflowEngine, get_workflow_engine
 
 logger = logging.getLogger(__name__)
@@ -573,5 +580,64 @@ async def get_sandbox_status(
         timeout_limit_seconds=5.0,
         memory_limit_mb=128,
     )
+
+
+# ─── Phase 6: Sovereignty & Cryptographic Audit Ledger Endpoints ───
+
+@router.get("/sovereignty/status", response_model=SovereigntyStatusResponse)
+async def get_sovereignty_status() -> SovereigntyStatusResponse:
+    """Get current air-gap compliance scorecard, network score, and egress status."""
+    return sovereignty_service.get_sovereignty_status(run_live_probe=False)
+
+
+@router.post("/sovereignty/probe", response_model=SovereigntyStatusResponse)
+async def probe_sovereignty_status() -> SovereigntyStatusResponse:
+    """Trigger live network egress probes against external targets and return fresh scorecard."""
+    return sovereignty_service.get_sovereignty_status(run_live_probe=True)
+
+
+@router.get("/audit/ledger", response_model=AuditLedgerResponse)
+async def get_audit_ledger(
+    limit: int = 100,
+    event_type: Optional[str] = None,
+) -> AuditLedgerResponse:
+    """Retrieve immutable cryptographic audit ledger events with optional event_type filtering."""
+    events = audit_logger.get_ledger(limit=limit, event_type=event_type, reverse=True)
+    integrity = audit_logger.verify_integrity()
+    return AuditLedgerResponse(
+        total_events=len(events),
+        chain_valid=integrity.is_valid,
+        events=events,
+    )
+
+
+@router.get("/audit/verify", response_model=LedgerIntegrityResponse)
+async def verify_audit_integrity() -> LedgerIntegrityResponse:
+    """Verify cryptographic SHA-256 hash-chain across all recorded audit blocks."""
+    return audit_logger.verify_integrity()
+
+
+@router.get("/audit/export")
+async def export_audit_ledger(format: str = "csv"):
+    """Export the immutable audit trail as CSV or JSONL for defense / regulatory audits."""
+    from fastapi.responses import PlainTextResponse
+
+    if format.lower() == "csv":
+        csv_content = audit_logger.export_ledger_csv()
+        return PlainTextResponse(
+            content=csv_content,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=sovereign_audit_ledger.csv"}
+        )
+    else:
+        # JSONL format
+        events = audit_logger.get_ledger(limit=10000, reverse=False)
+        import json
+        jsonl_content = "\n".join(json.dumps(ev.model_dump()) for ev in events)
+        return PlainTextResponse(
+            content=jsonl_content,
+            media_type="application/x-ndjson",
+            headers={"Content-Disposition": "attachment; filename=sovereign_audit_ledger.jsonl"}
+        )
 
 

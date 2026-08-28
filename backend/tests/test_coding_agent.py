@@ -29,9 +29,9 @@ async def run_coding_agent_tests():
     assert execution.id.startswith("code_exec_")
     print(f"Execution initialized: {execution.id}, Model: {execution.model_used}")
 
-    # Test 2: Poll for completion (Wait up to 35 seconds for local LLM + Sandbox)
+    # Test 2: Poll for completion (Wait up to 180 seconds for local CPU LLM + Sandbox)
     print("\n[STEP 2] Monitoring execution progress and sandbox test runner...")
-    max_wait = 35
+    max_wait = 300
     elapsed = 0
     while elapsed < max_wait:
         await asyncio.sleep(2.0)

@@ -1,4 +1,5 @@
 import type {
+  AuditLedgerResponse,
   ChatRequest,
   ChatResponse,
   CodingWorkflowExecution,
@@ -15,10 +16,12 @@ import type {
   KnowledgeQueryRequest,
   KnowledgeQueryResponse,
   KnowledgeStatsResponse,
+  LedgerIntegrityResponse,
   ModelHealthResponse,
   RAGAuditRequest,
   RAGAuditResponse,
   SandboxStatusResponse,
+  SovereigntyStatusResponse,
 } from '../types'
 
 const BASE_URL = '/api'
@@ -276,6 +279,41 @@ export function getCodingArtifactDownloadUrl(executionId: string): string {
 /** Fetch current sandbox engine health and mode */
 export async function getSandboxStatus(): Promise<SandboxStatusResponse> {
   return apiFetch<SandboxStatusResponse>('/coding/sandbox/status')
+}
+
+// ─── Phase 6: Sovereignty & Cryptographic Audit Client API ───
+
+/** Fetch current air-gap sovereignty status and score */
+export async function getSovereigntyStatus(): Promise<SovereigntyStatusResponse> {
+  return apiFetch<SovereigntyStatusResponse>('/sovereignty/status')
+}
+
+/** Trigger live network egress probes */
+export async function probeSovereignty(): Promise<SovereigntyStatusResponse> {
+  return apiFetch<SovereigntyStatusResponse>('/sovereignty/probe', {
+    method: 'POST',
+  })
+}
+
+/** Retrieve cryptographic audit ledger entries */
+export async function getAuditLedger(
+  limit: number = 100,
+  eventType?: string,
+): Promise<AuditLedgerResponse> {
+  const query = new URLSearchParams()
+  query.set('limit', String(limit))
+  if (eventType) query.set('event_type', eventType)
+  return apiFetch<AuditLedgerResponse>(`/audit/ledger?${query.toString()}`)
+}
+
+/** Verify SHA-256 hash-chain across all audit blocks */
+export async function verifyAuditIntegrity(): Promise<LedgerIntegrityResponse> {
+  return apiFetch<LedgerIntegrityResponse>('/audit/verify')
+}
+
+/** Get download URL for exported audit ledger (CSV or JSONL) */
+export function getAuditExportUrl(format: 'csv' | 'jsonl' = 'csv'): string {
+  return `/api/audit/export?format=${format}`
 }
 
 

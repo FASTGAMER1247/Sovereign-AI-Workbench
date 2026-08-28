@@ -429,6 +429,23 @@ class WorkflowEngine:
             execution.updated_at = datetime.datetime.now().isoformat()
             self._save_executions()
 
+            try:
+                from app.services.audit_logger import audit_logger
+                audit_logger.record_event(
+                    event_type="HITL_APPROVAL",
+                    severity="INFO",
+                    actor=request.reviewer_name or "Chief Engineer",
+                    details={
+                        "execution_id": execution_id,
+                        "decision": "approved",
+                        "document_name": execution.document_name,
+                        "notes": request.reviewer_notes,
+                        "artifact_filename": artifact_info["filename"]
+                    }
+                )
+            except Exception as err:
+                logger.debug(f"Audit log emission skipped: {err}")
+
             logger.info(f"Workflow {execution_id} completed successfully. Artifact: {artifact_info['filename']}")
 
             return ApprovalDecisionResponse(

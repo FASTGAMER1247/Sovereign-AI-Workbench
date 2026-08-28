@@ -55,11 +55,12 @@ async def run_router_tests():
 
     # 5. Preferred Model Override Route
     print("\n[TEST 5] Testing Preferred Model Override...")
-    o_req = ModelRouteRequest(prompt="Hello", preferred_model="qwen3.5:0.8b")
+    o_req = ModelRouteRequest(prompt="Hello", preferred_model="qwen2.5-coder:1.5b")
     o_resp = await router.route_task(o_req)
     print(f"Task: {o_resp.task_type} -> Selected Model: {o_resp.selected_model} (Reason: {o_resp.reason})")
-    assert "qwen3.5:0.8b" in o_resp.selected_model
+    assert "qwen2.5-coder:1.5b" in o_resp.selected_model
     print("TEST 5 PASSED!")
+
 
     print("\n" + "=" * 60)
     print("ALL MULTI-MODEL ROUTER TESTS PASSED!")

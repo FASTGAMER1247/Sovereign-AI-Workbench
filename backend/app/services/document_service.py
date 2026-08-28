@@ -147,6 +147,22 @@ class DocumentService:
         self._registry[doc_id] = doc_record
         self._save_registry()
 
+        try:
+            from app.services.audit_logger import audit_logger
+            audit_logger.record_event(
+                event_type="DOCUMENT_INGEST",
+                severity="INFO",
+                actor="system_operator",
+                details={
+                    "document_id": doc_id,
+                    "filename": sanitized_name,
+                    "file_type": file_type,
+                    "size_bytes": size_bytes
+                }
+            )
+        except Exception as err:
+            logger.debug(f"Audit log emission skipped: {err}")
+
         logger.info(f"Document uploaded successfully: ID={doc_id}, Name={sanitized_name}, Type={file_type}, Size={size_bytes}B")
 
         return DocumentResponse(
@@ -290,6 +306,22 @@ class DocumentService:
         doc["extracted_text"] = extracted_text
         doc["status"] = "extracted"
         self._save_registry()
+
+        try:
+            from app.services.audit_logger import audit_logger
+            audit_logger.record_event(
+                event_type="DOCUMENT_EXTRACT",
+                severity="INFO",
+                actor="document_service",
+                details={
+                    "document_id": doc["id"],
+                    "filename": doc["filename"],
+                    "method": method,
+                    "char_count": len(extracted_text)
+                }
+            )
+        except Exception as err:
+            logger.debug(f"Audit log emission skipped: {err}")
 
         return DocumentExtractionResponse(
             document_id=doc["id"],

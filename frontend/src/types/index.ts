@@ -320,4 +320,49 @@ export interface SandboxStatusResponse {
   memory_limit_mb: number
 }
 
+// ─── Phase 6: Sovereignty & Cryptographic Audit Types ───
+
+export interface AuditEvent {
+  index: number
+  timestamp: string
+  event_type: string
+  severity: 'INFO' | 'WARNING' | 'CRITICAL' | 'SECURITY_ALERT' | string
+  actor: string
+  details: Record<string, unknown>
+  prev_hash: string
+  block_hash: string
+}
+
+export interface AuditLedgerResponse {
+  total_events: number
+  chain_valid: boolean
+  events: AuditEvent[]
+}
+
+export interface LedgerIntegrityResponse {
+  is_valid: boolean
+  total_blocks_checked: number
+  tampered_block_index?: number | null
+  message: string
+  verified_at: string
+}
+
+export interface EgressProbeResult {
+  target: string
+  target_type: 'DNS' | 'PUBLIC_IP' | 'CLOUD_AI_API' | string
+  blocked: boolean
+  duration_ms: number
+  detail: string
+}
+
+export interface SovereigntyStatusResponse {
+  is_air_gapped: boolean
+  sovereignty_score_pct: number
+  grade: string
+  bound_host: string
+  dns_leaks_detected: boolean
+  egress_probes: EgressProbeResult[]
+  probed_at: string
+}
+
 

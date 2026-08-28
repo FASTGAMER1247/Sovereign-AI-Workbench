@@ -18,11 +18,21 @@ class ModelRouterService:
 
     # Static capability database for known local open-weight models
     KNOWN_MODEL_CAPABILITIES: Dict[str, List[str]] = {
-        "qwen3.5:0.8b": ["chat", "reasoning", "vision", "coding", "rag_audit"],
+        "qwen2.5-coder:1.5b": ["chat", "reasoning", "coding", "rag_audit", "vision"],
+        "qwen2.5-coder:0.5b": ["coding", "reasoning", "chat"],
+        "qwen2.5-coder:3b": ["coding", "reasoning", "chat", "rag_audit"],
+        "qwen2.5-coder:7b": ["coding", "reasoning", "chat", "rag_audit"],
+        "qwen2.5-coder": ["coding", "reasoning", "chat", "rag_audit"],
+        "deepseek-coder:1.3b": ["coding", "reasoning"],
+        "deepseek-coder:6.7b": ["coding", "reasoning"],
+        "deepseek-coder": ["coding", "reasoning"],
+        "codellama:7b": ["coding", "reasoning"],
+        "codellama": ["coding", "reasoning"],
+        "starcoder2:3b": ["coding", "reasoning"],
         "qwen2.5:0.5b": ["chat", "coding", "rag_audit"],
         "qwen2.5:1.5b": ["chat", "coding", "rag_audit"],
         "qwen2.5:3b": ["chat", "reasoning", "coding", "rag_audit"],
-        "qwen2.5-coder": ["coding", "reasoning"],
+        "qwen2.5:7b": ["chat", "reasoning", "coding", "rag_audit"],
         "llama3.2:1b": ["chat", "rag_audit"],
         "llama3.2:3b": ["chat", "reasoning", "rag_audit"],
         "llama3.2-vision": ["vision", "chat"],
@@ -166,12 +176,18 @@ class ModelRouterService:
             # Prefer models with exact required capability
             exact_matches = [m for m, caps in suitable_models if required_cap in caps]
             if exact_matches:
+                # If coding task, prioritize specialized coder models (e.g. qwen2.5-coder)
+                coder_specialists = [m for m in exact_matches if "coder" in m.lower()]
+                if required_cap == "coding" and coder_specialists:
+                    selected_model = coder_specialists[0]
+                    reason = f"Specialized Coder Model '{selected_model}' auto-selected for coding task."
                 # Prefer default model if it matches
-                if any(default_model in m for m in exact_matches):
+                elif any(default_model in m for m in exact_matches):
                     selected_model = next(m for m in exact_matches if default_model in m)
+                    reason = f"Routed to '{selected_model}' matching capability '{required_cap}' for task '{task_type}'."
                 else:
                     selected_model = exact_matches[0]
-                reason = f"Routed to '{selected_model}' matching capability '{required_cap}' for task '{task_type}'."
+                    reason = f"Routed to '{selected_model}' matching capability '{required_cap}' for task '{task_type}'."
             else:
                 selected_model = suitable_models[0][0]
                 reason = f"Routed to general chat model '{selected_model}' for task '{task_type}'."

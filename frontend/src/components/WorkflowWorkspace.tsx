@@ -352,8 +352,9 @@ export const WorkflowWorkspace: React.FC = () => {
             }}
           >
             <ShieldCheck size={14} />
-            Auto-Router: qwen3.5 (VLM/Audit) + nomic-embed
+            Auto-Router: qwen2.5-coder:1.5b (Coder/Audit) + nomic-embed
           </div>
+
         </div>
       </div>
 

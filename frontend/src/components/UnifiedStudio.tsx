@@ -19,6 +19,7 @@ import {
   Code2,
   RotateCcw,
   ChevronRight,
+  Shield,
 } from 'lucide-react'
 import {
   cancelWorkflowExecution,
@@ -35,6 +36,7 @@ import { KnowledgeWorkspace } from './KnowledgeWorkspace'
 import { DocumentWorkspace } from './DocumentWorkspace'
 import { CopilotDrawer } from './CopilotDrawer'
 import { CodingWorkspace } from './CodingWorkspace'
+import { SecurityDashboard } from './SecurityDashboard'
 import type {
   AppSystemState,
   DocumentResponse,
@@ -47,8 +49,8 @@ interface UnifiedStudioProps {
 }
 
 export const UnifiedStudio: React.FC<UnifiedStudioProps> = ({ systemState }) => {
-  // Top Workflow Mode ('workflow_a' = Industrial Compliance / DOCX, 'workflow_b' = Secure Coding / Sandbox)
-  const [workflowMode, setWorkflowMode] = useState<'workflow_a' | 'workflow_b'>('workflow_a')
+  // Top Workflow Mode ('workflow_a' = Compliance / DOCX, 'workflow_b' = Coding / Sandbox, 'security' = Air-Gap & Ledger)
+  const [workflowMode, setWorkflowMode] = useState<'workflow_a' | 'workflow_b' | 'security'>('workflow_a')
 
   // Asset state
   const [documents, setDocuments] = useState<DocumentResponse[]>([])
@@ -453,6 +455,40 @@ export const UnifiedStudio: React.FC<UnifiedStudioProps> = ({ systemState }) => 
               PHASE 5
             </span>
           </button>
+
+          <button
+            onClick={() => setWorkflowMode('security')}
+            style={{
+              background: workflowMode === 'security' ? 'var(--color-surface)' : 'transparent',
+              border: workflowMode === 'security' ? '1px solid var(--color-border)' : '1px solid transparent',
+              borderRadius: 'var(--radius-sm)',
+              padding: '5px 12px',
+              fontSize: '11px',
+              fontWeight: workflowMode === 'security' ? 700 : 500,
+              color: workflowMode === 'security' ? 'var(--color-success)' : 'var(--color-text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all var(--transition-fast)',
+            }}
+          >
+            <Shield size={13} color="var(--color-success)" />
+            <span>Air-Gap & Ledger</span>
+            <span
+              style={{
+                fontSize: '9px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 700,
+                background: 'rgba(16, 185, 129, 0.2)',
+                padding: '1px 5px',
+                borderRadius: '8px',
+                color: 'var(--color-success)',
+              }}
+            >
+              PHASE 6
+            </span>
+          </button>
         </div>
 
         {/* Quick Tool Triggers */}
@@ -559,22 +595,29 @@ export const UnifiedStudio: React.FC<UnifiedStudioProps> = ({ systemState }) => 
       )}
 
       {/* ── Workflow Views ── */}
-      {workflowMode === 'workflow_b' ? (
+      <div style={{ display: workflowMode === 'security' ? 'block' : 'none' }}>
+        <SecurityDashboard
+          systemState={systemState}
+          onClose={() => setWorkflowMode('workflow_a')}
+        />
+      </div>
+
+      <div style={{ display: workflowMode === 'workflow_b' ? 'block' : 'none' }}>
         <CodingWorkspace
           systemState={systemState}
           onSwitchToWorkflowA={() => setWorkflowMode('workflow_a')}
         />
-      ) : (
-        /* ── 3-Panel Grid System (Workflow A) ── */
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '260px 1fr 340px',
-            gap: '16px',
-            minHeight: '620px',
-            alignItems: 'stretch',
-          }}
-        >
+      </div>
+
+      <div
+        style={{
+          display: workflowMode === 'workflow_a' ? 'grid' : 'none',
+          gridTemplateColumns: '260px 1fr 340px',
+          gap: '16px',
+          minHeight: '620px',
+          alignItems: 'stretch',
+        }}
+      >
         
         {/* ── LEFT PANEL: Asset & Tool Navigator ── */}
         <div
@@ -732,8 +775,8 @@ export const UnifiedStudio: React.FC<UnifiedStudioProps> = ({ systemState }) => 
               <Cpu size={12} color="var(--color-success)" /> Active Model Layer
             </div>
             <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Reasoning & VLM:</span>
-              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-primary)' }}>qwen3.5:0.8b</span>
+              <span>Reasoning & LLM:</span>
+              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-accent-teal)' }}>{systemState.modelHealth?.default_model || 'qwen2.5-coder:1.5b'}</span>
             </div>
             <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'flex', justifyContent: 'space-between' }}>
               <span>Dense Vector:</span>
@@ -1381,9 +1424,9 @@ export const UnifiedStudio: React.FC<UnifiedStudioProps> = ({ systemState }) => 
             </div>
           )}
         </div>
-
       </div>
-      )}
+
+
 
       {/* ── SOP KNOWLEDGE BASE MODAL ── */}
       {showSopModal && (
