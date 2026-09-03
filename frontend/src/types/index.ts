@@ -46,8 +46,10 @@ export interface AppSystemState {
   backendStatus: SystemStatus
   modelStatus: SystemStatus
   modelHealth: ModelHealthResponse | null
+  sovereigntyStatus?: SovereigntyStatusResponse | null
   errorMessage: string | null
 }
+
 
 // ─── Document Types (Milestone 2) ───
 

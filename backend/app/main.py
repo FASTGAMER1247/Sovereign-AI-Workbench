@@ -59,7 +59,15 @@ def create_app() -> FastAPI:
 
     app.include_router(api_router)
 
+    # Serve compiled frontend assets if available
+    import os
+    from fastapi.staticfiles import StaticFiles
+    frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist"))
+    if os.path.isdir(frontend_dist):
+        app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
+
     return app
+
 
 
 app = create_app()

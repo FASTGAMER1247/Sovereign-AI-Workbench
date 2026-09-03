@@ -176,6 +176,52 @@ class DocumentService:
             error_message=None,
         )
 
+    async def save_document_bytes(self, filename: str, content: bytes) -> DocumentResponse:
+        """Programmatically save document bytes into the persistent registry."""
+        sanitized_name = self._sanitize_filename(filename)
+        file_ext = Path(sanitized_name).suffix.lower()
+
+        if file_ext not in ALLOWED_EXTENSIONS:
+            raise ValueError(f"Unsupported file extension '{file_ext}'. Allowed formats: {ALLOWED_EXTENSIONS}")
+
+        doc_id = str(uuid.uuid4())
+        stored_filename = f"{doc_id}{file_ext}"
+        storage_path = self.storage_dir / stored_filename
+
+        with open(storage_path, "wb") as f:
+            f.write(content)
+
+        file_type = file_ext.lstrip(".")
+        created_at = datetime.now(timezone.utc).isoformat()
+
+        doc_record = {
+            "id": doc_id,
+            "filename": sanitized_name,
+            "file_type": file_type,
+            "size_bytes": len(content),
+            "storage_path": str(storage_path),
+            "created_at": created_at,
+            "status": "uploaded",
+            "extracted_text": None,
+            "analysis": None,
+            "error_message": None,
+        }
+
+        self._registry[doc_id] = doc_record
+        self._save_registry()
+
+        return DocumentResponse(
+            id=doc_id,
+            filename=sanitized_name,
+            file_type=file_type,
+            size_bytes=len(content),
+            created_at=created_at,
+            status="uploaded",
+            extracted_text_preview=None,
+            error_message=None,
+        )
+
+
     def list_documents(self) -> List[DocumentResponse]:
         """List all registered documents sorted by newest first."""
         docs = []
@@ -217,6 +263,29 @@ class DocumentService:
             extracted_text_preview=preview,
             error_message=doc.get("error_message"),
         )
+
+    def delete_document(self, document_id: str) -> bool:
+        """Delete an ingested document and remove its stored file."""
+        doc = self._registry.get(document_id)
+        if not doc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Document with ID '{document_id}' not found."
+            )
+
+        storage_path_str = doc.get("storage_path")
+        if storage_path_str:
+            storage_path = Path(storage_path_str)
+            if storage_path.exists():
+                try:
+                    storage_path.unlink()
+                except Exception as err:
+                    logger.warning(f"Failed to unlink file {storage_path}: {err}")
+
+        del self._registry[document_id]
+        self._save_registry()
+        logger.info(f"Document {document_id} deleted successfully.")
+        return True
 
     async def extract_text(self, document_id: str) -> DocumentExtractionResponse:
         """Extract text from a document using PyMuPDF (PDF) or local Ollama Vision (Images)."""

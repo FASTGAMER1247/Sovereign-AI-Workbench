@@ -157,16 +157,19 @@ export const KnowledgeWorkspace: React.FC<KnowledgeWorkspaceProps> = ({ systemSt
     }
   }
 
+  // Filter SOPs
+  const [sopFilter, setSopFilter] = useState('')
+
   // Handle Semantic Query Execution
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!searchQuery.trim()) return
+  const executeSearch = async (queryText: string) => {
+    const q = queryText.trim()
+    if (!q) return
 
     setIsSearching(true)
     setError(null)
     try {
       const res = await queryKnowledgeBase({
-        query: searchQuery.trim(),
+        query: q,
         top_k: topK,
         similarity_threshold: 0.0,
       })
@@ -177,6 +180,11 @@ export const KnowledgeWorkspace: React.FC<KnowledgeWorkspaceProps> = ({ systemSt
     } finally {
       setIsSearching(false)
     }
+  }
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault()
+    executeSearch(searchQuery)
   }
 
   return (
@@ -226,7 +234,7 @@ export const KnowledgeWorkspace: React.FC<KnowledgeWorkspaceProps> = ({ systemSt
             <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Indexed Docs
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
               {stats?.total_documents ?? documents.length}
             </div>
           </div>
@@ -237,7 +245,7 @@ export const KnowledgeWorkspace: React.FC<KnowledgeWorkspaceProps> = ({ systemSt
             <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Vector Chunks
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-accent)' }}>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-accent)' }}>
               {stats?.total_chunks ?? 0}
             </div>
           </div>
@@ -303,6 +311,108 @@ export const KnowledgeWorkspace: React.FC<KnowledgeWorkspaceProps> = ({ systemSt
         </div>
       )}
 
+      {/* ── 2. PROMINENT RAG SEARCH BAR ── */}
+      <div
+        style={{
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '18px 22px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Sparkles size={16} color="var(--color-accent)" />
+            <h3 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
+              Search RAG Knowledge Base (ChromaDB)
+            </h3>
+          </div>
+          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
+            Nomic Embed Text · Dense Vector Retrieval
+          </span>
+        </div>
+
+        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search
+              size={16}
+              style={{
+                position: 'absolute',
+                left: '14px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--color-text-muted)',
+              }}
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search across all indexed SOPs, safety standards, API 570 limits, and dense vector chunks..."
+              style={{
+                width: '100%',
+                padding: '10px 14px 10px 40px',
+                background: 'var(--color-bg)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '8px',
+                color: 'var(--color-text-primary)',
+                fontSize: '13.5px',
+                outline: 'none',
+                boxSizing: 'border-box',
+                fontFamily: 'inherit',
+              }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSearching || !searchQuery.trim() || documents.length === 0}
+            className="btn btn-primary"
+            style={{
+              padding: '0 20px',
+              height: '42px',
+              borderRadius: '8px',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {isSearching ? <RefreshCw size={14} className="spinning" /> : <Search size={14} />}
+            <span>Search RAG</span>
+          </button>
+        </form>
+
+        {/* Quick Suggestion Chips */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Suggested queries:</span>
+          {[
+            'API 570 minimum wall thickness',
+            'SOP-REF-570 hydrocarbon piping',
+            'Corrosion rate allowance formula',
+            'Hydrostatic pressure test requirements',
+          ].map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              onClick={() => {
+                setSearchQuery(prompt)
+                executeSearch(prompt)
+              }}
+              className="btn btn-sm btn-ghost"
+              style={{ fontSize: '11px', height: '24px', padding: '0 8px' }}
+            >
+              <span>{prompt}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Main 2-Column Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '20px', alignItems: 'start' }}>
         {/* Left Column: Indexed Standards & SOPs */}
@@ -366,6 +476,39 @@ export const KnowledgeWorkspace: React.FC<KnowledgeWorkspaceProps> = ({ systemSt
             </div>
           </div>
 
+          {/* Quick Filter Bar for Indexed Standards */}
+          {documents.length > 0 && (
+            <div style={{ position: 'relative' }}>
+              <Search
+                size={13}
+                style={{
+                  position: 'absolute',
+                  left: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--color-text-muted)',
+                }}
+              />
+              <input
+                type="text"
+                value={sopFilter}
+                onChange={(e) => setSopFilter(e.target.value)}
+                placeholder="Filter indexed SOPs by title or category..."
+                style={{
+                  width: '100%',
+                  padding: '7px 10px 7px 30px',
+                  background: 'var(--color-bg)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '11.5px',
+                  color: 'var(--color-text-primary)',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+          )}
+
           {/* List of Indexed Standards */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minHeight: '200px' }}>
             {isLoading && documents.length === 0 ? (
@@ -404,7 +547,13 @@ export const KnowledgeWorkspace: React.FC<KnowledgeWorkspaceProps> = ({ systemSt
                 </button>
               </div>
             ) : (
-              documents.map((doc) => (
+              documents
+                .filter((doc) =>
+                  !sopFilter.trim() ||
+                  doc.filename.toLowerCase().includes(sopFilter.toLowerCase()) ||
+                  (doc.metadata && typeof doc.metadata.category === 'string' && doc.metadata.category.toLowerCase().includes(sopFilter.toLowerCase()))
+                )
+                .map((doc) => (
                 <div
                   key={doc.id}
                   style={{
@@ -745,7 +894,7 @@ export const KnowledgeWorkspace: React.FC<KnowledgeWorkspaceProps> = ({ systemSt
               </h3>
               <button
                 onClick={() => setShowIngestModal(false)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: '18px' }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: '15px' }}
               >
                 ✕
               </button>
@@ -980,7 +1129,7 @@ export const KnowledgeWorkspace: React.FC<KnowledgeWorkspaceProps> = ({ systemSt
               </div>
               <button
                 onClick={() => setInspectingDoc(null)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: '18px' }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: '15px' }}
               >
                 ✕
               </button>

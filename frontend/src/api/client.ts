@@ -75,10 +75,11 @@ export async function listModels(): Promise<{ models: unknown[]; count: number }
 }
 
 /** Send a chat prompt to the FastAPI backend → Ollama */
-export async function sendChat(request: ChatRequest): Promise<ChatResponse> {
+export async function sendChat(request: ChatRequest, signal?: AbortSignal): Promise<ChatResponse> {
   return apiFetch<ChatResponse>('/chat', {
     method: 'POST',
     body: JSON.stringify(request),
+    signal,
   })
 }
 
@@ -102,6 +103,13 @@ export async function getDocuments(): Promise<DocumentResponse[]> {
 /** Get a single document metadata */
 export async function getDocument(documentId: string): Promise<DocumentResponse> {
   return apiFetch<DocumentResponse>(`/documents/${documentId}`)
+}
+
+/** Delete an uploaded document */
+export async function deleteDocument(documentId: string): Promise<{ status: string; document_id: string }> {
+  return apiFetch<{ status: string; document_id: string }>(`/documents/${documentId}`, {
+    method: 'DELETE',
+  })
 }
 
 /** Extract text from document using PyMuPDF or local Vision */
@@ -315,5 +323,23 @@ export async function verifyAuditIntegrity(): Promise<LedgerIntegrityResponse> {
 export function getAuditExportUrl(format: 'csv' | 'jsonl' = 'csv'): string {
   return `/api/audit/export?format=${format}`
 }
+
+// ─── Phase 7: Demo Package Client API ───
+
+export interface DemoSeedResponse {
+  status: string
+  document_id: string
+  document_name: string
+  sop_document_id: string
+  message: string
+}
+
+/** One-click seed industrial demo package (Refinery Line 102 Inspection PDF + SOP-REF-570 in ChromaDB) */
+export async function seedDemoPackage(): Promise<DemoSeedResponse> {
+  return apiFetch<DemoSeedResponse>('/demo/seed', {
+    method: 'POST',
+  })
+}
+
 
 

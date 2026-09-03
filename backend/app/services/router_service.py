@@ -18,6 +18,13 @@ class ModelRouterService:
 
     # Static capability database for known local open-weight models
     KNOWN_MODEL_CAPABILITIES: Dict[str, List[str]] = {
+        "deepseek-r1:1.5b": ["reasoning", "chat", "coding", "rag_audit"],
+        "deepseek-r1": ["reasoning", "chat", "coding", "rag_audit"],
+        "deepseek-r1:7b": ["reasoning", "chat", "coding", "rag_audit"],
+        "deepseek-r1:8b": ["reasoning", "chat", "coding", "rag_audit"],
+        "llama3.2:3b": ["chat", "reasoning", "rag_audit", "coding"],
+        "llama3.2:1b": ["chat", "rag_audit"],
+        "llama3.2": ["chat", "reasoning", "rag_audit"],
         "qwen2.5-coder:1.5b": ["chat", "reasoning", "coding", "rag_audit", "vision"],
         "qwen2.5-coder:0.5b": ["coding", "reasoning", "chat"],
         "qwen2.5-coder:3b": ["coding", "reasoning", "chat", "rag_audit"],
@@ -33,13 +40,12 @@ class ModelRouterService:
         "qwen2.5:1.5b": ["chat", "coding", "rag_audit"],
         "qwen2.5:3b": ["chat", "reasoning", "coding", "rag_audit"],
         "qwen2.5:7b": ["chat", "reasoning", "coding", "rag_audit"],
-        "llama3.2:1b": ["chat", "rag_audit"],
-        "llama3.2:3b": ["chat", "reasoning", "rag_audit"],
         "llama3.2-vision": ["vision", "chat"],
         "llava": ["vision", "chat"],
         "nomic-embed-text": ["embeddings", "vector"],
         "all-minilm": ["embeddings", "vector"],
     }
+
 
     def __init__(self, model_service: Optional[ModelService] = None):
         self.model_service = model_service or get_model_service()
@@ -178,13 +184,18 @@ class ModelRouterService:
             if exact_matches:
                 # If coding task, prioritize specialized coder models (e.g. qwen2.5-coder)
                 coder_specialists = [m for m in exact_matches if "coder" in m.lower()]
+                r1_specialists = [m for m in exact_matches if "deepseek-r1" in m.lower() or "r1" in m.lower()]
                 if required_cap == "coding" and coder_specialists:
                     selected_model = coder_specialists[0]
                     reason = f"Specialized Coder Model '{selected_model}' auto-selected for coding task."
+                elif required_cap == "reasoning" and r1_specialists:
+                    selected_model = r1_specialists[0]
+                    reason = f"Specialized Chain-of-Thought Reasoning Model '{selected_model}' auto-selected for reasoning task."
                 # Prefer default model if it matches
                 elif any(default_model in m for m in exact_matches):
                     selected_model = next(m for m in exact_matches if default_model in m)
                     reason = f"Routed to '{selected_model}' matching capability '{required_cap}' for task '{task_type}'."
+
                 else:
                     selected_model = exact_matches[0]
                     reason = f"Routed to '{selected_model}' matching capability '{required_cap}' for task '{task_type}'."

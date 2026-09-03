@@ -6,7 +6,7 @@ import re
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from app.config import settings
 from app.models.schemas import (
@@ -53,6 +53,7 @@ class WorkflowEngine:
 
         self._executions: Dict[str, WorkflowExecution] = {}
         self._running_tasks: Dict[str, asyncio.Task] = {}
+        self._cancelled_ids: Set[str] = set()
         self._load_executions()
 
     def _load_executions(self):
@@ -207,6 +208,7 @@ class WorkflowEngine:
         """
         Cancel a running or pending workflow execution immediately.
         """
+        self._cancelled_ids.add(execution_id)
         execution = self._executions.get(execution_id)
         if not execution:
             return None
@@ -216,17 +218,25 @@ class WorkflowEngine:
             task.cancel()
             logger.info(f"Cancelled background task for workflow {execution_id}")
 
-        if execution.status in ["running", "waiting_for_approval"]:
-            execution.status = "rejected"
-            execution.updated_at = datetime.datetime.now().isoformat()
-            if execution.current_step_index < len(execution.steps):
-                step = execution.steps[execution.current_step_index]
-                if step.status == "running":
-                    step.status = "failed"
-                    step.error_message = "Audit cancelled by user."
-            self._save_executions()
+        execution.status = "rejected"
+        execution.updated_at = datetime.datetime.now().isoformat()
+        if execution.current_step_index < len(execution.steps):
+            step = execution.steps[execution.current_step_index]
+            if step.status in ["running", "pending"]:
+                step.status = "failed"
+                step.error_message = "Audit cancelled by operator."
+        self._save_executions()
 
         return execution
+
+    def _is_cancelled(self, execution_id: str) -> bool:
+        """Check if an execution was cancelled by user."""
+        if execution_id in self._cancelled_ids:
+            return True
+        exec_obj = self._executions.get(execution_id)
+        if exec_obj and exec_obj.status in ["rejected", "cancelled"]:
+            return True
+        return False
 
     async def _execute_hero_pipeline(
         self,
@@ -245,6 +255,10 @@ class WorkflowEngine:
         logger.info(f"Starting Workflow Execution {execution_id} for doc {execution.document_name}")
 
         try:
+            if self._is_cancelled(execution_id):
+                logger.info(f"Workflow Execution {execution_id} stopped before Step 1.")
+                return
+
             # ─── STEP 1: Document Extraction ───
             step1 = execution.steps[0]
             step1.status = "running"
@@ -254,12 +268,20 @@ class WorkflowEngine:
             self._save_executions()
 
             ext_resp = await self.document_service.extract_text(execution.document_id)
+            if self._is_cancelled(execution_id):
+                logger.info(f"Workflow Execution {execution_id} stopped after Step 1.")
+                return
+
             step1.status = "completed"
             step1.completed_at = datetime.datetime.now().isoformat()
             step1.output_summary = f"Extracted {ext_resp.char_count} characters via {ext_resp.method}."
             step1.output_data = {"char_count": ext_resp.char_count, "method": ext_resp.method}
             execution.extracted_text = ext_resp.extracted_text
             self._save_executions()
+
+            if self._is_cancelled(execution_id):
+                logger.info(f"Workflow Execution {execution_id} stopped before Step 2.")
+                return
 
             # ─── STEP 2: Knowledge Retrieval (ChromaDB) ───
             step2 = execution.steps[1]
@@ -275,6 +297,10 @@ class WorkflowEngine:
                 query=search_query,
                 top_k=4,
             )
+
+            if self._is_cancelled(execution_id):
+                logger.info(f"Workflow Execution {execution_id} stopped after Step 2 retrieval.")
+                return
 
             citations: List[GroundedCitation] = []
             for item in scored_chunks:
@@ -297,6 +323,10 @@ class WorkflowEngine:
             execution.grounded_citations = citations
             self._save_executions()
 
+            if self._is_cancelled(execution_id):
+                logger.info(f"Workflow Execution {execution_id} stopped before Step 3.")
+                return
+
             # ─── STEP 3: RAG Compliance Audit ───
             step3 = execution.steps[2]
             step3.status = "running"
@@ -313,6 +343,10 @@ class WorkflowEngine:
                 top_k=4,
             )
 
+            if self._is_cancelled(execution_id):
+                logger.info(f"Workflow Execution {execution_id} stopped after Step 3 audit.")
+                return
+
             step3.status = "completed"
             step3.completed_at = datetime.datetime.now().isoformat()
             step3.output_summary = f"Generated audit analysis with {len(audit_resp.grounded_citations)} grounded citations."
@@ -321,6 +355,10 @@ class WorkflowEngine:
             if audit_resp.grounded_citations:
                 execution.grounded_citations = audit_resp.grounded_citations
             self._save_executions()
+
+            if self._is_cancelled(execution_id):
+                logger.info(f"Workflow Execution {execution_id} stopped before Step 4.")
+                return
 
             # ─── STEP 4: HITL Human Checkpoint (PAUSE) ───
             step4 = execution.steps[3]
@@ -336,6 +374,19 @@ class WorkflowEngine:
 
             logger.info(f"Workflow Execution {execution_id} reached HITL Checkpoint (PAUSED).")
 
+        except asyncio.CancelledError:
+            logger.info(f"Workflow execution {execution_id} received CancelledError, halting cleanly.")
+            execution = self._executions.get(execution_id)
+            if execution:
+                execution.status = "rejected"
+                if execution.current_step_index < len(execution.steps):
+                    cur_step = execution.steps[execution.current_step_index]
+                    if cur_step.status in ["running", "pending"]:
+                        cur_step.status = "failed"
+                        cur_step.error_message = "Audit cancelled by operator."
+                execution.updated_at = datetime.datetime.now().isoformat()
+                self._save_executions()
+            return
         except Exception as e:
             logger.error(f"Workflow execution {execution_id} failed: {e}", exc_info=True)
             execution.status = "failed"
@@ -345,6 +396,8 @@ class WorkflowEngine:
             current_step.error = str(e)
             execution.updated_at = datetime.datetime.now().isoformat()
             self._save_executions()
+        finally:
+            self._running_tasks.pop(execution_id, None)
 
     async def submit_human_decision(
         self,

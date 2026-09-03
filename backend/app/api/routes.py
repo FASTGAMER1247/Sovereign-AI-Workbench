@@ -144,6 +144,16 @@ async def get_document(
     return doc_service.get_document(document_id)
 
 
+@router.delete("/documents/{document_id}")
+async def delete_document(
+    document_id: str,
+    doc_service: DocumentService = Depends(get_document_service),
+):
+    """Delete an ingested document and its underlying storage."""
+    doc_service.delete_document(document_id)
+    return {"status": "deleted", "document_id": document_id}
+
+
 @router.post("/documents/{document_id}/extract", response_model=DocumentExtractionResponse)
 async def extract_document_text(
     document_id: str,
@@ -639,5 +649,27 @@ async def export_audit_ledger(format: str = "csv"):
             media_type="application/x-ndjson",
             headers={"Content-Disposition": "attachment; filename=sovereign_audit_ledger.jsonl"}
         )
+
+
+@router.post("/demo/seed")
+async def seed_demo():
+    """Trigger one-click industrial demo package seeding for live hackathon presentations."""
+    try:
+        import sys
+        from pathlib import Path
+        repo_root = str(Path(__file__).resolve().parent.parent.parent.parent)
+        if repo_root not in sys.path:
+            sys.path.insert(0, repo_root)
+        from scripts.seed_demo_package import seed_demo_package
+        res = await seed_demo_package()
+        return res
+    except Exception as e:
+        logger.error(f"Failed to seed demo package: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Demo package seeding failed: {str(e)}"
+        )
+
+
 
 

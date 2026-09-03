@@ -7,7 +7,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 from app.config import settings
 from app.models.schemas import (
@@ -44,6 +44,7 @@ class CodingAgent:
 
         self._executions: Dict[str, CodingWorkflowExecution] = {}
         self._running_tasks: Dict[str, asyncio.Task] = {}
+        self._cancelled_ids: Set[str] = set()
         self._load_persisted_executions()
 
     def _load_persisted_executions(self):
@@ -71,17 +72,32 @@ class CodingAgent:
         return sorted(list(self._executions.values()), key=lambda e: e.created_at, reverse=True)
 
     def cancel_execution(self, execution_id: str) -> bool:
-        task = self._running_tasks.get(execution_id)
+        self._cancelled_ids.add(execution_id)
+        task = self._running_tasks.pop(execution_id, None)
         if task and not task.done():
             task.cancel()
             logger.info(f"Coding execution task {execution_id} cancelled by user.")
 
         execution = self._executions.get(execution_id)
-        if execution and execution.status == "running":
+        if execution and execution.status in ["running", "pending"]:
             execution.status = "cancelled"
             execution.error = "Execution cancelled by operator."
             execution.updated_at = datetime.now(timezone.utc).isoformat()
+            if execution.current_step_index < len(execution.steps):
+                step = execution.steps[execution.current_step_index]
+                if step.status in ["running", "pending"]:
+                    step.status = "failed"
+                    step.output_summary = "Execution cancelled by operator."
             self._persist_execution(execution)
+            return True
+        return False
+
+    def _is_cancelled(self, execution_id: str) -> bool:
+        """Check if an execution was cancelled by user."""
+        if execution_id in self._cancelled_ids:
+            return True
+        exec_obj = self._executions.get(execution_id)
+        if exec_obj and exec_obj.status == "cancelled":
             return True
         return False
 
@@ -167,6 +183,10 @@ class CodingAgent:
         logger.info(f"Starting Coding Workflow Pipeline {execution.id} for prompt: {req.prompt[:60]}...")
 
         try:
+            if self._is_cancelled(execution.id):
+                logger.info(f"Coding Workflow {execution.id} stopped before Step 1.")
+                return
+
             # ─────────────────────────────────────────────────────────────
             # STEP 1: Specification & Requirement Analysis
             # ─────────────────────────────────────────────────────────────
@@ -177,10 +197,18 @@ class CodingAgent:
 
             s1_start = time.perf_counter()
             spec_analysis = await self._analyze_spec(req.prompt, execution.model_used)
+            if self._is_cancelled(execution.id):
+                logger.info(f"Coding Workflow {execution.id} stopped after Step 1.")
+                return
+
             step1.duration_ms = (time.perf_counter() - s1_start) * 1000.0
             step1.status = "completed"
             step1.output_summary = f"Identified functional parameters and edge cases ({len(spec_analysis)} chars)"
             self._persist_execution(execution)
+
+            if self._is_cancelled(execution.id):
+                logger.info(f"Coding Workflow {execution.id} stopped before Step 2.")
+                return
 
             # ─────────────────────────────────────────────────────────────
             # STEP 2: Code & Unit Test Synthesis
@@ -194,12 +222,20 @@ class CodingAgent:
             solution_code, test_code = await self._synthesize_code_and_tests(
                 req.prompt, spec_analysis, execution.model_used
             )
+            if self._is_cancelled(execution.id):
+                logger.info(f"Coding Workflow {execution.id} stopped after Step 2.")
+                return
+
             execution.solution_code = solution_code
             execution.test_code = test_code
             step2.duration_ms = (time.perf_counter() - s2_start) * 1000.0
             step2.status = "completed"
             step2.output_summary = f"Synthesized solution ({len(solution_code)} chars) & test suite ({len(test_code)} chars)"
             self._persist_execution(execution)
+
+            if self._is_cancelled(execution.id):
+                logger.info(f"Coding Workflow {execution.id} stopped before Step 3.")
+                return
 
             # ─────────────────────────────────────────────────────────────
             # STEP 3: AST Air-Gap Security Validation
@@ -228,6 +264,10 @@ class CodingAgent:
             step3.output_summary = "AST Air-Gap Policy Verified: 0 Prohibited Modules / Calls"
             self._persist_execution(execution)
 
+            if self._is_cancelled(execution.id):
+                logger.info(f"Coding Workflow {execution.id} stopped before Step 4.")
+                return
+
             # ─────────────────────────────────────────────────────────────
             # STEP 4: Sandboxed Tool & Test Runner (Initial Execution)
             # ─────────────────────────────────────────────────────────────
@@ -246,6 +286,10 @@ class CodingAgent:
             step4.duration_ms = (time.perf_counter() - s4_start) * 1000.0
             self._apply_sandbox_result(execution, sandbox_res)
 
+            if self._is_cancelled(execution.id):
+                logger.info(f"Coding Workflow {execution.id} stopped after Step 4.")
+                return
+
             if sandbox_res.success:
                 step4.status = "completed"
                 step4.output_summary = f"Sandbox Test Suite PASSED ({sandbox_res.tests_passed}/{sandbox_res.tests_total} tests)"
@@ -253,6 +297,10 @@ class CodingAgent:
                 step4.status = "failed"
                 step4.output_summary = f"Initial Test Run Failed ({sandbox_res.tests_failed} failures). Triggering Self-Repair."
             self._persist_execution(execution)
+
+            if self._is_cancelled(execution.id):
+                logger.info(f"Coding Workflow {execution.id} stopped before Step 5.")
+                return
 
             # ─────────────────────────────────────────────────────────────
             # STEP 5: Automated Verification & Self-Repair Loop (up to max_repairs)
@@ -269,6 +317,10 @@ class CodingAgent:
 
             repair_attempt = 0
             while not current_res.success and repair_attempt < req.max_repairs:
+                if self._is_cancelled(execution.id):
+                    logger.info(f"Coding Workflow {execution.id} stopped during repair loop.")
+                    return
+
                 repair_attempt += 1
                 logger.info(f"Self-Repair Attempt {repair_attempt}/{req.max_repairs} for {execution.id}...")
                 rep_start = time.perf_counter()
@@ -282,6 +334,10 @@ class CodingAgent:
                     model=execution.model_used,
                     attempt_num=repair_attempt,
                 )
+
+                if self._is_cancelled(execution.id):
+                    logger.info(f"Coding Workflow {execution.id} stopped after repair patch.")
+                    return
 
                 # Re-check AST security on repaired code
                 sec_ok, sec_viols = SecurityGuard.validate_code(repaired_code)
@@ -342,6 +398,10 @@ class CodingAgent:
 
             self._persist_execution(execution)
 
+            if self._is_cancelled(execution.id):
+                logger.info(f"Coding Workflow {execution.id} stopped before Step 6.")
+                return
+
             # ─────────────────────────────────────────────────────────────
             # STEP 6: Verified Code Artifact Packaging
             # ─────────────────────────────────────────────────────────────
@@ -371,11 +431,17 @@ class CodingAgent:
             logger.info(f"Coding Workflow Pipeline {execution.id} completed successfully in {execution.duration_ms:.1f}ms.")
 
         except asyncio.CancelledError:
-            logger.warning(f"Workflow pipeline {execution.id} cancelled.")
+            logger.warning(f"Workflow pipeline {execution.id} cancelled by user.")
             execution.status = "cancelled"
-            execution.error = "Workflow cancelled by user."
+            execution.error = "Workflow cancelled by operator."
+            if execution.current_step_index < len(execution.steps):
+                cur_step = execution.steps[execution.current_step_index]
+                if cur_step.status in ["running", "pending"]:
+                    cur_step.status = "failed"
+                    cur_step.output_summary = "Execution cancelled by operator."
             execution.updated_at = datetime.now(timezone.utc).isoformat()
             self._persist_execution(execution)
+            return
 
         except Exception as e:
             logger.error(f"Coding Workflow Pipeline {execution.id} error: {e}", exc_info=True)
@@ -383,6 +449,8 @@ class CodingAgent:
             execution.error = str(e)
             execution.updated_at = datetime.now(timezone.utc).isoformat()
             self._persist_execution(execution)
+        finally:
+            self._running_tasks.pop(execution.id, None)
 
     async def _analyze_spec(self, prompt: str, model: str) -> str:
         """Analyze user coding prompt and identify input parameters, formulas, and edge cases."""
@@ -406,6 +474,8 @@ class CodingAgent:
             )
             res = await self.model_service.generate_chat(req)
             return res.response.strip()
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning(f"Spec analysis model call failed ({e}), using default spec.")
             return f"Implementation specification for: {prompt}"
@@ -435,8 +505,10 @@ class CodingAgent:
             "3. Do NOT use network libraries (socket, requests, urllib, http).\n"
             "4. Do NOT use subprocess, os.system, eval, or exec.\n"
             "5. Do NOT include unit tests here (only implementation).\n"
-            "6. Output strictly inside a single ```python ``` block."
+            "6. Output strictly inside a single ```python ``` block.\n"
+            "7. Keep logic direct, correct, and simple; do NOT use recursion when standard operators (like * or +) can be used."
         )
+
 
         user_prompt = (
             f"User Coding Task: {prompt}\n\n"
@@ -461,6 +533,8 @@ class CodingAgent:
                 fb_sol, _ = self._generate_fallback_solution(prompt)
                 return fb_sol
             return clean_code
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning(f"Solution synthesis failed ({e}), using fallback.")
             fb_sol, _ = self._generate_fallback_solution(prompt)
@@ -505,6 +579,8 @@ class CodingAgent:
                 return self._generate_smart_tests(prompt, solution_code)
 
             return clean_tests
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning(f"Test synthesis failed ({e}), generating smart AST tests.")
             return self._generate_smart_tests(prompt, solution_code)
@@ -524,7 +600,10 @@ class CodingAgent:
             "The code failed unit tests with an error.\n"
             "Analyze the failing code, the test cases, and the error traceback.\n"
             "Fix the bug and output the complete corrected Python implementation.\n"
-            "Output ONLY the corrected Python code inside a single ```python ``` block."
+            "STRICT RULES:\n"
+            "1. Output ONLY the corrected implementation function or class inside a single ```python ``` block.\n"
+            "2. Do NOT include unit tests, test suites, or unittest.main().\n"
+            "3. Keep the same function names and signatures as the original code."
         )
 
         user_prompt = (
@@ -547,13 +626,19 @@ class CodingAgent:
             )
             res = await self.model_service.generate_chat(req)
             repaired_code = self._clean_python_code(res.response)
-            if not repaired_code or not self._is_valid_python(repaired_code):
+            orig_symbols = self._extract_declared_symbols(failing_code)
+            rep_symbols = self._extract_declared_symbols(repaired_code) if repaired_code else []
+            if not repaired_code or not self._is_valid_python(repaired_code) or (orig_symbols and not any(s in rep_symbols for s in orig_symbols)):
+                logger.warning(f"Repaired code invalid or missing target symbols ({orig_symbols} vs {rep_symbols}). Retaining prior code.")
                 repaired_code = failing_code
             explanation = f"Self-repair iteration #{attempt_num}: Addressed test traceback failures."
             return repaired_code, explanation
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning(f"Repair model call failed ({e}).")
             return failing_code, f"Self-repair iteration #{attempt_num} fallback."
+
 
     def _clean_python_code(self, text: str) -> str:
         """Extract code from markdown blocks and strip extraneous explanation."""

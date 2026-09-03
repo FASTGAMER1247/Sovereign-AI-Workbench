@@ -11,7 +11,9 @@
 | Milestone 3 — Local Vector Store & RAG | COMPLETE |
 | Milestone 4 — Multi-Model Router, Workflow Engine & HITL DOCX (Workflow A) | COMPLETE |
 | Milestone 5 — Secure Coding Agent & Sandboxed Execution Loop (Workflow B) | COMPLETE |
-| Milestone 6 — Sovereignty & Air-Gap Verification | IN PROGRESS |
+| Milestone 6 — Sovereignty, Air-Gap Verification & Cryptographic Audit Ledger | COMPLETE |
+| Milestone 7 — Final Polish, Master Regression Suite & Presentation Package | COMPLETE |
+
 
 The platform delivers two complete, production-grade autonomous agentic workflows:
 
@@ -68,7 +70,28 @@ The platform delivers two complete, production-grade autonomous agentic workflow
 - **Autonomous Multi-Pass Self-Repair Loop**: Synthesizes Python code and companion `unittest` test suites. When tests fail, automatically captures tracebacks, re-feeds errors into local LLM, patches code, and re-runs sandbox tests (up to 3 automated iterations).
 - **Single-Cockpit Unified Studio**: Interactive mode switcher between **Workflow A (Compliance & DOCX)** and **Workflow B (Secure Coding & Sandbox)** with real-time 6-node visual execution graph, syntax-highlighted code viewer, sandbox terminal console, and one-click `.py` script artifact download.
 
+## Milestone 6 (Sovereignty & Cryptographic Audit Ledger)
+- **Active Network Egress Probers**: Socket-level probes against DNS, public IPs, and cloud AI domains verifying 0 bytes escape the perimeter.
+- **Cryptographic Audit Ledger (SHA-256 Hash Chain)**: Immutable tamper-evident hash chain recording every prompt, document hash, model dispatch, and human signature.
+- **Defense Audit Exporter**: Instant one-click CSV / JSONL cryptographic audit export for regulatory compliance and air-gap verification.
+- **Interactive Security Dashboard**: Real-time sovereignty scoring, egress probe monitor, and hash chain verification.
+
+## Milestone 7 (Final Polish, Master Regression Suite & Presentation Package)
+- **One-Click Industrial Demo Seeder**: Generates synthetic refinery ultrasonic thickness inspection reports and seeds `SOP-REF-570` into ChromaDB via `POST /api/demo/seed` and top toolbar button.
+- **Master 7-Step End-to-End Regression Suite**: Fully automated verification script (`scripts/verify_e2e_workbench.py`) validating health, document ingestion, vector retrieval, auto-routing, Hero Workflow A, Hero Workflow B, and air-gap cryptography (100% PASSING).
+- **Fast Primary Chat SLM**: `qwen2.5-coder:1.5b` default with instant model switcher for `deepseek-r1:1.5b` and `llama3.2:3b`.
+- **Comprehensive Pitch & Defense Guide**: 3-minute hackathon pitch script, 5-minute technical defense guide, and judge Q&A matrix in `DOCS/PRESENTATION_DEMO_SCRIPT.md`.
+
+## Milestone 8 (Modernized UI & Streamlined Workspaces)
+- **Claude-Inspired Home Experience**: Calm, minimalist home screen with bottom prompt dock and 3 discrete workspace cards (Document Inspector, Coding Agent, Knowledge Base).
+- **In-Box Model Selector Pill**: Clean model selector dropdown embedded directly into the prompt dock bottom action bar, querying installed local Ollama models.
+- **On-Page Copilot Chat & Session History**: Chat prompts execute seamlessly on the Home Screen without page jumps, supported by a slide-in session history drawer (`localStorage`), New Chat / Close Chat controls, and file attachments (`📎`).
+- **Document Inspector Enhancements**: Renamed from "Industrial Audit" to an intuitive name, added delete button (`Trash2`) for inspection scans/PDFs via `DELETE /api/documents/{id}`, and fixed stepper text responsiveness with `minmax(0, 1fr)`.
+- **Knowledge Base RAG Search**: Dedicated central vector query search bar with 1-click suggested query chips and real-time SOP library filtering.
+- **Clean Coding Workspace**: Starts with a blank, focused canvas on load with 1-click `Clear Task` reset.
+
 ---
+
 
 # Architecture
 

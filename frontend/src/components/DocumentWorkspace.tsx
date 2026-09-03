@@ -15,10 +15,12 @@ import {
   Database,
   BookOpen,
   ShieldCheck,
+  Trash2,
 } from 'lucide-react'
 import {
   uploadDocument,
   getDocuments,
+  deleteDocument,
   extractDocumentText,
   analyzeDocument,
   ragAuditDocument,
@@ -116,6 +118,23 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       handleUploadFile(e.target.files[0])
+    }
+  }
+
+  const handleDeleteDoc = async (docId: string, filename: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!window.confirm(`Are you sure you want to delete "${filename}"?`)) return
+    try {
+      await deleteDocument(docId)
+      setDocuments((prev) => prev.filter((d) => d.id !== docId))
+      if (selectedDocId === docId) {
+        setSelectedDocId(null)
+        setExtractedData(null)
+        setAnalysisData(null)
+        setRagAuditData(null)
+      }
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : 'Failed to delete document')
     }
   }
 
@@ -247,7 +266,7 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 'var(--space-6)', minHeight: '600px' }}>
-      {/* ─── LEFT PANEL: Ingestion & Document List ─── */}
+      {/* ——— LEFT PANEL: Ingestion & Document List ——— */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         {/* Upload Zone */}
         <div className="card">
@@ -363,30 +382,58 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
                       </span>
                     </div>
 
-                    <span
-                      style={{
-                        fontSize: '9px',
-                        fontFamily: 'var(--font-mono)',
-                        padding: '2px 5px',
-                        borderRadius: '3px',
-                        textTransform: 'uppercase',
-                        fontWeight: 600,
-                        background:
-                          doc.status === 'analyzed'
-                            ? 'rgba(16, 185, 129, 0.15)'
-                            : doc.status === 'extracted'
-                            ? 'rgba(59, 130, 246, 0.15)'
-                            : 'rgba(255, 255, 255, 0.05)',
-                        color:
-                          doc.status === 'analyzed'
-                            ? 'var(--color-success)'
-                            : doc.status === 'extracted'
-                            ? 'var(--color-info)'
-                            : 'var(--color-text-muted)',
-                      }}
-                    >
-                      {doc.status}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontFamily: 'var(--font-mono)',
+                          padding: '2px 5px',
+                          borderRadius: '3px',
+                          textTransform: 'uppercase',
+                          fontWeight: 600,
+                          background:
+                            doc.status === 'analyzed'
+                              ? 'rgba(16, 185, 129, 0.15)'
+                              : doc.status === 'extracted'
+                              ? 'rgba(59, 130, 246, 0.15)'
+                              : 'rgba(255, 255, 255, 0.05)',
+                          color:
+                            doc.status === 'analyzed'
+                              ? 'var(--color-success)'
+                              : doc.status === 'extracted'
+                              ? 'var(--color-info)'
+                              : 'var(--color-text-muted)',
+                        }}
+                      >
+                        {doc.status}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteDoc(doc.id, doc.filename, e)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--color-text-muted)',
+                          cursor: 'pointer',
+                          padding: '2px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          opacity: 0.6,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.opacity = '1'
+                          e.currentTarget.style.color = 'var(--color-danger)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.opacity = '0.6'
+                          e.currentTarget.style.color = 'var(--color-text-muted)'
+                        }}
+                        title={`Delete ${doc.filename}`}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
@@ -400,7 +447,7 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
         </div>
       </div>
 
-      {/* ─── RIGHT PANEL: Document Inspector & AI Analysis ─── */}
+      {/* ——— RIGHT PANEL: Document Inspector & AI Analysis ——— */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         {selectedDoc ? (
           <>
@@ -543,7 +590,7 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
                 >
                   <FileText size={13} />
                   Extracted Content
-                  {extractedData && <span style={{ fontSize: '10px', color: 'var(--color-success)' }}>●</span>}
+                  {extractedData && <span style={{ fontSize: '10px', color: 'var(--color-success)' }}>•</span>}
                 </button>
 
                 <button
@@ -564,7 +611,7 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
                 >
                   <Sparkles size={13} />
                   AI Audit Findings
-                  {analysisData && <span style={{ fontSize: '10px', color: 'var(--color-success)' }}>●</span>}
+                  {analysisData && <span style={{ fontSize: '10px', color: 'var(--color-success)' }}>•</span>}
                 </button>
               </div>
 
@@ -783,7 +830,7 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
                           )}
                           <div className="response-meta-item" style={{ marginLeft: 'auto' }}>
                             <span style={{ color: 'var(--color-sovereign)' }}>
-                              {ragAuditData ? '● RAG-GROUNDED COMPLIANCE AUDIT' : '● LOCAL OLLAMA INFERENCE'}
+                              {ragAuditData ? '• RAG-GROUNDED COMPLIANCE AUDIT' : '• LOCAL OLLAMA INFERENCE'}
                             </span>
                           </div>
                         </div>

@@ -110,136 +110,111 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = () => {
       : events.filter((e) => e.event_type.toUpperCase() === selectedEventType.toUpperCase())
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
       {/* ── TOP METRICS CARDS ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
-        {/* Card 1: Air-Gap Score */}
-        <div
-          style={{
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 'var(--radius-md)',
-            padding: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-          }}
-        >
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+        {/* Card 1: Air-Gap Verification */}
+        <div className="panel" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div
             style={{
-              width: '44px',
-              height: '44px',
+              width: '32px',
+              height: '32px',
               borderRadius: 'var(--radius-sm)',
-              background: 'rgba(16, 185, 129, 0.12)',
+              background: 'var(--color-success-bg)',
+              border: '1px solid var(--color-success-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: 'var(--color-success)',
+              flexShrink: 0,
             }}
           >
-            <ShieldCheck size={24} />
+            <ShieldCheck size={17} />
           </div>
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-              Air-Gap Defense Score
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+              Air-Gap Verification
+            </span>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff', letterSpacing: '-0.2px' }}>
+              {sovereignty?.is_air_gapped ? 'AIR-GAP ✓ VERIFIED' : 'AIR-GAP — NOT VERIFIED'}
             </div>
-            <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-text-primary)', marginTop: '2px' }}>
-              {sovereignty ? `${sovereignty.sovereignty_score_pct}%` : '100%'}
-            </div>
-            <div style={{ fontSize: '10px', color: 'var(--color-success)', fontWeight: 600 }}>
-              ● {sovereignty?.grade || 'A+ Sovereign Grade'}
+            <div style={{ fontSize: '11px', color: sovereignty?.is_air_gapped ? 'var(--color-success)' : 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span>Score: {sovereignty?.sovereignty_score_pct ?? 100}% · Grade {sovereignty?.grade || 'A'}</span>
             </div>
           </div>
         </div>
 
-        {/* Card 2: Network Egress & Local Binding */}
-        <div
-          style={{
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 'var(--radius-md)',
-            padding: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-          }}
-        >
+        {/* Card 2: Network Isolation */}
+        <div className="panel" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div
             style={{
-              width: '44px',
-              height: '44px',
+              width: '32px',
+              height: '32px',
               borderRadius: 'var(--radius-sm)',
-              background: 'rgba(99, 102, 241, 0.12)',
+              background: 'var(--color-accent-bg)',
+              border: '1px solid var(--color-accent-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: 'var(--color-accent)',
+              flexShrink: 0,
             }}
           >
-            <Activity size={24} />
+            <Activity size={17} />
           </div>
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
               Network Isolation
+            </span>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff', letterSpacing: '-0.2px' }}>
+              Runtime Verified
             </div>
-            <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
-              {sovereignty?.bound_host || '127.0.0.1'}:8000
-            </div>
-            <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
-              Inference: Local Ollama (0 cloud tokens)
+            <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }}>
+              Local endpoint · {sovereignty?.bound_host || '127.0.0.1'}:8000
             </div>
           </div>
         </div>
 
-        {/* Card 3: Cryptographic Hash-Chain Integrity */}
-        <div
-          style={{
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 'var(--radius-md)',
-            padding: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-          }}
-        >
+        {/* Card 3: Cryptographic Audit Ledger (SHA-256 Hash Chain) */}
+        <div className="panel" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div
             style={{
-              width: '44px',
-              height: '44px',
+              width: '32px',
+              height: '32px',
               borderRadius: 'var(--radius-sm)',
-              background: integrityResult?.is_valid
-                ? 'rgba(16, 185, 129, 0.12)'
-                : 'rgba(239, 68, 68, 0.12)',
+              background: integrityResult?.is_valid ? 'var(--color-success-bg)' : 'var(--color-danger-bg)',
+              border: `1px solid ${integrityResult?.is_valid ? 'var(--color-success-border)' : 'var(--color-danger-border)'}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: integrityResult?.is_valid ? 'var(--color-success)' : 'var(--color-danger)',
+              flexShrink: 0,
             }}
           >
-            <Lock size={22} />
+            <Lock size={17} />
           </div>
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-              SHA-256 Ledger State
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+              Cryptographic Audit Ledger
+            </span>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff', letterSpacing: '-0.2px' }}>
+              SHA-256 Hash Chain
             </div>
-            <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)', marginTop: '2px' }}>
-              {integrityResult?.is_valid ? 'Tamper-Free Valid' : 'Integrity Mismatch'}
+            <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }}>
+              {integrityResult?.total_blocks_checked || events.length} Blocks Sequentially Chained
             </div>
-            <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
-              {integrityResult?.total_blocks_checked || events.length} Blocks Chained
+            <div style={{ fontSize: '10px', color: integrityResult?.is_valid ? 'var(--color-success)' : 'var(--color-text-muted)' }}>
+              {integrityResult?.is_valid ? '✓ Cryptographically Verified' : 'Append-Only Verification Ready'}
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── ACTION BAR ── */}
+      {/* —— ACTION BAR —— */}
       <div
+        className="panel"
         style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-md)',
-          padding: '12px 18px',
+          padding: '12px 20px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -248,9 +223,9 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = () => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Shield size={16} color="var(--color-accent)" />
-          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-            Air-Gap Verification & Cryptographic Ledger Actions
+          <Shield size={14} color="var(--color-accent)" />
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+            Zero-Egress & Cryptographic Hash Chain Controls
           </span>
         </div>
 
@@ -259,43 +234,44 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = () => {
             onClick={handleLiveProbe}
             disabled={isProbing}
             className="btn btn-primary"
-            style={{ fontSize: '11px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            <RefreshCw size={13} className={isProbing ? 'spinner' : ''} />
-            {isProbing ? 'Probing Egress...' : 'Run Live Egress Probe'}
+            <RefreshCw size={12} className={isProbing ? 'spinner' : ''} />
+            <span>{isProbing ? 'Probing Sockets...' : 'Run Live Egress Probe'}</span>
           </button>
 
           <button
             onClick={handleVerifyIntegrity}
             disabled={isVerifying}
             className="btn btn-ghost"
-            style={{ fontSize: '11px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            <FileCheck size={13} color="var(--color-success)" />
-            {isVerifying ? 'Verifying...' : 'Verify Hash-Chain'}
+            <FileCheck size={12} color="var(--color-success)" />
+            <span>{isVerifying ? 'Verifying...' : 'Verify Hash Chain'}</span>
           </button>
 
           <a
             href={getAuditExportUrl('csv')}
             download="sovereign_audit_ledger.csv"
-            className="btn btn-ghost"
-            style={{ fontSize: '11px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
+            className="btn btn-sm btn-ghost"
+            style={{ textDecoration: 'none' }}
           >
-            <Download size={13} /> Export CSV
+            <Download size={11} />
+            <span>CSV</span>
           </a>
 
           <a
             href={getAuditExportUrl('jsonl')}
             download="sovereign_audit_ledger.jsonl"
-            className="btn btn-ghost"
-            style={{ fontSize: '11px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
+            className="btn btn-sm btn-ghost"
+            style={{ textDecoration: 'none' }}
           >
-            <Download size={13} /> Export JSONL
+            <Download size={11} />
+            <span>JSONL</span>
           </a>
         </div>
       </div>
 
-      {/* ── INTEGRITY NOTIFICATION BANNER ── */}
+
+      {/* —— INTEGRITY NOTIFICATION BANNER —— */}
       {integrityResult && (
         <div
           style={{
@@ -317,19 +293,10 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = () => {
         </div>
       )}
 
-      {/* ── SPLIT PANEL: EGRESS PROBES & AUDIT LEDGER ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '16px', minHeight: '440px' }}>
+      {/* —— SPLIT PANEL: EGRESS PROBES & AUDIT LEDGER —— */}
+      <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '14px', minHeight: '440px' }}>
         {/* LEFT: Live Egress Probes Table */}
-        <div
-          style={{
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 'var(--radius-lg)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}
-        >
+        <div className="panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0 }}>
           <div
             style={{
               padding: '10px 14px',
@@ -340,7 +307,7 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = () => {
               alignItems: 'center',
             }}
           >
-            <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Layers size={13} color="var(--color-accent)" />
               <span>Outbound Egress Probes</span>
             </div>
@@ -349,7 +316,7 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = () => {
             </span>
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {sovereignty?.egress_probes && sovereignty.egress_probes.length > 0 ? (
               sovereignty.egress_probes.map((probe, idx) => (
                 <div
@@ -357,35 +324,25 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = () => {
                   style={{
                     background: 'var(--color-surface-2)',
                     border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius-sm)',
+                    borderRadius: 'var(--radius-xs)',
                     padding: '8px 10px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '4px',
+                    gap: '3px',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
                       {probe.target}
                     </span>
-                    <span
-                      style={{
-                        fontSize: '9px',
-                        fontWeight: 700,
-                        fontFamily: 'var(--font-mono)',
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                        background: probe.blocked ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                        color: probe.blocked ? 'var(--color-success)' : 'var(--color-warning)',
-                      }}
-                    >
-                      {probe.blocked ? 'BLOCKED / AIR-GAPPED' : 'EGRESS OPEN'}
+                    <span className={`badge ${probe.blocked ? 'badge-success' : 'badge-warning'}`}>
+                      {probe.blocked ? 'BLOCKED / ISOLATED' : 'EGRESS OPEN'}
                     </span>
                   </div>
                   <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
                     {probe.detail}
                   </div>
-                  <div style={{ fontSize: '9px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
                     Latency: {probe.duration_ms}ms · Type: {probe.target_type}
                   </div>
                 </div>
@@ -399,16 +356,7 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = () => {
         </div>
 
         {/* RIGHT: Cryptographic Hash-Chained Audit Ledger */}
-        <div
-          style={{
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 'var(--radius-lg)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}
-        >
+        <div className="panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0 }}>
           {/* Header & Filter Presets */}
           <div
             style={{
@@ -423,14 +371,15 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = () => {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Hash size={14} color="var(--color-accent)" />
-              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                Immutable SHA-256 Audit Trail
+              <Hash size={13} color="var(--color-accent)" />
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                Cryptographic Audit Ledger (SHA-256 Hash Chain)
               </span>
               <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
                 ({filteredEvents.length} events)
               </span>
             </div>
+
 
             {/* Event Filter Chips */}
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
@@ -470,7 +419,7 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = () => {
               </thead>
               <tbody>
                 {filteredEvents.map((ev) => {
-                  let badgeBg = 'rgba(99, 102, 241, 0.15)'
+                  let badgeBg = 'var(--color-accent-bg)'
                   let badgeColor = 'var(--color-accent)'
                   if (ev.severity === 'CRITICAL') {
                     badgeBg = 'rgba(239, 68, 68, 0.15)'
@@ -487,7 +436,7 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = () => {
                       style={{
                         borderBottom: '1px solid var(--color-border)',
                         cursor: 'pointer',
-                        background: selectedEvent?.index === ev.index ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
+                        background: selectedEvent?.index === ev.index ? 'var(--color-accent-bg)' : 'transparent',
                         transition: 'background var(--transition-fast)',
                       }}
                     >
@@ -503,7 +452,7 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = () => {
                       <td style={{ padding: '8px 10px' }}>
                         <span
                           style={{
-                            fontSize: '9px',
+                            fontSize: '10px',
                             fontWeight: 700,
                             padding: '2px 6px',
                             borderRadius: '4px',

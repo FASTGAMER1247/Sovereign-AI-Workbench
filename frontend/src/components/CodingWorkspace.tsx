@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Shield,
-  ShieldCheck,
   Download,
   FileCode,
   Terminal,
@@ -13,10 +12,10 @@ import {
   X,
   Check,
   Copy,
-  Boxes,
   Sparkles,
   RotateCcw,
   Cpu,
+  Square,
 } from 'lucide-react'
 import {
   executeCodingWorkflow,
@@ -40,25 +39,21 @@ interface CodingWorkspaceProps {
 const PRESET_CODING_TASKS = [
   {
     title: 'Loan EMI Calculator',
-    icon: '💳',
     prompt:
       'Write a Python function to calculate the monthly EMI for a loan (principal, rate, tenure) and create comprehensive unit tests covering edge cases like zero interest, standard loans, and negative input validation.',
   },
   {
     title: 'Industrial Sensor Parser',
-    icon: '⚙️',
     prompt:
       'Write a Python class to parse and validate industrial sensor telemetry packets (temperature, pressure, vibration). Include unit tests checking for out-of-range sensor alerts and corrupted payload handling.',
   },
   {
     title: 'Darcy-Weisbach Pressure Drop',
-    icon: '🧪',
     prompt:
       'Write a Python module to compute fluid friction factor and pressure drop across piping using the Darcy-Weisbach equation. Include unit tests for laminar vs turbulent flow regimes.',
   },
   {
     title: 'Industrial Data Sanitizer',
-    icon: '🛡️',
     prompt:
       'Write a Python function to sanitize and redact PII and confidential equipment serial numbers from plant incident logs. Include unit tests verifying that sensitive patterns are scrubbed.',
   },
@@ -68,9 +63,7 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
   systemState,
   onSwitchToWorkflowA,
 }) => {
-  const [prompt, setPrompt] = useState<string>(() => {
-    return sessionStorage.getItem('sovereign_coding_prompt') || ''
-  })
+  const [prompt, setPrompt] = useState<string>('')
   const [selectedModel, setSelectedModel] = useState<string>('')
   const [maxRepairs, setMaxRepairs] = useState<number>(3)
   const [activeExecution, setActiveExecution] = useState<CodingWorkflowExecution | null>(null)
@@ -82,13 +75,6 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const pollingRef = useRef<number | null>(null)
-
-  // Persist prompt changes in session storage
-  useEffect(() => {
-    if (prompt) {
-      sessionStorage.setItem('sovereign_coding_prompt', prompt)
-    }
-  }, [prompt])
 
   // Load sandbox status & executions
   useEffect(() => {
@@ -107,22 +93,8 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
       if (sbStatus) setSandboxStatus(sbStatus)
       if (execs.length > 0) {
         setRecentExecutions(execs)
-        if (!activeExecution) {
-          setActiveExecution(execs[0])
-          const stored = sessionStorage.getItem('sovereign_coding_prompt')
-          if (stored && stored.trim()) {
-            setPrompt(stored)
-          } else if (execs[0].prompt) {
-            setPrompt(execs[0].prompt)
-          } else {
-            setPrompt(PRESET_CODING_TASKS[0].prompt)
-          }
-        }
-      } else {
-        const stored = sessionStorage.getItem('sovereign_coding_prompt')
-        setPrompt(stored && stored.trim() ? stored : PRESET_CODING_TASKS[0].prompt)
+        // Keep activeExecution null and prompt empty so the workspace opens clean and fresh
       }
-
     } catch {
       // Ignore initial load error
     }
@@ -171,12 +143,17 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
   }
 
   async function handleCancel() {
-    if (!activeExecution || !isRunning) return
+    if (!activeExecution) return
+    setIsRunning(false)
+    const targetId = activeExecution.id
+    setActiveExecution((prev) =>
+      prev ? { ...prev, status: 'cancelled', error: 'Execution stopped by operator.' } : null
+    )
     try {
-      const updated = await cancelCodingExecution(activeExecution.id)
+      const updated = await cancelCodingExecution(targetId)
       setActiveExecution(updated)
-      setIsRunning(false)
     } catch (err: unknown) {
+      console.error('Failed to cancel coding execution', err)
       setErrorMsg(err instanceof Error ? err.message : 'Failed to cancel execution.')
     }
   }
@@ -184,7 +161,8 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
   function handleReset() {
     setActiveExecution(null)
     setErrorMsg(null)
-    setPrompt(PRESET_CODING_TASKS[0].prompt)
+    setPrompt('')
+    sessionStorage.removeItem('sovereign_coding_prompt')
   }
 
   function handleCopy(text: string) {
@@ -196,51 +174,51 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
   const canvasSteps = [
     {
       id: 'step_1_spec',
-      icon: <FileCode size={16} />,
       title: '1. Spec Analysis',
       desc: 'Parameters & edge cases',
+      icon: <FileCode size={15} />,
     },
     {
       id: 'step_2_synthesis',
-      icon: <Code2 size={16} />,
       title: '2. Code & Tests',
       desc: 'Python + unittest',
+      icon: <Code2 size={15} />,
     },
     {
       id: 'step_3_security',
-      icon: <ShieldCheck size={16} />,
       title: '3. AST Policy',
       desc: 'Air-gap AST inspection',
+      icon: <Shield size={15} />,
     },
     {
       id: 'step_4_sandbox',
-      icon: <Boxes size={16} />,
       title: '4. Sandboxed Run',
       desc: 'Isolated test execution',
+      icon: <Terminal size={15} />,
     },
     {
       id: 'step_5_repair',
-      icon: <Wrench size={16} />,
       title: '5. Self-Repair',
       desc: 'Automated 3-pass loop',
+      icon: <Wrench size={15} />,
     },
     {
       id: 'step_6_artifact',
-      icon: <CheckCircle2 size={16} />,
       title: '6. Verified Script',
       desc: 'Verified .py artifact',
+      icon: <CheckCircle2 size={15} />,
     },
   ]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '16px' }}>
-      {/* ── TOP CONTROL & LAUNCHER BAR ── */}
+      {/* —— TOP CONTROL & LAUNCHER BAR —— */}
       <div
         style={{
           background: 'var(--color-surface)',
           border: '1px solid var(--color-border)',
           borderRadius: 'var(--radius-lg)',
-          padding: '16px 20px',
+          padding: '20px 24px',
           display: 'flex',
           flexDirection: 'column',
           gap: '14px',
@@ -253,7 +231,8 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
                 width: '34px',
                 height: '34px',
                 borderRadius: 'var(--radius-sm)',
-                background: 'rgba(99, 102, 241, 0.15)',
+                background: 'var(--color-accent-bg)',
+                border: '1px solid var(--color-accent-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -274,9 +253,9 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
                     fontWeight: 700,
                     padding: '2px 8px',
                     borderRadius: '10px',
-                    background: 'rgba(99, 102, 241, 0.15)',
+                    background: 'var(--color-accent-bg)',
                     color: 'var(--color-accent)',
-                    border: '1px solid rgba(99, 102, 241, 0.3)',
+                    border: '1px solid var(--color-accent-border)',
                   }}
                 >
                   PHASE 5
@@ -375,7 +354,7 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
         </div>
 
         {/* Preset Task Chips */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', alignSelf: 'center' }}>
             Presets:
           </span>
@@ -385,7 +364,7 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
               disabled={isRunning}
               onClick={() => setPrompt(preset.prompt)}
               style={{
-                background: prompt === preset.prompt ? 'rgba(99, 102, 241, 0.15)' : 'var(--color-surface-2)',
+                background: prompt === preset.prompt ? 'var(--color-accent-bg)' : 'var(--color-surface-2)',
                 border: `1px solid ${prompt === preset.prompt ? 'var(--color-accent)' : 'var(--color-border)'}`,
                 borderRadius: 'var(--radius-sm)',
                 padding: '4px 10px',
@@ -398,20 +377,41 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
                 transition: 'all var(--transition-fast)',
               }}
             >
-              <span>{preset.icon}</span>
               <span>{preset.title}</span>
             </button>
           ))}
+
+          {(prompt || activeExecution) && (
+            <button
+              type="button"
+              onClick={handleReset}
+              className="btn btn-sm btn-ghost"
+              style={{
+                fontSize: '11px',
+                height: '24px',
+                padding: '0 8px',
+                marginLeft: 'auto',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                color: 'var(--color-text-muted)',
+              }}
+              title="Clear input and reset canvas"
+            >
+              <RotateCcw size={11} />
+              <span>Clear Task</span>
+            </button>
+          )}
         </div>
 
         {/* Prompt Input & Launch Action */}
         <div style={{ display: 'flex', gap: '10px' }}>
           <textarea
-            rows={2}
+            rows={3}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             disabled={isRunning}
-            placeholder="Describe the Python function/class to build and test..."
+            placeholder="Describe the Python function, algorithm, or test suite to build and verify..."
             style={{
               flex: 1,
               background: 'var(--color-bg)',
@@ -455,7 +455,7 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
                 className="btn btn-danger"
                 style={{ height: '36px', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
               >
-                <X size={14} /> Cancel Run
+                <Square size={13} fill="currentColor" /> Stop Execution
               </button>
             ) : (
               <button
@@ -477,7 +477,7 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
         )}
       </div>
 
-      {/* ── 6-NODE VISUAL EXECUTION GRAPH ── */}
+      {/* —— 6-NODE VISUAL EXECUTION GRAPH —— */}
       <div
         style={{
           background: 'var(--color-surface)',
@@ -524,7 +524,7 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
                   border: '1px solid currentColor',
                 }}
               >
-                ● {activeExecution.status.toUpperCase()}
+                • {activeExecution.status.toUpperCase()}
               </span>
 
               {activeExecution.duration_ms && (
@@ -584,7 +584,7 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
                   <div style={{ color: iconColor }}>{step.icon}</div>
                   {stepStatus === 'completed' && <Check size={12} color="var(--color-success)" />}
                   {stepStatus === 'repaired' && (
-                    <span style={{ fontSize: '9px', fontWeight: 700, color: '#0ea5e9' }}>REPAIRED</span>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: '#0ea5e9' }}>REPAIRED</span>
                   )}
                   {stepStatus === 'running' && (
                     <span className="spinner" style={{ width: '10px', height: '10px' }} />
@@ -596,13 +596,13 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
                   <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
                     {step.title}
                   </div>
-                  <div style={{ fontSize: '9px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
                     {execStep?.output_summary || step.desc}
                   </div>
                 </div>
 
                 {execStep?.duration_ms && (
-                  <div style={{ fontSize: '9px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', marginTop: 'auto' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', marginTop: 'auto' }}>
                     {(execStep.duration_ms / 1000).toFixed(1)}s
                   </div>
                 )}
@@ -612,7 +612,7 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
         </div>
       </div>
 
-      {/* ── SPLIT CODE & TELEMETRY INSPECTOR ── */}
+      {/* —— SPLIT CODE & TELEMETRY INSPECTOR —— */}
       <div style={{ flex: 1, minHeight: '380px', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px' }}>
         {/* LEFT: Code & Test Suite Viewer */}
         <div
@@ -846,16 +846,16 @@ export const CodingWorkspace: React.FC<CodingWorkspaceProps> = ({
                 {activeExecution ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
-                      ─── AIR-GAP AST SECURITY AUDIT ───
+                      ——— AIR-GAP AST SECURITY AUDIT ———
                     </div>
                     <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: activeExecution.ast_security_passed ? 'var(--color-success)' : 'var(--color-danger)' }}>
                       {activeExecution.ast_security_passed
-                        ? '● AST Policy: 0 Prohibited Modules (No sockets, urllib, requests, subprocess)'
-                        : `● Policy Violations: ${activeExecution.ast_violations.join(', ')}`}
+                        ? '• AST Policy: 0 Prohibited Modules (No sockets, urllib, requests, subprocess)'
+                        : `• Policy Violations: ${activeExecution.ast_violations.join(', ')}`}
                     </div>
 
                     <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', marginTop: '8px' }}>
-                      ─── SANDBOX TEST RUNNER LOGS ───
+                      ——— SANDBOX TEST RUNNER LOGS ———
                     </div>
                     <pre
                       style={{

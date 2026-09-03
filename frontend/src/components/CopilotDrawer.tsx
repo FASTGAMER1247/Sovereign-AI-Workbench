@@ -30,6 +30,7 @@ interface CopilotDrawerProps {
   isOpen: boolean
   onClose: () => void
   systemState: AppSystemState
+  initialPrompt?: string
 }
 
 const STARTER_PROMPTS = [
@@ -43,24 +44,38 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
   isOpen,
   onClose,
   systemState,
+  initialPrompt,
 }) => {
   const [messages, setMessages] = useState<CopilotMessage[]>([
     {
       id: 'welcome',
       role: 'assistant',
       content:
-        '👋 Welcome to the **Sovereign AI Copilot**. All inference executes **100% on-premise** on your local hardware with zero external telemetry. How can I assist with your documents, workflows, or SOP queries today?',
+        'Welcome to the **Sovereign AI Copilot**. All inference executes **100% on-premise** on your local hardware with zero external telemetry. How can I assist with your documents, workflows, or SOP queries today?',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       model: systemState.modelHealth?.default_model || 'qwen2.5-coder:1.5b',
     },
   ])
+
+  const availableModels = (systemState.modelHealth?.available_models || [
+
+    'qwen2.5-coder:1.5b',
+    'llama3.2:3b',
+    'deepseek-r1:1.5b',
+    'qwen3.5:0.8b',
+  ]).filter((m) => !m.includes('embed'))
+
+  const [selectedModel, setSelectedModel] = useState<string>(
+    systemState.modelHealth?.default_model || 'qwen2.5-coder:1.5b'
+  )
   const [inputText, setInputText] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const abortControllerRef = useRef<boolean>(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -75,6 +90,13 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
       setTimeout(() => textareaRef.current?.focus(), 150)
     }
   }, [isOpen])
+
+  // Populate prompt if passed externally
+  useEffect(() => {
+    if (initialPrompt && isOpen) {
+      setInputText(initialPrompt)
+    }
+  }, [initialPrompt, isOpen])
 
   if (!isOpen) return null
 
@@ -96,16 +118,18 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
     setMessages((prev) => [...prev, userMsg])
     setInputText('')
     setIsGenerating(true)
-    abortControllerRef.current = false
+
+    const controller = new AbortController()
+    abortControllerRef.current = controller
 
     try {
       const response = await sendChat({
         prompt: query,
-        model: systemState.modelHealth?.default_model,
+        model: selectedModel || systemState.modelHealth?.default_model || 'qwen2.5-coder:1.5b',
         temperature: 0.7,
-      })
+      }, controller.signal)
 
-      if (abortControllerRef.current) return
+      if (controller.signal.aborted) return
 
       const assistantMsg: CopilotMessage = {
         id: `asst_${Date.now()}`,
@@ -119,11 +143,11 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
 
       setMessages((prev) => [...prev, assistantMsg])
     } catch (err: unknown) {
-      if (abortControllerRef.current) return
+      if (controller.signal.aborted) return
       const errorMsg: CopilotMessage = {
         id: `err_${Date.now()}`,
         role: 'assistant',
-        content: `⚠️ **Generation Error:** ${
+        content: `**Generation Error:** ${
           err instanceof Error ? err.message : 'Failed to communicate with local Ollama runtime.'
         }`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -131,11 +155,15 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
       setMessages((prev) => [...prev, errorMsg])
     } finally {
       setIsGenerating(false)
+      abortControllerRef.current = null
     }
   }
 
   function handleStop() {
-    abortControllerRef.current = true
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
     setIsGenerating(false)
   }
 
@@ -246,7 +274,7 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
               return <h4 key={lIdx} style={{ margin: '8px 0 4px', fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{line.slice(4)}</h4>
             }
             if (line.startsWith('## ')) {
-              return <h3 key={lIdx} style={{ margin: '10px 0 6px', fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{line.slice(3)}</h3>
+              return <h3 key={lIdx} style={{ margin: '10px 0 6px', fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{line.slice(3)}</h3>
             }
             if (line.startsWith('* ') || line.startsWith('- ')) {
               return <div key={lIdx} style={{ paddingLeft: '12px', margin: '2px 0' }}>• {line.slice(2)}</div>
@@ -278,10 +306,10 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
         animation: 'slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
-      {/* ── 1. FIXED TOP HEADER ── */}
+      {/* —— 1. FIXED TOP HEADER —— */}
       <div
         style={{
-          padding: '14px 18px',
+          padding: '16px 20px',
           borderBottom: '1px solid var(--color-border)',
           background: 'var(--color-surface-2)',
           display: 'flex',
@@ -312,7 +340,7 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
               </span>
               <span
                 style={{
-                  fontSize: '9px',
+                  fontSize: '10px',
                   fontFamily: 'var(--font-mono)',
                   fontWeight: 700,
                   padding: '1px 6px',
@@ -322,14 +350,44 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
                   border: isReady ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
                 }}
               >
-                ● {isReady ? 'ONLINE' : 'OFFLINE'}
+                • {isReady ? 'ONLINE' : 'OFFLINE'}
               </span>
             </div>
-            <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
-              Model: {systemState.modelHealth?.default_model || 'qwen2.5-coder:1.5b'} · 100% Air-Gapped
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>Model:</span>
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                disabled={isGenerating}
+                style={{
+                  background: 'var(--color-surface-2)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--color-accent-teal)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '10px',
+                  padding: '1px 4px',
+                  outline: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {availableModels.map((m) => (
+                  <option key={m} value={m}>
+                    {m === 'qwen2.5-coder:1.5b'
+                      ? '⚡ qwen2.5-coder:1.5b (Fastest)'
+                      : m === 'llama3.2:3b'
+                      ? 'ðŸŒŸ llama3.2:3b (Knowledgeable)'
+                      : m === 'deepseek-r1:1.5b'
+                      ? 'ðŸ§  deepseek-r1:1.5b (Reasoning)'
+                      : m}
+                  </option>
+                ))}
+              </select>
+              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>· Air-Gapped</span>
             </div>
           </div>
         </div>
+
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button
@@ -370,7 +428,7 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
         </div>
       </div>
 
-      {/* ── 2. SCROLLABLE MESSAGE STREAM ── */}
+      {/* —— 2. SCROLLABLE MESSAGE STREAM —— */}
       <div
         style={{
           flex: 1,
@@ -473,8 +531,8 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
                     background: isUser ? 'var(--color-accent)' : 'var(--color-surface)',
                     color: isUser ? '#ffffff' : 'var(--color-text-primary)',
                     border: isUser ? 'none' : '1px solid var(--color-border)',
-                    borderRadius: isUser ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
-                    padding: '10px 14px',
+                    borderRadius: isUser ? '10px 10px 2px 10px' : '10px 10px 10px 2px',
+                    padding: '12px 16px',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
                     wordBreak: 'break-word',
                   }}
@@ -539,7 +597,7 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
               {/* Timestamp */}
               <span
                 style={{
-                  fontSize: '9px',
+                  fontSize: '10px',
                   color: 'var(--color-text-muted)',
                   fontFamily: 'var(--font-mono)',
                   padding: '0 4px',
@@ -590,7 +648,7 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* ── 3. FIXED BOTTOM INPUT DOCK ── */}
+      {/* —— 3. FIXED BOTTOM INPUT DOCK —— */}
       <div
         style={{
           padding: '12px 16px',
@@ -677,9 +735,9 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
           )}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '9px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
           <span>Enter to send · Shift+Enter for newline</span>
-          <span style={{ color: 'var(--color-success)', fontWeight: 700 }}>● 100% AIR-GAPPED</span>
+          <span style={{ color: 'var(--color-success)', fontWeight: 700 }}>• 100% AIR-GAPPED</span>
         </div>
       </div>
     </div>
