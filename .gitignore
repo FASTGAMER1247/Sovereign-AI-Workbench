@@ -16,30 +16,33 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Local document storage
+# Local document storage & uploads
 backend/data/documents/*.pdf
 backend/data/documents/*.png
 backend/data/documents/*.jpg
 backend/data/documents/*.jpeg
+backend/data/documents/registry.json
 
-# Local ChromaDB / RAG data
+# Local ChromaDB / Vector Store / RAG data
 backend/data/knowledge_base/chroma/
 backend/data/knowledge_base/kb_documents_registry.json
 backend/data/knowledge_base/vector_index.json
 
-# Local/generated data
-backend/data/documents/registry.json
+# Local audit ledger and runtime logs
+backend/data/audit/
 
-# Local/generated workflow & coding artifacts
+# Local runtime generated artifacts and execution sandboxes
 backend/data/artifacts/
 backend/data/workflows/
 backend/data/coding_runs/
 backend/data/sandbox/
+backend/data/sandbox_runs/
+backend/data/demo_package/
 
-# Local runtime data accidentally generated at project root
-data/
+# Root runtime data and caches
+/data/
 *.log
 *.tmp
 .pytest_cache/
 .DS_Store
-Thumbs.db
+Thumbs.db

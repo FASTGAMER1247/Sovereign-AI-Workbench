@@ -74,6 +74,14 @@ class ModelService:
         provider = self.get_provider("ollama")
         return await provider.list_models()
 
+    def set_default_model(self, model_name: str) -> None:
+        """Dynamically update the default model on settings and active providers."""
+        self.settings.DEFAULT_MODEL = model_name
+        provider = self._providers.get("ollama")
+        if provider and hasattr(provider, "default_model"):
+            provider.default_model = model_name
+        logger.info(f"Updated default model to '{model_name}'")
+
 
 _global_model_service: Optional[ModelService] = None
 

@@ -68,6 +68,13 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
   const [selectedModel, setSelectedModel] = useState<string>(
     systemState.modelHealth?.default_model || 'qwen2.5-coder:1.5b'
   )
+
+  useEffect(() => {
+    if (systemState.modelHealth?.default_model) {
+      setSelectedModel(systemState.modelHealth.default_model)
+    }
+  }, [systemState.modelHealth?.default_model])
+
   const [inputText, setInputText] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -90,6 +97,17 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
       setTimeout(() => textareaRef.current?.focus(), 150)
     }
   }, [isOpen])
+
+  // Escape key closes drawer
+  useEffect(() => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
 
   // Populate prompt if passed externally
   useEffect(() => {
@@ -287,8 +305,23 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
   }
 
   return (
-    <div
-      style={{
+    <>
+      <div
+        className="copilot-drawer-backdrop"
+        onClick={onClose}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.45)',
+          backdropFilter: 'blur(2px)',
+          zIndex: 998,
+        }}
+      />
+      <div
+        style={{
         position: 'fixed',
         top: 0,
         right: 0,
@@ -741,5 +774,6 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
         </div>
       </div>
     </div>
+    </>
   )
 }

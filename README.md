@@ -13,6 +13,9 @@
 | Milestone 5 — Secure Coding Agent & Sandboxed Execution Loop (Workflow B) | COMPLETE |
 | Milestone 6 — Sovereignty, Air-Gap Verification & Cryptographic Audit Ledger | COMPLETE |
 | Milestone 7 — Final Polish, Master Regression Suite & Presentation Package | COMPLETE |
+| Milestone 8 — Modernized UI & Streamlined Workspaces | COMPLETE |
+| Milestone 9 — React Bits Suite, Settings Space, Command Menu & Contextual Copilot | COMPLETE |
+
 
 
 The platform delivers two complete, production-grade autonomous agentic workflows:
@@ -89,6 +92,16 @@ The platform delivers two complete, production-grade autonomous agentic workflow
 - **Document Inspector Enhancements**: Renamed from "Industrial Audit" to an intuitive name, added delete button (`Trash2`) for inspection scans/PDFs via `DELETE /api/documents/{id}`, and fixed stepper text responsiveness with `minmax(0, 1fr)`.
 - **Knowledge Base RAG Search**: Dedicated central vector query search bar with 1-click suggested query chips and real-time SOP library filtering.
 - **Clean Coding Workspace**: Starts with a blank, focused canvas on load with 1-click `Clear Task` reset.
+
+## Milestone 9 (React Bits Suite, Settings Space, Command Menu & Contextual Copilot)
+- **Centered Floating Navigation Dock**: Pure React macOS-style dock (`DockTabs.tsx` & `Dock.tsx`) wrapped in a continuously orbiting emerald luminous beam (`StarBorder.tsx`) with smooth cursor magnification.
+- **Animated SVG StrokeText**: Power-on line drawing hero title on the Home screen with delayed gradient fill.
+- **Dynamic Background Engines**: Ambient `Particles` constellation and cyber `DotGrid` coordinate background engines with cursor responsiveness and instant user toggling.
+- **Global Command Palette (`Ctrl+K`)**: Frosted-glass modal (`CommandMenu.tsx`) with category grouping, fuzzy keyword search, and complete keyboard navigation (`↑`/`↓`, `Enter`, `Esc`).
+- **Dedicated Settings Space (`Ctrl+,`)**: Multi-tab settings modal (`SettingsModal.tsx`) for configuring interface appearance, local LLM temperature/context, air-gap AST guard rules, vector retrieval Top-K, and system telemetry.
+- **Dynamic Local Model Discovery & Default Propagation**: Automatically detects all models installed in local Ollama and updates backend default runtime via `POST /api/models/default`, immediately synchronizing Header telemetry, Home Copilot, Copilot side drawer, and Autonomous Workflows.
+- **Contextual Copilot Side Drawer**: Clicking Copilot from any workflow workspace pops a side drawer instead of navigating away, enabling continuous side-by-side local AI assistance.
+
 
 ---
 

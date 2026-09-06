@@ -30,6 +30,7 @@ import {
   uploadDocument,
   extractDocumentText,
 } from '../api/client'
+import { StrokeText } from './ui/StrokeText'
 import type { AppSystemState } from '../types'
 
 export interface CopilotMessage {
@@ -116,6 +117,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const [selectedModel, setSelectedModel] = useState<string>(
     systemState.modelHealth?.default_model || 'qwen2.5-coder:1.5b'
   )
+
+  useEffect(() => {
+    if (systemState.modelHealth?.default_model) {
+      setSelectedModel(systemState.modelHealth.default_model)
+    }
+  }, [systemState.modelHealth?.default_model])
+
   const [showModelDropdown, setShowModelDropdown] = useState<boolean>(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -1203,7 +1211,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             )}
           </div>
 
-          <h1 className="home-title">Sovereign AI Workbench</h1>
+          <div style={{ width: '100%', maxWidth: '640px', margin: '6px 0 2px 0' }}>
+            <StrokeText
+              text="Sovereign AI Workbench"
+              fontSize={34}
+              fontWeight={700}
+              fontFamily="'Space Grotesk', system-ui, sans-serif"
+              strokeColor="#10B981"
+              fillColor="var(--color-text-primary)"
+              strokeWidth={1.3}
+              animationDuration={1.8}
+              fillDelay={1.2}
+              letterSpacing={0.5}
+              repeat={true}
+            />
+          </div>
 
           <p className="home-subtitle">
             On-premise workstation for industrial compliance, autonomous code synthesis,

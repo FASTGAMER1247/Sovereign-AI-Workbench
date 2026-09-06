@@ -1,15 +1,12 @@
-import React from 'react'
 import {
   Shield,
   Zap,
   MessageSquare,
   RefreshCw,
   Check,
-  Code2,
-  Home,
-  Database,
-  FileCheck,
+  Settings,
 } from 'lucide-react'
+import { DockTabs } from './ui/DockTabs'
 import type { AppSystemState } from '../types'
 
 interface HeaderProps {
@@ -19,8 +16,10 @@ interface HeaderProps {
   workflowMode?: 'home' | 'workflow_a' | 'workflow_b' | 'knowledge' | 'security'
   onSelectWorkflowMode?: (mode: 'home' | 'workflow_a' | 'workflow_b' | 'knowledge' | 'security') => void
   onOpenCopilot?: () => void
+  isCopilotOpen?: boolean
   onTriggerDemo?: () => void
   isSeedingDemo?: boolean
+  onOpenSettings?: () => void
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -30,8 +29,10 @@ export const Header: React.FC<HeaderProps> = ({
   workflowMode = 'home',
   onSelectWorkflowMode,
   onOpenCopilot,
+  isCopilotOpen = false,
   onTriggerDemo,
   isSeedingDemo = false,
+  onOpenSettings,
 }) => {
   const backendOnline = systemState?.backendStatus === 'online'
   const modelOnline = systemState?.modelStatus === 'online'
@@ -41,12 +42,12 @@ export const Header: React.FC<HeaderProps> = ({
   const allOnline = backendOnline && modelOnline
 
   return (
-    <header className="header">
+    <header className="header" style={{ position: 'relative' }}>
       {/* ── LEFT: Brand Identity (Clicking returns to Home) ── */}
       <div
         className="header-left"
         onClick={() => onSelectWorkflowMode?.('home')}
-        style={{ cursor: 'pointer', userSelect: 'none' }}
+        style={{ cursor: 'pointer', userSelect: 'none', zIndex: 2 }}
         title="Return to Home Overview"
       >
         <div className="header-brand-title">
@@ -56,49 +57,30 @@ export const Header: React.FC<HeaderProps> = ({
         <span className="header-version-pill">v0.1.0</span>
       </div>
 
-      {/* ── CENTER: Segmented Mode Switcher (Home + 3 Core Workspaces) ── */}
+      {/* ── CENTER: Dock Tabs with StarBorder & Specular Highlights (Centered on the line) ── */}
       {onSelectWorkflowMode && (
-        <div className="header-center-modes">
-          <button
-            onClick={() => onSelectWorkflowMode('home')}
-            className={`header-mode-tab ${workflowMode === 'home' ? 'active' : ''}`}
-            title="Home Overview: Workspace launcher & on-page chat"
-          >
-            <Home size={12} />
-            <span>Home</span>
-          </button>
-
-          <button
-            onClick={() => onSelectWorkflowMode('workflow_a')}
-            className={`header-mode-tab ${workflowMode === 'workflow_a' ? 'active' : ''}`}
-            title="Document Inspector: Upload inspection reports or scans to automatically check safety rules and generate certificates"
-          >
-            <FileCheck size={12} />
-            <span>Document Inspector</span>
-          </button>
-
-          <button
-            onClick={() => onSelectWorkflowMode('workflow_b')}
-            className={`header-mode-tab ${workflowMode === 'workflow_b' ? 'active' : ''}`}
-            title="Workflow B: Autonomous Code Synthesis, AST Guard, and Isolated Sandbox"
-          >
-            <Code2 size={12} />
-            <span>Coding Agent</span>
-          </button>
-
-          <button
-            onClick={() => onSelectWorkflowMode('knowledge')}
-            className={`header-mode-tab ${workflowMode === 'knowledge' ? 'active' : ''}`}
-            title="Knowledge Base: Organizational Standards, SOP-REF-570, and ChromaDB Vector Search"
-          >
-            <Database size={12} />
-            <span>Knowledge Base</span>
-          </button>
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1,
+            pointerEvents: 'auto',
+          }}
+        >
+          <DockTabs
+            activeTab={workflowMode}
+            onTabChange={onSelectWorkflowMode}
+          />
         </div>
       )}
 
       {/* ── RIGHT: Compact Status Indicators ── */}
-      <div className="header-right">
+      <div className="header-right" style={{ marginLeft: 'auto', zIndex: 2 }}>
         {/* Combined System Health */}
         <div
           className="header-telemetry-item"
@@ -153,6 +135,18 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
+        {/* Workbench Settings Modal Trigger */}
+        {onOpenSettings && (
+          <button
+            onClick={onOpenSettings}
+            className="btn btn-sm btn-ghost"
+            title="Workbench Settings (Ctrl+,)"
+            style={{ width: '26px', padding: 0 }}
+          >
+            <Settings size={13} />
+          </button>
+        )}
+
         {/* Quick Demo Shortcut */}
         {onTriggerDemo && (
           <button
@@ -166,14 +160,22 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        {/* AI Copilot Focus Trigger */}
+        {/* AI Copilot Trigger */}
         <button
           onClick={() => {
-            if (onSelectWorkflowMode) onSelectWorkflowMode('home')
-            if (onOpenCopilot) onOpenCopilot()
+            if (onOpenCopilot) {
+              onOpenCopilot()
+            } else if (onSelectWorkflowMode) {
+              onSelectWorkflowMode('home')
+            }
           }}
-          className="btn btn-sm btn-ghost"
-          title="Focus Sovereign AI Copilot Chat on Home Screen"
+          className={`btn btn-sm btn-ghost ${isCopilotOpen ? 'active' : ''}`}
+          style={isCopilotOpen ? {
+            color: 'var(--color-accent)',
+            background: 'var(--color-accent-bg)',
+            borderColor: 'var(--color-accent)',
+          } : undefined}
+          title={workflowMode === 'home' ? 'Focus Sovereign Copilot Chat' : 'Toggle Sovereign Copilot Side Panel'}
         >
           <MessageSquare size={11} />
           <span>Copilot</span>

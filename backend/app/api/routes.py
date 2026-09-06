@@ -95,6 +95,28 @@ async def list_models(
         )
 
 
+@router.post("/models/default")
+async def set_default_model(
+    payload: Dict[str, Any],
+    model_service: ModelService = Depends(get_model_service),
+) -> Dict[str, Any]:
+    """Set the system-wide default model for all workflows and chat."""
+    model_name = payload.get("model") or payload.get("default_model")
+    if not model_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing 'model' field in request body",
+        )
+    model_service.set_default_model(model_name)
+    health = await model_service.check_health()
+    return {
+        "status": "ok",
+        "default_model": model_name,
+        "is_model_available": health.is_model_available,
+        "available_models": health.available_models,
+    }
+
+
 @router.post("/chat", response_model=ChatResponse)
 async def chat_completion(
     request: ChatRequest,

@@ -74,6 +74,14 @@ export async function listModels(): Promise<{ models: unknown[]; count: number }
   return apiFetch('/models')
 }
 
+/** Set the default system model across backend and local providers */
+export async function setDefaultModel(model: string): Promise<{ status: string; default_model: string; is_model_available: boolean; available_models: string[] }> {
+  return apiFetch('/models/default', {
+    method: 'POST',
+    body: JSON.stringify({ model }),
+  })
+}
+
 /** Send a chat prompt to the FastAPI backend → Ollama */
 export async function sendChat(request: ChatRequest, signal?: AbortSignal): Promise<ChatResponse> {
   return apiFetch<ChatResponse>('/chat', {
