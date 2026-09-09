@@ -3,7 +3,6 @@ import {
   Shield,
   Code2,
   Lock,
-  ArrowRight,
   Send,
   Square,
   Copy,
@@ -22,7 +21,6 @@ import {
   Trash2,
   Plus,
   FileText,
-  Database,
 } from 'lucide-react'
 import {
   sendChat,
@@ -1287,143 +1285,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </div>
         </div>
 
-        {/* ── 3. THREE SEPARATE WORKSPACE LAUNCHERS ── */}
-        <div className="home-card-grid">
-          {/* Workspace A: Industrial Audit */}
-          <div className="home-card" onClick={() => onSelectWorkflowMode('workflow_a')}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div
-                  style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '6px',
-                    background: 'var(--color-accent-bg)',
-                    border: '1px solid var(--color-accent-border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--color-accent)',
-                  }}
-                >
-                  <FileCheck size={17} />
-                </div>
-                <span className="badge badge-info" style={{ fontSize: '9.5px', height: '18px' }}>
-                  INSPECTOR
-                </span>
-              </div>
 
-              <div>
-                <h3 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
-                  Document Inspector
-                </h3>
-                <div style={{ fontSize: '11px', color: 'var(--color-accent)', fontWeight: 600, marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
-                  Safety Check & Compliance Certificate
-                </div>
-              </div>
-
-              <p style={{ fontSize: '11.5px', color: 'var(--color-text-secondary)', lineHeight: 1.55, margin: 0 }}>
-                Upload inspection reports, ultrasonic thickness scans, or maintenance logs.
-                The AI checks measurements against rules in the Knowledge Base and creates a certified report.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 600, color: 'var(--color-accent)' }}>
-              <span>Enter Document Inspector</span>
-              <ArrowRight size={13} />
-            </div>
-          </div>
-
-          {/* Workspace B: Coding Agent */}
-          <div className="home-card" onClick={() => onSelectWorkflowMode('workflow_b')}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div
-                  style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '6px',
-                    background: 'var(--color-info-bg)',
-                    border: '1px solid var(--color-info-border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--color-info)',
-                  }}
-                >
-                  <Code2 size={17} />
-                </div>
-                <span className="badge badge-neutral" style={{ fontSize: '9.5px', height: '18px', color: 'var(--color-info)' }}>
-                  WORKFLOW B
-                </span>
-              </div>
-
-              <div>
-                <h3 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
-                  Autonomous Coding Agent
-                </h3>
-                <div style={{ fontSize: '11px', color: 'var(--color-info)', fontWeight: 600, marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
-                  Static AST Guard · Sandboxed Unit Tests
-                </div>
-              </div>
-
-              <p style={{ fontSize: '11.5px', color: 'var(--color-text-secondary)', lineHeight: 1.55, margin: 0 }}>
-                Synthesize Python routines with local LLMs, block prohibited networking calls through AST security inspection,
-                and execute sandboxed test suites with automated 3-pass self-repair.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 600, color: 'var(--color-info)' }}>
-              <span>Enter Coding Studio</span>
-              <ArrowRight size={13} />
-            </div>
-          </div>
-
-          {/* Workspace C: Knowledge Base & SOP Vault */}
-          <div className="home-card" onClick={() => onSelectWorkflowMode('knowledge')}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div
-                  style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '6px',
-                    background: 'var(--color-success-bg)',
-                    border: '1px solid var(--color-success-border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--color-success)',
-                  }}
-                >
-                  <Database size={17} />
-                </div>
-                <span className="badge badge-success" style={{ fontSize: '9.5px', height: '18px' }}>
-                  CHROMA STORE
-                </span>
-              </div>
-
-              <div>
-                <h3 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
-                  Knowledge Base & SOP Vault
-                </h3>
-                <div style={{ fontSize: '11px', color: 'var(--color-success)', fontWeight: 600, marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
-                  SOP-REF-570 · ChromaDB Vector Search
-                </div>
-              </div>
-
-              <p style={{ fontSize: '11.5px', color: 'var(--color-text-secondary)', lineHeight: 1.55, margin: 0 }}>
-                Ingest organizational safety procedures and ASME/API standards into local ChromaDB,
-                inspect vector chunk embeddings, and run live semantic similarity queries.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 600, color: 'var(--color-success)' }}>
-              <span>Enter Knowledge Vault</span>
-              <ArrowRight size={13} />
-            </div>
-          </div>
-        </div>
 
         {/* ── 4. SYSTEM TELEMETRY FOOTNOTE ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '11px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>

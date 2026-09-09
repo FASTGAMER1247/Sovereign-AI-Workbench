@@ -8,8 +8,8 @@ import { setDefaultModel, getModelHealth } from '../api/client';
 export interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  backgroundStyle?: 'particles' | 'dotgrid';
-  onBackgroundChange?: (bg: 'particles' | 'dotgrid') => void;
+  backgroundStyle?: 'static' | 'particles' | 'dotgrid';
+  onBackgroundChange?: (bg: 'static' | 'particles' | 'dotgrid') => void;
   systemState?: any;
   onRefreshStatus?: () => void;
   onOpenFirstRun?: () => void;
@@ -20,7 +20,7 @@ type TabKey = 'appearance' | 'models' | 'security' | 'knowledge' | 'telemetry';
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
-  backgroundStyle = 'particles',
+  backgroundStyle = 'static',
   onBackgroundChange,
   systemState,
   onRefreshStatus,
@@ -31,7 +31,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Settings State
-  const [bgStyle, setBgStyle] = useState<'particles' | 'dotgrid'>(backgroundStyle);
+  const [bgStyle, setBgStyle] = useState<'static' | 'particles' | 'dotgrid'>(backgroundStyle);
   const [fontFamily, setFontFamily] = useState<'Space Grotesk' | 'Inter'>('Space Grotesk');
   const [heroGlow, setHeroGlow] = useState<boolean>(true);
   
@@ -201,7 +201,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const handleBgChange = (val: 'particles' | 'dotgrid') => {
+  const handleBgChange = (val: 'static' | 'particles' | 'dotgrid') => {
     setBgStyle(val);
     if (onBackgroundChange) {
       onBackgroundChange(val);
@@ -509,6 +509,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div className="settings-control-group">
                   <label className="settings-label">Background Effect</label>
                   <div className="settings-radio-cards">
+                    <div 
+                      className={`settings-radio-card ${bgStyle === 'static' ? 'active' : ''}`}
+                      onClick={() => handleBgChange('static')}
+                    >
+                      Static Ambient Grid (Zero CPU)
+                    </div>
                     <div 
                       className={`settings-radio-card ${bgStyle === 'particles' ? 'active' : ''}`}
                       onClick={() => handleBgChange('particles')}

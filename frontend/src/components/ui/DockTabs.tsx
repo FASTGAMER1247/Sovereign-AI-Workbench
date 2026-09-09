@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
 import { Home, FileCheck, Code2, Database } from 'lucide-react';
-import { StarBorder } from './StarBorder';
 import { SpecularButton } from './SpecularButton';
 
 export interface DockTabsProps {
@@ -76,74 +75,66 @@ export const DockTabs: React.FC<DockTabsProps> = ({
         }
       `}</style>
 
-      <StarBorder 
-        borderRadius={16} 
-        borderWidth={1} 
-        speed={6} 
-        color="#10B981" 
-        starSize={60}
+      <div
+        ref={dockRef}
+        className="dock-tabs-container"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: '4px 6px',
+          background: 'rgba(7, 9, 14, 0.75)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)',
+          position: 'relative'
+        }}
       >
-        <div
-          ref={dockRef}
-          className="dock-tabs-container"
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '4px 6px',
-            background: 'rgba(7, 9, 14, 0.7)',
-            backdropFilter: 'blur(16px)',
-            borderRadius: '15px', // slightly less to fit inside StarBorder's border
-            position: 'relative'
-          }}
-        >
-          {tabs.map((tab, index) => {
-            let scale = 1;
-            
-            if (mouseX !== null && dockRef.current) {
-               const els = Array.from(dockRef.current.children) as HTMLElement[];
-               // children includes the tabs.
-               if (els[index]) {
-                 const rect = els[index].getBoundingClientRect();
-                 const dockRect = dockRef.current.getBoundingClientRect();
-                 const center = rect.left - dockRect.left + rect.width / 2;
-                 const distance = Math.abs(mouseX - center);
-                 
-                 // How far the effect spreads
-                 const maxDistance = 120;
-                 if (distance < maxDistance) {
-                   const scaleFactor = 1.05;
-                   scale = 1 + (scaleFactor - 1) * Math.cos((distance / maxDistance) * (Math.PI / 2));
-                 }
+        {tabs.map((tab, index) => {
+          let scale = 1;
+          
+          if (mouseX !== null && dockRef.current) {
+             const els = Array.from(dockRef.current.children) as HTMLElement[];
+             if (els[index]) {
+               const rect = els[index].getBoundingClientRect();
+               const dockRect = dockRef.current.getBoundingClientRect();
+               const center = rect.left - dockRect.left + rect.width / 2;
+               const distance = Math.abs(mouseX - center);
+               
+               const maxDistance = 120;
+               if (distance < maxDistance) {
+                 const scaleFactor = 1.05;
+                 scale = 1 + (scaleFactor - 1) * Math.cos((distance / maxDistance) * (Math.PI / 2));
                }
-            }
+             }
+          }
 
-            const isActive = activeTab === tab.id;
+          const isActive = activeTab === tab.id;
 
-            return (
-              <SpecularButton
-                key={tab.id}
-                className={`dock-tab-btn dock-tab`}
-                active={isActive}
-                onClick={() => onTabChange?.(tab.id)}
-                style={{
-                  transform: `scale(${scale})`,
-                  transformOrigin: 'bottom center',
-                  zIndex: isActive ? 5 : 1,
-                  padding: '5px 10px',
-                  fontSize: '12px',
-                }}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
-                {isActive && <div className="active-glow" />}
-              </SpecularButton>
-            );
-          })}
-        </div>
-      </StarBorder>
+          return (
+            <SpecularButton
+              key={tab.id}
+              className={`dock-tab-btn dock-tab`}
+              active={isActive}
+              onClick={() => onTabChange?.(tab.id)}
+              style={{
+                transform: `scale(${scale})`,
+                transformOrigin: 'bottom center',
+                zIndex: isActive ? 5 : 1,
+                padding: '5px 10px',
+                fontSize: '12px',
+              }}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
+              {isActive && <div className="active-glow" />}
+            </SpecularButton>
+          );
+        })}
+      </div>
     </div>
   );
 };

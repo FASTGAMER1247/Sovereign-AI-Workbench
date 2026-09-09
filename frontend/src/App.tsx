@@ -3,6 +3,7 @@ import { Header } from './components/Header'
 import { UnifiedStudio } from './components/UnifiedStudio'
 import { Particles } from './components/ui/Particles'
 import { DotGrid } from './components/ui/DotGrid'
+import { StaticBackground } from './components/ui/StaticBackground'
 import { CommandMenu } from './components/ui/CommandMenu'
 import { SettingsModal } from './components/SettingsModal'
 import { CopilotDrawer } from './components/CopilotDrawer'
@@ -26,19 +27,19 @@ function App() {
   const [copilotInitialPrompt, setCopilotInitialPrompt] = useState<string>('')
   const [isCopilotDrawerOpen, setIsCopilotDrawerOpen] = useState<boolean>(false)
   const [isFirstRunOpen, setIsFirstRunOpen] = useState<boolean>(false)
-  const [backgroundStyle, setBackgroundStyle] = useState<'particles' | 'dotgrid'>(() => {
+  const [backgroundStyle, setBackgroundStyle] = useState<'static' | 'particles' | 'dotgrid'>(() => {
     try {
       const saved = localStorage.getItem('sovereign_settings')
       if (saved) {
         const parsed = JSON.parse(saved)
-        if (parsed.bgStyle === 'dotgrid' || parsed.bgStyle === 'particles') {
+        if (parsed.bgStyle === 'dotgrid' || parsed.bgStyle === 'particles' || parsed.bgStyle === 'static') {
           return parsed.bgStyle
         }
       }
     } catch {
       // fallback
     }
-    return 'particles'
+    return 'static'
   })
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false)
 
@@ -140,7 +141,10 @@ function App() {
 
   return (
     <div className="app-layout">
-      {/* Dynamic ambient background — selectable in Settings */}
+      {/* Ambient background — selectable in Settings (default: static) */}
+      {workflowMode === 'home' && backgroundStyle === 'static' && (
+        <StaticBackground />
+      )}
       {workflowMode === 'home' && backgroundStyle === 'particles' && (
         <Particles
           particleCount={65}
