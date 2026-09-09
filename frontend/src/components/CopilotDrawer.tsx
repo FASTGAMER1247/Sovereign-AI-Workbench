@@ -18,6 +18,7 @@ import {
   getLoadingTokensForQuery,
   getLoadingSourcesForQuery,
 } from './ui/streaming-text'
+import { MessageLoading } from './ui/message-loading'
 
 export interface CopilotMessage {
   id: string
@@ -633,11 +634,8 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
                   borderBottom: '1px solid var(--color-border-subtle)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span
-                    className="spinner"
-                    style={{ width: '8px', height: '8px', borderTopColor: 'var(--color-accent)' }}
-                  />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MessageLoading size={16} color="var(--color-accent)" />
                   <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-accent)' }}>
                     Local model reasoning...
                   </span>

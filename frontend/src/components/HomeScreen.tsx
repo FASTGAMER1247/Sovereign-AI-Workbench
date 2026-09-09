@@ -40,6 +40,7 @@ import {
   getLoadingTokensForQuery,
   getLoadingSourcesForQuery,
 } from './ui/streaming-text'
+import { MessageLoading } from './ui/message-loading'
 
 
 
@@ -1552,12 +1553,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       </span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                      <span
-                        className="spinner"
-                        style={{ width: '10px', height: '10px', borderTopColor: 'var(--color-accent)' }}
-                      />
-                      <span>Local Reasoning</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--color-accent)' }}>
+                      <MessageLoading size={18} color="var(--color-accent)" />
+                      <span style={{ fontWeight: 600 }}>Local Reasoning</span>
                     </div>
                   </div>
 
