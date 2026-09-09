@@ -770,7 +770,7 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
           <span>Enter to send · Shift+Enter for newline</span>
-          <span style={{ color: 'var(--color-success)', fontWeight: 700 }}>• 100% AIR-GAPPED</span>
+          <span style={{ color: 'var(--color-success)', fontWeight: 700 }}>•  LOCAL-ONLY RUNTIME (AIR-GAP READY)</span>
         </div>
       </div>
     </div>

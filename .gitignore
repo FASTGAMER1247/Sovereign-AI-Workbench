@@ -45,4 +45,20 @@ backend/data/demo_package/
 *.tmp
 .pytest_cache/
 .DS_Store
-Thumbs.db
+Thumbs.db
+
+# Rust / Tauri build artifacts
+**/src-tauri/target/
+**/src-tauri/gen/schemas/
+frontend/src-tauri/resources/backend/
+frontend/src-tauri/binaries/
+!frontend/src-tauri/resources/.keep
+
+# PyInstaller / Packaging artifacts
+backend/build/
+backend/dist/
+*.spec
+*.exe
+*.msi
+release/
+

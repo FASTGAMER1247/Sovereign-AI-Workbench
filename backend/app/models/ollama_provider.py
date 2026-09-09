@@ -186,3 +186,15 @@ class OllamaProvider(ModelProvider):
                 available_models=[],
                 error=f"Cannot reach Ollama: {str(e)}",
             )
+
+    async def pull_model(self, model_name: str) -> Dict[str, Any]:
+        """Request local Ollama daemon to download/pull a model."""
+        try:
+            async with httpx.AsyncClient(base_url=self.base_url, timeout=httpx.Timeout(600.0, connect=10.0)) as client:
+                response = await client.post("/api/pull", json={"name": model_name, "stream": False})
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            logger.error(f"Failed to pull model '{model_name}' via Ollama: {e}")
+            raise RuntimeError(f"Ollama model download failed for '{model_name}': {str(e)}") from e
+

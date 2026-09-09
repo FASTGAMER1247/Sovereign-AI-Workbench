@@ -82,6 +82,14 @@ class ModelService:
             provider.default_model = model_name
         logger.info(f"Updated default model to '{model_name}'")
 
+    async def pull_model(self, model_name: str) -> Dict:
+        """Request local provider to pull/download the specified model."""
+        provider = self.get_provider("ollama")
+        if hasattr(provider, "pull_model"):
+            return await provider.pull_model(model_name)
+        raise NotImplementedError("Active provider does not support pull_model")
+
+
 
 _global_model_service: Optional[ModelService] = None
 

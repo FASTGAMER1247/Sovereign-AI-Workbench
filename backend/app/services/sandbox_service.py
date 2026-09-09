@@ -194,6 +194,31 @@ except Exception as e:
     sys.exit(1)
 """
 
+    def _find_sandbox_runner(self) -> Optional[Path]:
+        """Locate dedicated standalone sovereign-sandbox-runner.exe for clean production environments."""
+        if "SOVEREIGN_SANDBOX_RUNNER" in os.environ:
+            p = Path(os.environ["SOVEREIGN_SANDBOX_RUNNER"])
+            if p.is_file():
+                return p
+
+        exe_path = Path(sys.executable)
+        exe_dir = exe_path.parent
+
+        candidate = exe_dir / "sovereign-sandbox-runner.exe"
+        if candidate.is_file():
+            return candidate
+
+        candidate_res = exe_dir.parent / "backend" / "sovereign-sandbox-runner.exe"
+        if candidate_res.is_file():
+            return candidate_res
+
+        for parent in [exe_dir, exe_dir.parent, exe_dir.parent.parent]:
+            c = parent / "resources" / "backend" / "sovereign-sandbox-runner.exe"
+            if c.is_file():
+                return c
+
+        return None
+
     def _run_in_subprocess(
         self,
         run_id: str,
@@ -210,12 +235,21 @@ except Exception as e:
             "PYTHONDONTWRITEBYTECODE": "1",
         }
 
-        # Use current Python executable
-        py_exe = sys.executable
+        # Determine execution command: standalone sandbox runner or python runner.py
+        runner_exe = self._find_sandbox_runner()
+        if runner_exe is not None:
+            cmd = [str(runner_exe), str(run_dir)]
+        else:
+            cmd = [sys.executable, "runner.py"]
+
+        # Windows headless execution flag (CREATE_NO_WINDOW)
+        creation_flags = 0
+        if sys.platform == "win32":
+            creation_flags = 0x08000000
 
         try:
             proc = subprocess.run(
-                [py_exe, "runner.py"],
+                cmd,
                 cwd=str(run_dir),
                 env=clean_env,
                 stdout=subprocess.PIPE,
@@ -224,6 +258,7 @@ except Exception as e:
                 text=True,
                 encoding="utf-8",
                 errors="replace",
+                creationflags=creation_flags,
             )
             duration_ms = (time.perf_counter() - start_time) * 1000.0
             stdout, metrics = self._parse_metrics(proc.stdout)

@@ -20,6 +20,7 @@ interface HeaderProps {
   onTriggerDemo?: () => void
   isSeedingDemo?: boolean
   onOpenSettings?: () => void
+  onOpenFirstRun?: () => void
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -33,7 +34,9 @@ export const Header: React.FC<HeaderProps> = ({
   onTriggerDemo,
   isSeedingDemo = false,
   onOpenSettings,
+  onOpenFirstRun,
 }) => {
+
   const backendOnline = systemState?.backendStatus === 'online'
   const modelOnline = systemState?.modelStatus === 'online'
   const activeModel = systemState?.modelHealth?.default_model || (backendOnline ? 'qwen2.5-coder:1.5b' : 'OFFLINE')
@@ -84,13 +87,16 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Combined System Health */}
         <div
           className="header-telemetry-item"
-          title={allOnline ? `System Online · Model: ${activeModel}` : 'System Degraded'}
+          onClick={() => onOpenFirstRun?.()}
+          style={{ cursor: onOpenFirstRun ? 'pointer' : 'default' }}
+          title={allOnline ? `System Online · Model: ${activeModel} — Click to run System Setup & Diagnostics` : 'System Degraded — Click to inspect issues'}
         >
           <span className={`header-telemetry-dot ${allOnline ? 'online' : 'error'}`} />
           <span style={{ maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {activeModel}
           </span>
         </div>
+
 
         {/* Air-Gap Verification Status (Clickable to open Security Dashboard) */}
         <div

@@ -117,7 +117,38 @@ async def set_default_model(
     }
 
 
+@router.post("/models/pull")
+async def pull_model(
+    payload: Dict[str, Any],
+    model_service: ModelService = Depends(get_model_service),
+) -> Dict[str, Any]:
+    """Trigger download of a required open-weight model via local Ollama daemon."""
+    model_name = payload.get("model") or payload.get("name")
+    if not model_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing 'model' or 'name' in request payload.",
+        )
+    try:
+        res = await model_service.pull_model(model_name)
+        health = await model_service.check_health()
+        return {
+            "status": "ok",
+            "model": model_name,
+            "is_model_available": health.is_model_available,
+            "available_models": health.available_models,
+            "details": res,
+        }
+    except Exception as e:
+        logger.error(f"Failed to pull model '{model_name}': {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to download model '{model_name}': {str(e)}",
+        )
+
+
 @router.post("/chat", response_model=ChatResponse)
+
 async def chat_completion(
     request: ChatRequest,
     model_service: ModelService = Depends(get_model_service),

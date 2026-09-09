@@ -24,6 +24,7 @@ export interface CommandMenuProps {
   onOpenCopilot?: () => void;
   onSearchQuery?: (query: string) => void;
   onOpenSettings?: () => void;
+  onOpenFirstRun?: () => void;
 }
 
 interface Command {
@@ -45,7 +46,9 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({
   onOpenCopilot,
   onSearchQuery,
   onOpenSettings,
+  onOpenFirstRun,
 }) => {
+
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -182,6 +185,18 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({
           if (onOpenSettings) onOpenSettings();
         },
       },
+      {
+        id: 'action-setup',
+        title: 'First-Time Setup & Diagnostics',
+        description: 'Verify local models, runtime, and air-gap integrity',
+        category: 'Quick Actions',
+        icon: <Shield size={15} />,
+        shortcut: 'F',
+        action: () => {
+          if (onOpenFirstRun) onOpenFirstRun();
+        },
+      },
+
       {
         id: 'ks-query-sop',
         title: 'Query SOP-REF-570 Piping Limits',

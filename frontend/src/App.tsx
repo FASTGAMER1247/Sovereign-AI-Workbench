@@ -6,6 +6,7 @@ import { DotGrid } from './components/ui/DotGrid'
 import { CommandMenu } from './components/ui/CommandMenu'
 import { SettingsModal } from './components/SettingsModal'
 import { CopilotDrawer } from './components/CopilotDrawer'
+import { FirstRunCheckModal } from './components/FirstRunCheckModal'
 import { getHealth, getModelHealth, getSovereigntyStatus, seedDemoPackage, setDefaultModel } from './api/client'
 import type { AppSystemState } from './types'
 
@@ -24,6 +25,13 @@ function App() {
   const [isSeedingDemo, setIsSeedingDemo] = useState<boolean>(false)
   const [copilotInitialPrompt, setCopilotInitialPrompt] = useState<string>('')
   const [isCopilotDrawerOpen, setIsCopilotDrawerOpen] = useState<boolean>(false)
+  const [isFirstRunOpen, setIsFirstRunOpen] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('sovereign_setup_completed') !== 'true'
+    } catch {
+      return false
+    }
+  })
   const [backgroundStyle, setBackgroundStyle] = useState<'particles' | 'dotgrid'>(() => {
     try {
       const saved = localStorage.getItem('sovereign_settings')
@@ -39,6 +47,7 @@ function App() {
     return 'particles'
   })
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false)
+
 
   const checkHealth = useCallback(async () => {
     setIsRefreshing(true)
@@ -173,6 +182,7 @@ function App() {
         isCopilotOpen={isCopilotDrawerOpen && workflowMode !== 'home'}
         isSeedingDemo={isSeedingDemo}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenFirstRun={() => setIsFirstRunOpen(true)}
       />
 
       <main className="main-content">
@@ -203,6 +213,7 @@ function App() {
           handleOpenCopilotWithPrompt(q)
         }}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenFirstRun={() => setIsFirstRunOpen(true)}
       />
 
       <SettingsModal
@@ -212,6 +223,7 @@ function App() {
         onBackgroundChange={setBackgroundStyle}
         systemState={systemState}
         onRefreshStatus={checkHealth}
+        onOpenFirstRun={() => setIsFirstRunOpen(true)}
       />
 
       {/* Side-panel Copilot Drawer for non-home pages */}
@@ -221,8 +233,18 @@ function App() {
         systemState={systemState}
         initialPrompt={copilotInitialPrompt}
       />
+
+      {/* First-Time Setup & Diagnostics Modal */}
+      <FirstRunCheckModal
+        isOpen={isFirstRunOpen}
+        onClose={() => setIsFirstRunOpen(false)}
+        onComplete={() => {
+          checkHealth()
+        }}
+      />
     </div>
   )
 }
+
 
 export default App

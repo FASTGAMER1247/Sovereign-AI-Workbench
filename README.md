@@ -252,7 +252,46 @@ A GPU is recommended for practical performance, although the current development
 
 ---
 
-# 1. Clone the Repository
+# First-Time Setup & Launchers
+
+The workbench provides automated setup wizards and one-click launchers for both web and native desktop development workflows.
+
+### 1. Web Development Setup (Fast Start)
+For developers working on the web application (React frontend + FastAPI backend):
+- Double-click **`Setup Web Development.bat`** (or run `python scripts/setup_web_dev.py`).
+- **What it does automatically:**
+  1. Checks Python 3.10+ and Node.js 18+ (with npm).
+  2. Creates the `backend/.venv` virtual environment if missing.
+  3. Installs backend dependencies from `backend/requirements.txt`.
+  4. Installs frontend dependencies via `npm install`.
+  5. Verifies that the local Ollama daemon is running.
+  6. Checks for mandatory local models (`qwen2.5-coder:1.5b` and `nomic-embed-text`) with 1-click auto-pull.
+  7. Audits the execution sandbox (verifying the restricted subprocess mode with AST static guard; Docker is optional).
+- **Daily Launcher:** Double-click **`Launch Workbench.bat`** to start both backend and frontend servers and open your default browser.
+
+### 2. Desktop Development Setup (Tauri 2 Native App)
+For developers working on or packaging the native Windows desktop application:
+- Double-click **`Setup Desktop Development.bat`** (or run `python scripts/setup_desktop_dev.py`).
+- **What it does:**
+  1. Validates all Web Development prerequisites above.
+  2. Verifies the Rust toolchain (`rustc` and `cargo`).
+  3. Validates the Microsoft Visual C++ (MSVC) Build Tools compiler.
+  4. Verifies Tauri 2 crates and dependencies.
+- **Daily Desktop Dev Launcher:** Double-click **`Launch Desktop.bat`** to start backend services and launch the native Tauri desktop window.
+
+### 3. In-App First-Run System Check (Production Desktop & Web)
+On initial application launch (and accessible anytime via Settings `Ctrl+,` or Command Menu `Ctrl+K`):
+- **Automated Health Matrix:** Evaluates 5 operational domains:
+  - **Application Runtime**: UI shell, FastAPI core backend, and persistent local storage.
+  - **AI Engine & Models**: Ollama connectivity, `qwen2.5-coder:1.5b` (Workflow A/B), and `nomic-embed-text` (RAG).
+  - **Local Vector Store & RAG**: ChromaDB SQLite + HNSW engine and 768-dim dense embeddings.
+  - **Air-Gap Security & Integrity**: Python AST policy guard, isolated sandbox, SHA-256 hash ledger, zero-egress shield.
+  - **System Compatibility**: Windows x64 architecture and file system write permissions.
+- **In-App Model Downloader:** Install missing models directly from the UI without terminal commands or external telemetry.
+
+---
+
+# 1. Manual Setup & Clone the Repository
 
 ```cmd
 git clone https://github.com/FASTGAMER1247/Sovereign-AI-Workbench.git
@@ -448,34 +487,43 @@ Use the exact URL printed by Vite.
 
 # Running the Complete System
 
-You normally need:
+# Launching the Workbench
 
-### Terminal 1 — Ollama
+### Option 1: One-Click Launcher (Recommended)
 
-Ollama running with:
+Simply double-click the **`Launch Workbench.bat`** file in the project root, or click the **`Sovereign AI Workbench`** shortcut created on your Desktop!
 
-```text
-qwen2.5-coder:1.5b
-nomic-embed-text
+The launcher automatically:
+1. Verifies that the local Ollama inference engine is online (auto-starts `ollama serve` if offline)
+2. Starts the FastAPI core backend (`http://127.0.0.1:8000`)
+3. Starts the Vite frontend client (`http://127.0.0.1:5173`)
+4. Probes both services for health and automatically opens your default web browser directly to the workbench
+5. Safely shuts down all background processes (uvicorn + vite) when the terminal is closed or `Ctrl+C` is pressed
+
+*(To recreate the Desktop shortcut at any time, run: `powershell -ExecutionPolicy Bypass -File scripts\create_desktop_shortcut.ps1`)*
+
+### Option 2: Manual Terminal Launch
+
+If you prefer to run services manually across separate terminals:
+
+#### Terminal 1 — Ollama
+```cmd
+ollama serve
 ```
 
-
-### Terminal 2 — Backend
-
+#### Terminal 2 — Backend
 ```cmd
 cd Sovereign-AI-Workbench\backend
 .venv\Scripts\activate
 python -u -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-### Terminal 3 — Frontend
-
+#### Terminal 3 — Frontend
 ```cmd
 cd Sovereign-AI-Workbench\frontend
 npm run dev
 ```
 
-Then open the Vite URL.
 
 ---
 

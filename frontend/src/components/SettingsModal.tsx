@@ -12,6 +12,7 @@ export interface SettingsModalProps {
   onBackgroundChange?: (bg: 'particles' | 'dotgrid') => void;
   systemState?: any;
   onRefreshStatus?: () => void;
+  onOpenFirstRun?: () => void;
 }
 
 type TabKey = 'appearance' | 'models' | 'security' | 'knowledge' | 'telemetry';
@@ -22,8 +23,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   backgroundStyle = 'particles',
   onBackgroundChange,
   systemState,
-  onRefreshStatus
+  onRefreshStatus,
+  onOpenFirstRun,
 }) => {
+
   const [activeTab, setActiveTab] = useState<TabKey>('appearance');
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -768,12 +771,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                 </div>
 
-                <div style={{ marginTop: 24, textAlign: 'center' }}>
+                <div style={{ marginTop: 24, display: 'flex', gap: 12, justifyContent: 'center' }}>
                   <button className="settings-button" onClick={onRefreshStatus}>
                     <Activity size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
                     Run System Diagnostics
                   </button>
+                  {onOpenFirstRun && (
+                    <button
+                      className="settings-button"
+                      style={{ background: 'rgba(16, 185, 129, 0.15)', borderColor: '#10b981', color: '#10b981' }}
+                      onClick={() => {
+                        onClose();
+                        onOpenFirstRun();
+                      }}
+                    >
+                      <Shield size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                      First-Time Setup Wizard
+                    </button>
+                  )}
                 </div>
+
               </div>
             )}
           </div>

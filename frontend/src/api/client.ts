@@ -82,6 +82,15 @@ export async function setDefaultModel(model: string): Promise<{ status: string; 
   })
 }
 
+/** Trigger local download of a model via Ollama */
+export async function pullModel(model: string): Promise<{ status: string; model: string; is_model_available: boolean; available_models: string[] }> {
+  return apiFetch('/models/pull', {
+    method: 'POST',
+    body: JSON.stringify({ model }),
+  })
+}
+
+
 /** Send a chat prompt to the FastAPI backend → Ollama */
 export async function sendChat(request: ChatRequest, signal?: AbortSignal): Promise<ChatResponse> {
   return apiFetch<ChatResponse>('/chat', {

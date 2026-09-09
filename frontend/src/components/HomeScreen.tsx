@@ -30,8 +30,9 @@ import {
   uploadDocument,
   extractDocumentText,
 } from '../api/client'
-import { StrokeText } from './ui/StrokeText'
 import type { AppSystemState } from '../types'
+
+
 
 export interface CopilotMessage {
   id: string
@@ -1211,21 +1212,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             )}
           </div>
 
-          <div style={{ width: '100%', maxWidth: '640px', margin: '6px 0 2px 0' }}>
-            <StrokeText
-              text="Sovereign AI Workbench"
-              fontSize={34}
-              fontWeight={700}
-              fontFamily="'Space Grotesk', system-ui, sans-serif"
-              strokeColor="#10B981"
-              fillColor="var(--color-text-primary)"
-              strokeWidth={1.3}
-              animationDuration={1.8}
-              fillDelay={1.2}
-              letterSpacing={0.5}
-              repeat={true}
-            />
-          </div>
+          <h1
+            className="home-title"
+            style={{
+              fontSize: '32px',
+              fontWeight: 700,
+              letterSpacing: '-0.5px',
+              color: 'var(--color-text-primary)',
+              margin: '6px 0 2px 0',
+            }}
+          >
+            Sovereign AI Workbench
+          </h1>
+
 
           <p className="home-subtitle">
             On-premise workstation for industrial compliance, autonomous code synthesis,
