@@ -25,13 +25,7 @@ function App() {
   const [isSeedingDemo, setIsSeedingDemo] = useState<boolean>(false)
   const [copilotInitialPrompt, setCopilotInitialPrompt] = useState<string>('')
   const [isCopilotDrawerOpen, setIsCopilotDrawerOpen] = useState<boolean>(false)
-  const [isFirstRunOpen, setIsFirstRunOpen] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('sovereign_setup_completed') !== 'true'
-    } catch {
-      return false
-    }
-  })
+  const [isFirstRunOpen, setIsFirstRunOpen] = useState<boolean>(false)
   const [backgroundStyle, setBackgroundStyle] = useState<'particles' | 'dotgrid'>(() => {
     try {
       const saved = localStorage.getItem('sovereign_settings')

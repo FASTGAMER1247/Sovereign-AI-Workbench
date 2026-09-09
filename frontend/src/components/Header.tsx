@@ -1,3 +1,4 @@
+import React, { useState } from 'react'
 import {
   Shield,
   Zap,
@@ -5,8 +6,10 @@ import {
   RefreshCw,
   Check,
   Settings,
+  Menu,
 } from 'lucide-react'
 import { DockTabs } from './ui/DockTabs'
+import { HeaderMenuDropdown } from './HeaderMenuDropdown'
 import type { AppSystemState } from '../types'
 
 interface HeaderProps {
@@ -36,6 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSettings,
   onOpenFirstRun,
 }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false)
 
   const backendOnline = systemState?.backendStatus === 'online'
   const modelOnline = systemState?.modelStatus === 'online'
@@ -186,6 +190,43 @@ export const Header: React.FC<HeaderProps> = ({
           <MessageSquare size={11} />
           <span>Copilot</span>
         </button>
+
+        {/* ── TOP RIGHT HAMBURGER MENU ── */}
+        <button
+          onClick={() => setIsMenuOpen((prev) => !prev)}
+          className={`btn btn-sm btn-ghost ${isMenuOpen ? 'active' : ''}`}
+          title="Workbench Menu, Setup & Tools"
+          style={{
+            width: '30px',
+            height: '28px',
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: isMenuOpen ? '#10B981' : 'var(--color-text-main)',
+            backgroundColor: isMenuOpen ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+            borderColor: isMenuOpen ? 'rgba(16, 185, 129, 0.4)' : 'rgba(255, 255, 255, 0.08)',
+            transition: 'all var(--transition-fast)',
+          }}
+        >
+          <Menu size={15} />
+        </button>
+
+        {/* Dropdown Menu Panel */}
+        <HeaderMenuDropdown
+          isOpen={isMenuOpen}
+          onClose={() => setIsMenuOpen(false)}
+          systemState={systemState}
+          workflowMode={workflowMode}
+          onSelectWorkflowMode={onSelectWorkflowMode}
+          onOpenSettings={onOpenSettings}
+          onOpenFirstRun={onOpenFirstRun}
+          onRefreshStatus={onRefreshStatus}
+          isRefreshing={isRefreshing}
+          onTriggerDemo={onTriggerDemo}
+          isSeedingDemo={isSeedingDemo}
+          onOpenCopilot={onOpenCopilot}
+        />
       </div>
     </header>
   )

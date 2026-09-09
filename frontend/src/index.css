@@ -735,3 +735,14 @@ html, body {
   background: var(--color-accent);
 }
 
+/* Header Dropdown Menu Items */
+.header-dropdown-item {
+  transition: all var(--transition-fast);
+}
+
+.header-dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  color: #FAF7F2 !important;
+  transform: translateX(2px);
+}
+
