@@ -24,7 +24,16 @@ import type {
   SovereigntyStatusResponse,
 } from '../types'
 
-const BASE_URL = '/api'
+const isTauri =
+  typeof window !== 'undefined' &&
+  ('__TAURI_INTERNALS__' in window ||
+    '__TAURI__' in window ||
+    window.location.protocol === 'tauri:' ||
+    window.location.hostname === 'tauri.localhost')
+
+export const BASE_URL = isTauri
+  ? 'http://127.0.0.1:8000/api'
+  : (import.meta.env.VITE_API_BASE_URL || '/api')
 
 async function apiFetch<T>(
   path: string,
@@ -264,7 +273,7 @@ export async function cancelWorkflowExecution(executionId: string): Promise<Work
 
 /** Get download URL for generated DOCX approval note */
 export function getArtifactDownloadUrl(executionId: string): string {
-  return `/api/workflows/executions/${executionId}/artifact`
+  return `${BASE_URL}/workflows/executions/${executionId}/artifact`
 }
 
 // ─── Phase 5: Coding Agent & Sandbox Client API ───
@@ -298,7 +307,7 @@ export async function cancelCodingExecution(executionId: string): Promise<Coding
 
 /** Get download URL for verified Python script artifact */
 export function getCodingArtifactDownloadUrl(executionId: string): string {
-  return `/api/coding/executions/${executionId}/artifact`
+  return `${BASE_URL}/coding/executions/${executionId}/artifact`
 }
 
 /** Fetch current sandbox engine health and mode */
@@ -338,7 +347,7 @@ export async function verifyAuditIntegrity(): Promise<LedgerIntegrityResponse> {
 
 /** Get download URL for exported audit ledger (CSV or JSONL) */
 export function getAuditExportUrl(format: 'csv' | 'jsonl' = 'csv'): string {
-  return `/api/audit/export?format=${format}`
+  return `${BASE_URL}/audit/export?format=${format}`
 }
 
 // ─── Phase 7: Demo Package Client API ───
