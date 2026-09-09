@@ -360,10 +360,18 @@ class DocumentService:
                 extracted_text = response.response
                 method = "ollama_vision"
             except Exception as e:
-                logger.exception(f"Error extracting image content via Ollama vision for {document_id}: {e}")
+                err_msg = str(e)
+                if "multimodal" in err_msg.lower() or "400" in err_msg:
+                    user_msg = (
+                        "The active model (qwen2.5-coder:1.5b) is a text & code model and does not support image vision/OCR. "
+                        "Please upload a PDF (.pdf) or Word document (.docx), or run 'ollama pull llama3.2-vision' for image OCR."
+                    )
+                else:
+                    user_msg = f"Local Ollama vision extraction failed: {err_msg}"
+                logger.error(f"Error extracting image content for {document_id}: {user_msg}")
                 raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail=f"Local Ollama vision extraction failed: {str(e)}"
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=user_msg
                 )
         else:
             raise HTTPException(

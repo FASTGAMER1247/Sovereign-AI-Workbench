@@ -307,9 +307,9 @@ export function DocumentWorkspace({ systemState }: DocumentWorkspaceProps) {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
                   <Upload size={22} color="var(--color-text-secondary)" />
                   <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                    Drop PDF or Image here
+                    Drop PDF Document here
                   </span>
-                  <span className="text-xs text-muted">Supports .pdf, .png, .jpg, .jpeg</span>
+                  <span className="text-xs text-muted">Supports .pdf (primary format) or .docx</span>
                 </div>
               )}
             </div>
