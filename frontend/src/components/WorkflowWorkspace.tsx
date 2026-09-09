@@ -330,7 +330,7 @@ export const WorkflowWorkspace: React.FC = () => {
               Agentic Hero Workflow & Human-in-the-Loop Canvas
             </h2>
             <p style={{ fontSize: '12px', margin: '3px 0 0 0', color: 'var(--color-text-muted)' }}>
-              Assisted 5-step pipeline: Document Extraction → ChromaDB SOP Search → RAG Audit →{' '}
+              Autonomous 5-step pipeline: Document Extraction → ChromaDB SOP Search → RAG Audit →{' '}
               <span style={{ color: 'var(--color-warning)', fontWeight: 600 }}>Human Sign-Off</span> → Formatted DOCX Generation.
             </p>
           </div>
@@ -532,7 +532,7 @@ export const WorkflowWorkspace: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <Zap size={14} /> Run Industrial Compliance Pipeline
+                  <Zap size={14} /> Run Autonomous Hero Pipeline
                 </>
               )}
             </button>
@@ -746,7 +746,7 @@ export const WorkflowWorkspace: React.FC = () => {
                 {/* Stepper Steps List */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Pipeline Step Execution Graph
+                    Autonomous Step Execution Graph
                   </div>
 
                   {activeExecution.steps.map((step, idx) => {
@@ -1094,10 +1094,10 @@ export const WorkflowWorkspace: React.FC = () => {
                 <Zap size={26} />
               </div>
               <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
-                No Active Compliance Workflow Selected
+                No Active Hero Workflow Selected
               </h3>
               <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', maxWidth: '420px', margin: 0 }}>
-                Select an inspection document on the left and click <strong>Run Industrial Compliance Pipeline</strong> to execute the compliance audit draft.
+                Select an inspection document on the left and click <strong>Run Autonomous Hero Pipeline</strong> to execute the full autonomous compliance audit.
               </p>
             </div>
           )}

@@ -118,8 +118,8 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({
       },
       {
         id: 'workspace-workflow-b',
-        title: 'Python AST Sandbox',
-        description: 'Sandboxed Python scripting with AST security rules',
+        title: 'Autonomous Coding Agent',
+        description: 'Initialize coding workflows',
         category: 'Workspaces',
         icon: <Code2 size={15} />,
         shortcut: 'C',

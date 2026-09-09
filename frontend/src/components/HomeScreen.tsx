@@ -1,15 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, KeyboardEvent } from 'react'
 import {
   Shield,
+  Code2,
+  Lock,
+  ArrowRight,
+  Send,
+  Square,
   Copy,
   Check,
   RotateCcw,
+  Cpu,
+  Zap,
+  ChevronDown,
+  Sparkles,
   Bot,
+  FileCheck,
+  CheckCircle2,
+  Paperclip,
   X,
   History,
   Trash2,
   Plus,
   FileText,
+  Database,
 } from 'lucide-react'
 import {
   sendChat,
@@ -18,7 +31,6 @@ import {
   extractDocumentText,
 } from '../api/client'
 import type { AppSystemState } from '../types'
-import { PromptInput } from './ui/ai-chat-input'
 
 
 
@@ -81,10 +93,10 @@ function persistSessions(sessions: ChatSession[]) {
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
   systemState,
-  onSelectWorkflowMode: _onSelectWorkflowMode,
+  onSelectWorkflowMode,
   initialPrompt,
-  onTriggerDemo: _onTriggerDemo,
-  isSeedingDemo: _isSeedingDemo = false,
+  onTriggerDemo,
+  isSeedingDemo = false,
 }) => {
   const [messages, setMessages] = useState<CopilotMessage[]>([])
   const [inputText, setInputText] = useState<string>('')
@@ -113,8 +125,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     }
   }, [systemState.modelHealth?.default_model])
 
+  const [showModelDropdown, setShowModelDropdown] = useState<boolean>(false)
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+
+  const backendOnline = systemState?.backendStatus === 'online'
+  const activeModelDisplay = selectedModel || systemState?.modelHealth?.default_model || (backendOnline ? 'qwen2.5-coder:1.5b' : 'OFFLINE')
+  const isAirGapped = systemState?.sovereigntyStatus?.is_air_gapped ?? false
 
   // Fetch installed models
   useEffect(() => {
@@ -135,6 +156,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       .catch(() => {})
   }, [selectedModel])
 
+  // Click outside to close model dropdown
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowModelDropdown(false)
+      }
+    }
+    if (showModelDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showModelDropdown])
+
   // Handle external initialPrompt injection
   useEffect(() => {
     if (initialPrompt && initialPrompt.trim()) {
@@ -148,6 +184,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages, isGenerating])
+
+  // Focus textarea on load
+  useEffect(() => {
+    textareaRef.current?.focus()
+  }, [])
 
   // Auto-save active session whenever messages change
   useEffect(() => {
@@ -185,11 +226,36 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     }
   }, [messages, activeSessionId])
 
+  // File selection handler
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files || e.target.files.length === 0) return
+
+    const newFiles: AttachedFile[] = Array.from(e.target.files).map((f) => ({
+      id: `file_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      file: f,
+      name: f.name,
+      size: f.size,
+      type: f.type,
+    }))
+
+    setAttachedFiles((prev) => [...prev, ...newFiles])
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+    textareaRef.current?.focus()
+  }
+
+  function handleRemoveFile(fileId: string) {
+    setAttachedFiles((prev) => prev.filter((f) => f.id !== fileId))
+  }
+
   // Read content from files to inject into prompt context
-  async function extractContentFromFiles(files: File[]): Promise<string> {
+  async function extractContentFromFiles(files: AttachedFile[]): Promise<string> {
     const fileExtracts: string[] = []
 
-    for (const f of files) {
+    for (const item of files) {
+      const f = item.file
       // Text, Code, CSV, JSON, Python, Markdown
       if (
         f.type.startsWith('text/') ||
@@ -227,32 +293,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     return fileExtracts.join('\n\n')
   }
 
-  async function handleSend(
-    textToSend?: string,
-    filesToSend?: File[],
-    modelOverride?: string,
-    effortOverride?: string
-  ) {
+  async function handleSend(textToSend?: string) {
     const query = (textToSend || inputText).trim()
-    const currentFiles: File[] = filesToSend && filesToSend.length > 0
-      ? filesToSend
-      : attachedFiles.map((af) => af.file)
-
-    if (!query && currentFiles.length === 0) return
+    if (!query && attachedFiles.length === 0) return
     if (isGenerating) return
 
+    const currentFiles = [...attachedFiles]
     setAttachedFiles([])
     setInputText('')
-
-    let temperature = 0.7
-    if (effortOverride === 'Strict Audit') temperature = 0.1
-    else if (effortOverride === 'Deep Code') temperature = 0.2
-    else if (effortOverride === 'Balanced') temperature = 0.5
-
-    const activeModel = modelOverride || selectedModel || systemState.modelHealth?.default_model || 'qwen2.5-coder:1.5b'
-    if (modelOverride && modelOverride !== selectedModel) {
-      setSelectedModel(modelOverride)
-    }
 
     // Display user message with attached file metadata
     const userMsg: CopilotMessage = {
@@ -286,8 +334,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       const response = await sendChat(
         {
           prompt: promptWithContext,
-          model: activeModel,
-          temperature,
+          model: selectedModel || systemState.modelHealth?.default_model || 'qwen2.5-coder:1.5b',
+          temperature: 0.7,
         },
         controller.signal
       )
@@ -330,6 +378,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     setIsGenerating(false)
   }
 
+  function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
+
   function handleCopy(text: string, id: string) {
     navigator.clipboard.writeText(text)
     setCopiedId(id)
@@ -346,6 +401,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     setInputText('')
     setAttachedFiles([])
     setIsGenerating(false)
+    setTimeout(() => textareaRef.current?.focus(), 50)
   }
 
   function handleCloseChat() {
@@ -509,23 +565,257 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     })
   }
 
-  /* ── SHARED PROMPT INPUT DOCK (SPRING TRANSITION + VOICE AUDIO + ATTACHMENTS) ── */
+  /* ── SHARED PROMPT INPUT CARD (CLAUDE-STYLE WITH IN-BOX MODEL SELECTOR & ATTACHMENT) ── */
   const renderPromptBox = (isBottomDock: boolean) => (
-    <PromptInput
-      placeholder={
-        isBottomDock
-          ? "Ask a follow-up question or attach more documents..."
-          : "Query plant SOPs, inspect document compliance thresholds, or request sandboxed Python routines..."
-      }
-      models={availableModels}
-      selectedModel={selectedModel}
-      onModelChange={setSelectedModel}
-      onSubmit={(val, meta) => handleSend(val, meta.attachments, meta.model, meta.effort)}
-      isGenerating={isGenerating}
-      onStop={handleStop}
-      isProcessingFiles={isProcessingFiles}
-      initialExpanded={isBottomDock}
-    />
+    <div
+      style={{
+        width: '100%',
+        maxWidth: isBottomDock ? '820px' : '780px',
+        background: 'var(--color-surface)',
+        border: '1px solid var(--color-border-strong)',
+        borderRadius: '14px',
+        boxShadow: isBottomDock ? '0 12px 36px rgba(0, 0, 0, 0.5)' : 'var(--color-shadow-sm, 0 4px 20px rgba(0, 0, 0, 0.25))',
+        padding: '14px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+        transition: 'border-color var(--transition-fast)',
+      }}
+    >
+      {/* Hidden file input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+        multiple
+        style={{ display: 'none' }}
+      />
+
+      {/* Attached Files Badge Bar */}
+      {attachedFiles.length > 0 && (
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', paddingBottom: '4px' }}>
+          {attachedFiles.map((af) => (
+            <div
+              key={af.id}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'var(--color-surface-2)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '6px',
+                padding: '4px 8px',
+                fontSize: '11px',
+                color: 'var(--color-text-primary)',
+              }}
+            >
+              <FileText size={12} color="var(--color-accent)" />
+              <span style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {af.name}
+              </span>
+              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
+                ({(af.size / 1024).toFixed(0)} KB)
+              </span>
+              <button
+                type="button"
+                onClick={() => handleRemoveFile(af.id)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--color-text-muted)',
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                title="Remove attachment"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Textarea */}
+      <textarea
+        ref={textareaRef}
+        rows={isBottomDock ? 2 : 3}
+        value={inputText}
+        onChange={(e) => setInputText(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={attachedFiles.length > 0 ? "Ask anything about the attached files, or describe the analysis..." : "Ask Sovereign Copilot anything, or describe an engineering problem to solve..."}
+        disabled={isGenerating || isProcessingFiles}
+        style={{
+          width: '100%',
+          background: 'transparent',
+          border: 'none',
+          color: 'var(--color-text-primary)',
+          fontSize: '13.5px',
+          lineHeight: 1.55,
+          outline: 'none',
+          resize: 'none',
+          fontFamily: 'inherit',
+        }}
+      />
+
+      {/* BOTTOM ACTION BAR INSIDE THE TYPING SECTION (CLAUDE-STYLE) */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderTop: '1px solid var(--color-border)',
+          paddingTop: '10px',
+        }}
+      >
+        {/* Left: Attachments + Model Selector Pill */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* File Attachment Button */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="btn btn-sm btn-ghost"
+            style={{
+              padding: '4px 8px',
+              height: '26px',
+              fontSize: '11px',
+              gap: '4px',
+              color: attachedFiles.length > 0 ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+            }}
+            title="Attach files (PDF, TXT, CSV, JSON, Python, Docs)"
+          >
+            <Paperclip size={13} />
+            <span>Attach</span>
+          </button>
+
+          {/* Model Selector Pill inside the typing bar */}
+          <div style={{ position: 'relative' }} ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setShowModelDropdown(!showModelDropdown)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'var(--color-surface-2)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '8px',
+                padding: '4px 10px',
+                color: 'var(--color-text-primary)',
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)',
+                cursor: 'pointer',
+                transition: 'all var(--transition-fast)',
+              }}
+              title="Select Local Inference Model"
+            >
+              <Sparkles size={11} color="var(--color-accent)" />
+              <span>{selectedModel}</span>
+              <ChevronDown size={11} color="var(--color-text-muted)" />
+            </button>
+
+            {/* Model Selector Dropdown Popover */}
+            {showModelDropdown && (
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: 0,
+                  marginBottom: '8px',
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border-strong)',
+                  borderRadius: '8px',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6)',
+                  zIndex: 100,
+                  minWidth: '200px',
+                  overflow: 'hidden',
+                  padding: '4px 0',
+                }}
+              >
+                <div style={{ padding: '6px 12px', fontSize: '10px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                  Installed Local Models
+                </div>
+                {availableModels.map((m) => (
+                  <div
+                    key={m}
+                    onClick={() => {
+                      setSelectedModel(m)
+                      setShowModelDropdown(false)
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      fontFamily: 'var(--font-mono)',
+                      color: selectedModel === m ? 'var(--color-accent)' : 'var(--color-text-primary)',
+                      background: selectedModel === m ? 'var(--color-accent-bg)' : 'transparent',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <span>{m}</span>
+                    {selectedModel === m && <Check size={12} color="var(--color-accent)" />}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Send or Stop Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isProcessingFiles ? (
+            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
+              Reading files...
+            </span>
+          ) : null}
+
+          {isGenerating ? (
+            <button
+              type="button"
+              onClick={handleStop}
+              className="btn btn-danger"
+              style={{
+                height: '32px',
+                padding: '0 12px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '12px',
+              }}
+              title="Stop Generation"
+            >
+              <Square size={12} />
+              <span>Stop</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => handleSend()}
+              disabled={(!inputText.trim() && attachedFiles.length === 0) || isProcessingFiles}
+              className="btn btn-primary"
+              style={{
+                width: '32px',
+                height: '32px',
+                padding: 0,
+                borderRadius: '8px',
+                flexShrink: 0,
+                opacity: (inputText.trim() || attachedFiles.length > 0) && !isProcessingFiles ? 1 : 0.4,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              title="Send message (Enter)"
+            >
+              <Send size={13} />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   )
 
   /* ── HISTORY DRAWER / SIDEBAR ── */
@@ -892,20 +1182,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   }
 
   /* ══════════════════════════════════════════════════════════════════════ */
-  /* CASE 2: EMPTY HOME OVERVIEW SCREEN (INDUSTRIAL CONSOLE & HITL GATEWAY) */
+  /* CASE 2: EMPTY HOME OVERVIEW SCREEN (CLAUDE-STYLE HERO + CARDS)        */
   /* ══════════════════════════════════════════════════════════════════════ */
   return (
-    <div style={{ display: 'flex', width: '100%', flex: 1 }}>
-      {/* Left History Sidebar */}
+    <div style={{ display: 'flex', width: '100%', minHeight: 'calc(100vh - 52px)' }}>
+      {/* Left History Sidebar (can be toggled from home screen too) */}
       {renderHistorySidebar()}
 
       <div className="home-container" style={{ flex: 1 }}>
-        {/* ── 1. WORKSTATION IDENTIFICATION & TELEMETRY STRIP ── */}
+        {/* ── 1. SOVEREIGN EDITORIAL HERO ── */}
         <div className="home-hero">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div className="home-badge">
               <Shield size={12} color="var(--color-accent)" />
-              <span>Air-Gapped Engineering Workstation · v0.1.0</span>
+              <span>Air-Gapped Sovereign Intelligence</span>
             </div>
 
             {sessions.length > 0 && (
@@ -914,7 +1204,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 onClick={() => setShowHistoryPanel(!showHistoryPanel)}
                 className="btn btn-sm btn-ghost"
                 style={{ fontSize: '11px', height: '24px', padding: '0 8px', gap: '4px' }}
-                title="View previous session history"
+                title="View previous conversations"
               >
                 <History size={12} />
                 <span>History ({sessions.length})</span>
@@ -922,29 +1212,248 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             )}
           </div>
 
-          <h1 className="home-title">
+          <h1
+            className="home-title"
+            style={{
+              fontSize: '32px',
+              fontWeight: 700,
+              letterSpacing: '-0.5px',
+              color: 'var(--color-text-primary)',
+              margin: '6px 0 2px 0',
+            }}
+          >
             Sovereign AI Workbench
           </h1>
 
+
           <p className="home-subtitle">
-            On-premise workstation for industrial document compliance, sandboxed Python AST execution,
-            and tamper-evident SHA-256 provenance logging. Powered by local open-weight SLMs with zero cloud telemetry.
+            On-premise workstation for industrial compliance, autonomous code synthesis,
+            and cryptographic audit validation. Zero external cloud telemetry.
           </p>
         </div>
 
         {/* ── 2. CENTRAL PROMPT DOCK WITH IN-BOX MODEL SELECTOR & ATTACHMENTS ── */}
-        <div
-          style={{
-            width: '100%',
-            maxWidth: '820px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '14px',
-            marginTop: '8px',
-          }}
-        >
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
           {renderPromptBox(false)}
+
+          {/* Quick Suggestion Chips */}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '780px' }}>
+            <button
+              type="button"
+              onClick={() => handleSend('Summarize API 570 minimum wall thickness calculation limits in SOP-REF-570.')}
+              className="btn btn-sm btn-ghost"
+              style={{ fontSize: '11px', height: '26px', padding: '0 10px' }}
+            >
+              <FileCheck size={12} color="var(--color-accent)" />
+              <span>API 570 Piping Limits</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSend('Write a Python function to validate sensor pressure readings with unit tests.')}
+              className="btn btn-sm btn-ghost"
+              style={{ fontSize: '11px', height: '26px', padding: '0 10px' }}
+            >
+              <Code2 size={12} color="var(--color-info)" />
+              <span>Sensor Code Generator</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSend('How does the sequential SHA-256 audit ledger verify cryptographic integrity?')}
+              className="btn btn-sm btn-ghost"
+              style={{ fontSize: '11px', height: '26px', padding: '0 10px' }}
+            >
+              <Lock size={12} color="var(--color-success)" />
+              <span>Verify SHA-256 Chain</span>
+            </button>
+
+            {onTriggerDemo && (
+              <button
+                type="button"
+                onClick={onTriggerDemo}
+                disabled={isSeedingDemo}
+                className="btn btn-sm btn-ghost"
+                style={{
+                  fontSize: '11px',
+                  color: 'var(--color-accent)',
+                  borderColor: 'var(--color-accent-border)',
+                  background: 'var(--color-accent-bg)',
+                  height: '26px',
+                }}
+              >
+                <Zap size={11} />
+                <span>{isSeedingDemo ? 'Seeding...' : 'Quick Demo Package'}</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ── 3. THREE SEPARATE WORKSPACE LAUNCHERS ── */}
+        <div className="home-card-grid">
+          {/* Workspace A: Industrial Audit */}
+          <div className="home-card" onClick={() => onSelectWorkflowMode('workflow_a')}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '6px',
+                    background: 'var(--color-accent-bg)',
+                    border: '1px solid var(--color-accent-border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--color-accent)',
+                  }}
+                >
+                  <FileCheck size={17} />
+                </div>
+                <span className="badge badge-info" style={{ fontSize: '9.5px', height: '18px' }}>
+                  INSPECTOR
+                </span>
+              </div>
+
+              <div>
+                <h3 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
+                  Document Inspector
+                </h3>
+                <div style={{ fontSize: '11px', color: 'var(--color-accent)', fontWeight: 600, marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
+                  Safety Check & Compliance Certificate
+                </div>
+              </div>
+
+              <p style={{ fontSize: '11.5px', color: 'var(--color-text-secondary)', lineHeight: 1.55, margin: 0 }}>
+                Upload inspection reports, ultrasonic thickness scans, or maintenance logs.
+                The AI checks measurements against rules in the Knowledge Base and creates a certified report.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 600, color: 'var(--color-accent)' }}>
+              <span>Enter Document Inspector</span>
+              <ArrowRight size={13} />
+            </div>
+          </div>
+
+          {/* Workspace B: Coding Agent */}
+          <div className="home-card" onClick={() => onSelectWorkflowMode('workflow_b')}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '6px',
+                    background: 'var(--color-info-bg)',
+                    border: '1px solid var(--color-info-border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--color-info)',
+                  }}
+                >
+                  <Code2 size={17} />
+                </div>
+                <span className="badge badge-neutral" style={{ fontSize: '9.5px', height: '18px', color: 'var(--color-info)' }}>
+                  WORKFLOW B
+                </span>
+              </div>
+
+              <div>
+                <h3 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
+                  Autonomous Coding Agent
+                </h3>
+                <div style={{ fontSize: '11px', color: 'var(--color-info)', fontWeight: 600, marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
+                  Static AST Guard · Sandboxed Unit Tests
+                </div>
+              </div>
+
+              <p style={{ fontSize: '11.5px', color: 'var(--color-text-secondary)', lineHeight: 1.55, margin: 0 }}>
+                Synthesize Python routines with local LLMs, block prohibited networking calls through AST security inspection,
+                and execute sandboxed test suites with automated 3-pass self-repair.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 600, color: 'var(--color-info)' }}>
+              <span>Enter Coding Studio</span>
+              <ArrowRight size={13} />
+            </div>
+          </div>
+
+          {/* Workspace C: Knowledge Base & SOP Vault */}
+          <div className="home-card" onClick={() => onSelectWorkflowMode('knowledge')}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '6px',
+                    background: 'var(--color-success-bg)',
+                    border: '1px solid var(--color-success-border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--color-success)',
+                  }}
+                >
+                  <Database size={17} />
+                </div>
+                <span className="badge badge-success" style={{ fontSize: '9.5px', height: '18px' }}>
+                  CHROMA STORE
+                </span>
+              </div>
+
+              <div>
+                <h3 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
+                  Knowledge Base & SOP Vault
+                </h3>
+                <div style={{ fontSize: '11px', color: 'var(--color-success)', fontWeight: 600, marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
+                  SOP-REF-570 · ChromaDB Vector Search
+                </div>
+              </div>
+
+              <p style={{ fontSize: '11.5px', color: 'var(--color-text-secondary)', lineHeight: 1.55, margin: 0 }}>
+                Ingest organizational safety procedures and ASME/API standards into local ChromaDB,
+                inspect vector chunk embeddings, and run live semantic similarity queries.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 600, color: 'var(--color-success)' }}>
+              <span>Enter Knowledge Vault</span>
+              <ArrowRight size={13} />
+            </div>
+          </div>
+        </div>
+
+        {/* ── 4. SYSTEM TELEMETRY FOOTNOTE ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '11px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
+          <button
+            type="button"
+            onClick={() => onSelectWorkflowMode('security')}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              color: isAirGapped ? 'var(--color-success)' : 'inherit',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '11px',
+            }}
+            title="Click to view Security Center & Cryptographic Audit Ledger"
+          >
+            <CheckCircle2 size={12} />
+            <span>{isAirGapped ? 'Zero-Egress Verified (Security Center)' : 'Local Binding (Security Center)'}</span>
+          </button>
+          <span>·</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <Cpu size={12} />
+            Model: {activeModelDisplay}
+          </span>
+          <span>·</span>
+          <span>127.0.0.1:8000</span>
         </div>
       </div>
     </div>

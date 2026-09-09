@@ -8,8 +8,8 @@ import { setDefaultModel, getModelHealth } from '../api/client';
 export interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  backgroundStyle?: 'schematic' | 'particles' | 'dotgrid';
-  onBackgroundChange?: (bg: 'schematic' | 'particles' | 'dotgrid') => void;
+  backgroundStyle?: 'particles' | 'dotgrid';
+  onBackgroundChange?: (bg: 'particles' | 'dotgrid') => void;
   systemState?: any;
   onRefreshStatus?: () => void;
   onOpenFirstRun?: () => void;
@@ -20,7 +20,7 @@ type TabKey = 'appearance' | 'models' | 'security' | 'knowledge' | 'telemetry';
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
-  backgroundStyle = 'schematic',
+  backgroundStyle = 'particles',
   onBackgroundChange,
   systemState,
   onRefreshStatus,
@@ -31,7 +31,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Settings State
-  const [bgStyle, setBgStyle] = useState<'schematic' | 'particles' | 'dotgrid'>(backgroundStyle);
+  const [bgStyle, setBgStyle] = useState<'particles' | 'dotgrid'>(backgroundStyle);
   const [fontFamily, setFontFamily] = useState<'Space Grotesk' | 'Inter'>('Space Grotesk');
   const [heroGlow, setHeroGlow] = useState<boolean>(true);
   
@@ -201,7 +201,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const handleBgChange = (val: 'schematic' | 'particles' | 'dotgrid') => {
+  const handleBgChange = (val: 'particles' | 'dotgrid') => {
     setBgStyle(val);
     if (onBackgroundChange) {
       onBackgroundChange(val);
@@ -510,22 +510,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <label className="settings-label">Background Effect</label>
                   <div className="settings-radio-cards">
                     <div 
-                      className={`settings-radio-card ${bgStyle === 'schematic' ? 'active' : ''}`}
-                      onClick={() => handleBgChange('schematic')}
+                      className={`settings-radio-card ${bgStyle === 'particles' ? 'active' : ''}`}
+                      onClick={() => handleBgChange('particles')}
                     >
-                      Schematic Blueprint Grid (Industrial)
+                      Ambient Particles (Constellation)
                     </div>
                     <div 
                       className={`settings-radio-card ${bgStyle === 'dotgrid' ? 'active' : ''}`}
                       onClick={() => handleBgChange('dotgrid')}
                     >
-                      Interactive Dot Grid
-                    </div>
-                    <div 
-                      className={`settings-radio-card ${bgStyle === 'particles' ? 'active' : ''}`}
-                      onClick={() => handleBgChange('particles')}
-                    >
-                      Ambient Particles
+                      Interactive Dot Grid (Cyber)
                     </div>
                   </div>
                 </div>
@@ -569,7 +563,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </span>
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: 8 }}>
-                    Sets the default local SLM across Document Inspector, Python AST Sandbox, and Sovereign Copilot.
+                    Sets the default model across Document Inspector, Autonomous Coding Agent, and Sovereign Copilot.
                   </div>
                   <select 
                     className="settings-select"
