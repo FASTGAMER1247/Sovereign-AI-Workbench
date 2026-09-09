@@ -126,13 +126,22 @@ export const FirstRunCheckModal: React.FC<FirstRunCheckModalProps> = ({
     setIsVerifying(true)
     setDownloadError(null)
 
-    // 1. Application & Backend Check
+    // 1. Application & Backend Check (with startup warmup retry loop)
     let hData: HealthResponse | null = null
-    try {
-      hData = await getHealth()
-      setHealthData(hData)
-    } catch {
-      hData = null
+    const maxRetries = 10
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        hData = await getHealth()
+        if (hData && hData.status === 'ok') {
+          setHealthData(hData)
+          break
+        }
+      } catch {
+        hData = null
+      }
+      if (attempt < maxRetries - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 600))
+      }
     }
 
     // 2. Models Check

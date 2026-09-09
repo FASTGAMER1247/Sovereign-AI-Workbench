@@ -106,6 +106,8 @@ def build_standalone_executable():
         "--onedir",
         "--name",
         "sovereign-backend",
+        "--collect-all",
+        "chromadb",
         "--paths",
         str(BACKEND_DIR),
     ]
