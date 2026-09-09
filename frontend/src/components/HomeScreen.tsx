@@ -3,7 +3,6 @@ import {
   Shield,
   Code2,
   Lock,
-  ArrowRight,
   Send,
   Square,
   Copy,
@@ -20,7 +19,6 @@ import {
   Trash2,
   Plus,
   FileText,
-  Database,
 } from 'lucide-react'
 import {
   sendChat,
@@ -91,7 +89,7 @@ function persistSessions(sessions: ChatSession[]) {
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
   systemState,
-  onSelectWorkflowMode,
+  onSelectWorkflowMode: _onSelectWorkflowMode,
   initialPrompt,
   onTriggerDemo,
   isSeedingDemo = false,
@@ -130,9 +128,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
-
-  const backendOnline = systemState?.backendStatus === 'online'
-  const activeModelDisplay = selectedModel || systemState?.modelHealth?.default_model || (backendOnline ? 'qwen2.5-coder:1.5b' : 'OFFLINE')
 
   // Fetch installed models
   useEffect(() => {
@@ -567,7 +562,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     <div
       style={{
         width: '100%',
-        maxWidth: isBottomDock ? '820px' : '1100px',
+        maxWidth: '820px',
         background: 'var(--color-panel)',
         border: '1px solid var(--color-border)',
         borderRadius: 'var(--radius-sm)',
@@ -1219,192 +1214,55 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </p>
         </div>
 
-        {/* ── 2. THREE INDUSTRIAL CONSOLE STATIONS (DATA-FORWARD) ── */}
-        <div className="console-station-grid">
-          {/* Station 1: Inspection & Compliance Engine */}
-          <div className="console-station" onClick={() => onSelectWorkflowMode('workflow_a')}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div className="console-station-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <FileCheck size={16} color="var(--color-accent)" />
-                  <span className="console-station-title">Inspection & Compliance</span>
-                </div>
-                <span className="console-station-tag amber">GATE: HITL REQUIRED</span>
-              </div>
-
-              <div className="console-station-subtitle">
-                Workflow A · ASME Sec VIII / API 570 Pipeline Auditing
-              </div>
-
-              <p className="console-station-desc">
-                Extracts ultrasonic thickness scans and NDT inspection reports via local OCR, cross-references minimum wall thresholds against SOP-REF-570, and generates draft compliance notes.
-              </p>
-
-              {/* Technical Parameter Table */}
-              <table className="console-spec-table">
-                <tbody>
-                  <tr>
-                    <td className="console-spec-key">Target Standard</td>
-                    <td className="console-spec-val">API 570 / ASME B31.3</td>
-                  </tr>
-                  <tr>
-                    <td className="console-spec-key">Ingestion Pipeline</td>
-                    <td className="console-spec-val">Local PyMuPDF & Table OCR</td>
-                  </tr>
-                  <tr>
-                    <td className="console-spec-key">Verification Gate</td>
-                    <td className="console-spec-val" style={{ color: 'var(--color-warning)' }}>Mandatory HITL Sign-Off</td>
-                  </tr>
-                  <tr>
-                    <td className="console-spec-key">Custody Chain</td>
-                    <td className="console-spec-val">SHA-256 Ledger Block</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="console-station-action">
-              <span>Open Inspection Console</span>
-              <ArrowRight size={13} />
-            </div>
-          </div>
-
-          {/* Station 2: Sandboxed Python Scripting & AST Guard */}
-          <div className="console-station" onClick={() => onSelectWorkflowMode('workflow_b')}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div className="console-station-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Code2 size={16} color="var(--color-info)" />
-                  <span className="console-station-title">Python AST Sandbox</span>
-                </div>
-                <span className="console-station-tag blue">ISOLATION: STRICT AST</span>
-              </div>
-
-              <div className="console-station-subtitle">
-                Workflow B · Assisted Scripting & Boundary Traps
-              </div>
-
-              <p className="console-station-desc">
-                Drafts Python calculation routines using local coder SLMs, enforces air-gap boundaries by intercepting prohibited networking/OS syscalls via AST traversal, and executes unit tests.
-              </p>
-
-              {/* Technical Parameter Table */}
-              <table className="console-spec-table">
-                <tbody>
-                  <tr>
-                    <td className="console-spec-key">Runtime Isolation</td>
-                    <td className="console-spec-val">Isolated Subprocess</td>
-                  </tr>
-                  <tr>
-                    <td className="console-spec-key">AST Security Traps</td>
-                    <td className="console-spec-val">Blocks socket, os.system, urllib</td>
-                  </tr>
-                  <tr>
-                    <td className="console-spec-key">Test Verification</td>
-                    <td className="console-spec-val">3-Pass PyTest Self-Repair</td>
-                  </tr>
-                  <tr>
-                    <td className="console-spec-key">Inference SLM</td>
-                    <td className="console-spec-val">{activeModelDisplay}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="console-station-action" style={{ color: 'var(--color-info)' }}>
-              <span>Open Scripting Workspace</span>
-              <ArrowRight size={13} />
-            </div>
-          </div>
-
-          {/* Station 3: Knowledge Base & SOP Vault */}
-          <div className="console-station" onClick={() => onSelectWorkflowMode('knowledge')}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div className="console-station-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Database size={16} color="var(--color-success)" />
-                  <span className="console-station-title">Knowledge & SOP Vault</span>
-                </div>
-                <span className="console-station-tag green">STORAGE: AIR-GAP SQLITE</span>
-              </div>
-
-              <div className="console-station-subtitle">
-                Vector Retrieval · ChromaDB Local Storage
-              </div>
-
-              <p className="console-station-desc">
-                Stores organization SOPs, safety thresholds, and engineering codes in a local ChromaDB vector store. Generates embeddings offline for grounded RAG query citation.
-              </p>
-
-              {/* Technical Parameter Table */}
-              <table className="console-spec-table">
-                <tbody>
-                  <tr>
-                    <td className="console-spec-key">Storage Engine</td>
-                    <td className="console-spec-val">ChromaDB v0.4 (SQLite3)</td>
-                  </tr>
-                  <tr>
-                    <td className="console-spec-key">Embedding Model</td>
-                    <td className="console-spec-val">nomic-embed-text (768-dim)</td>
-                  </tr>
-                  <tr>
-                    <td className="console-spec-key">Active Index</td>
-                    <td className="console-spec-val">SOP-REF-570 Piping Standard</td>
-                  </tr>
-                  <tr>
-                    <td className="console-spec-key">Network Policy</td>
-                    <td className="console-spec-val" style={{ color: 'var(--color-success)' }}>100% Offline Retrieval</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="console-station-action" style={{ color: 'var(--color-success)' }}>
-              <span>Access Knowledge Vault</span>
-              <ArrowRight size={13} />
-            </div>
-          </div>
-        </div>
-
-        {/* ── 5. SECONDARY: ENGINEERING DIAGNOSTIC & QUERY CONSOLE ── */}
-        <div style={{ width: '100%', maxWidth: '1100px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', padding: '0 4px' }}>
-            <span>Engineering Query & Diagnostic Console (Local SLM)</span>
-            <span>Ctrl+K for Command Menu</span>
-          </div>
-
+        {/* ── 2. CENTRAL PROMPT DOCK WITH IN-BOX MODEL SELECTOR & ATTACHMENTS ── */}
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '820px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '14px',
+            marginTop: '8px',
+          }}
+        >
           {renderPromptBox(false)}
 
           {/* Preset Diagnostic Queries */}
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', paddingTop: '2px' }}>
-            <span style={{ fontSize: '10.5px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
-              Diagnostic Queries:
-            </span>
+          <div
+            style={{
+              display: 'flex',
+              gap: '8px',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
             <button
               type="button"
               onClick={() => handleSend('Query SOP-REF-570 Section 3.4 for minimum pipe wall thickness and retirement limits.')}
               className="btn btn-sm btn-ghost"
-              style={{ fontSize: '11px', height: '24px', padding: '0 8px' }}
+              style={{ fontSize: '11px', height: '26px', padding: '0 10px' }}
             >
-              <FileCheck size={11} color="var(--color-accent)" />
+              <FileCheck size={12} color="var(--color-accent)" />
               <span>API 570 Limits (SOP-REF-570)</span>
             </button>
             <button
               type="button"
               onClick={() => handleSend('Explain the prohibited syscall policy enforced by the Python AST security guard.')}
               className="btn btn-sm btn-ghost"
-              style={{ fontSize: '11px', height: '24px', padding: '0 8px' }}
+              style={{ fontSize: '11px', height: '26px', padding: '0 10px' }}
             >
-              <Code2 size={11} color="var(--color-info)" />
+              <Code2 size={12} color="var(--color-info)" />
               <span>Inspect AST Security Policy</span>
             </button>
             <button
               type="button"
               onClick={() => handleSend('How does the sequential SHA-256 ledger guarantee tamper-evident audit trails?')}
               className="btn btn-sm btn-ghost"
-              style={{ fontSize: '11px', height: '24px', padding: '0 8px' }}
+              style={{ fontSize: '11px', height: '26px', padding: '0 10px' }}
             >
-              <Lock size={11} color="var(--color-success)" />
+              <Lock size={12} color="var(--color-success)" />
               <span>Verify SHA-256 Ledger Chain</span>
             </button>
 
@@ -1419,11 +1277,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   color: 'var(--color-accent)',
                   borderColor: 'var(--color-accent-border)',
                   background: 'var(--color-accent-bg)',
-                  height: '24px',
-                  padding: '0 8px',
+                  height: '26px',
+                  padding: '0 10px',
                 }}
               >
-                <Zap size={11} />
+                <Zap size={12} />
                 <span>{isSeedingDemo ? 'Seeding...' : 'Load Refinery Line 102 Demo'}</span>
               </button>
             )}
