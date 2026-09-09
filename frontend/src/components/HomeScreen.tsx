@@ -1,18 +1,14 @@
 import React, { useState, useEffect, useRef, KeyboardEvent } from 'react'
 import {
   Shield,
-  Code2,
-  Lock,
   Send,
   Square,
   Copy,
   Check,
   RotateCcw,
-  Zap,
   ChevronDown,
   Sparkles,
   Bot,
-  FileCheck,
   Paperclip,
   X,
   History,
@@ -91,8 +87,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   systemState,
   onSelectWorkflowMode: _onSelectWorkflowMode,
   initialPrompt,
-  onTriggerDemo,
-  isSeedingDemo = false,
+  onTriggerDemo: _onTriggerDemo,
+  isSeedingDemo: _isSeedingDemo = false,
 }) => {
   const [messages, setMessages] = useState<CopilotMessage[]>([])
   const [inputText, setInputText] = useState<string>('')
@@ -1227,65 +1223,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           }}
         >
           {renderPromptBox(false)}
-
-          {/* Preset Diagnostic Queries */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '8px',
-              flexWrap: 'wrap',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => handleSend('Query SOP-REF-570 Section 3.4 for minimum pipe wall thickness and retirement limits.')}
-              className="btn btn-sm btn-ghost"
-              style={{ fontSize: '11px', height: '26px', padding: '0 10px' }}
-            >
-              <FileCheck size={12} color="var(--color-accent)" />
-              <span>API 570 Limits (SOP-REF-570)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSend('Explain the prohibited syscall policy enforced by the Python AST security guard.')}
-              className="btn btn-sm btn-ghost"
-              style={{ fontSize: '11px', height: '26px', padding: '0 10px' }}
-            >
-              <Code2 size={12} color="var(--color-info)" />
-              <span>Inspect AST Security Policy</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSend('How does the sequential SHA-256 ledger guarantee tamper-evident audit trails?')}
-              className="btn btn-sm btn-ghost"
-              style={{ fontSize: '11px', height: '26px', padding: '0 10px' }}
-            >
-              <Lock size={12} color="var(--color-success)" />
-              <span>Verify SHA-256 Ledger Chain</span>
-            </button>
-
-            {onTriggerDemo && (
-              <button
-                type="button"
-                onClick={onTriggerDemo}
-                disabled={isSeedingDemo}
-                className="btn btn-sm btn-ghost"
-                style={{
-                  fontSize: '11px',
-                  color: 'var(--color-accent)',
-                  borderColor: 'var(--color-accent-border)',
-                  background: 'var(--color-accent-bg)',
-                  height: '26px',
-                  padding: '0 10px',
-                }}
-              >
-                <Zap size={12} />
-                <span>{isSeedingDemo ? 'Seeding...' : 'Load Refinery Line 102 Demo'}</span>
-              </button>
-            )}
-          </div>
         </div>
       </div>
     </div>
