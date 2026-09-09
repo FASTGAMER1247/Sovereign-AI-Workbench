@@ -1,16 +1,10 @@
 import React, { useEffect, useRef } from 'react'
 import {
-  X,
   Settings,
   Cpu,
-  Shield,
   Zap,
   RefreshCw,
   MessageSquare,
-  FileCheck,
-  Code2,
-  Database,
-  Home,
   ChevronRight,
 } from 'lucide-react'
 import type { AppSystemState } from '../types'
@@ -34,8 +28,6 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
   isOpen,
   onClose,
   systemState,
-  workflowMode = 'home',
-  onSelectWorkflowMode,
   onOpenSettings,
   onOpenFirstRun,
   onRefreshStatus,
@@ -154,23 +146,7 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={onClose}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--color-text-muted)',
-            cursor: 'pointer',
-            padding: 4,
-            borderRadius: 4,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          title="Close menu"
-        >
-          <X size={15} />
-        </button>
+
       </div>
 
       {/* Menu Body */}
@@ -375,135 +351,6 @@ export const HeaderMenuDropdown: React.FC<HeaderMenuDropdownProps> = ({
           </button>
         )}
 
-        {/* SECTION: WORKSPACES */}
-        <div style={{ padding: '8px 8px 4px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-text-muted)', letterSpacing: 0.8, borderTop: '1px solid rgba(255, 255, 255, 0.05)', marginTop: 4 }}>
-          Workspaces
-        </div>
-
-        <button
-          onClick={() => {
-            onClose()
-            onSelectWorkflowMode?.('home')
-          }}
-          className="header-dropdown-item"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '7px 10px',
-            borderRadius: 6,
-            border: 'none',
-            backgroundColor: workflowMode === 'home' ? 'rgba(16, 185, 129, 0.12)' : 'transparent',
-            color: workflowMode === 'home' ? '#10B981' : 'var(--color-text-main)',
-            cursor: 'pointer',
-            textAlign: 'left',
-            width: '100%',
-            fontSize: 12,
-          }}
-        >
-          <Home size={13} />
-          <span>Home Overview</span>
-        </button>
-
-        <button
-          onClick={() => {
-            onClose()
-            onSelectWorkflowMode?.('workflow_a')
-          }}
-          className="header-dropdown-item"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '7px 10px',
-            borderRadius: 6,
-            border: 'none',
-            backgroundColor: workflowMode === 'workflow_a' ? 'rgba(16, 185, 129, 0.12)' : 'transparent',
-            color: workflowMode === 'workflow_a' ? '#10B981' : 'var(--color-text-main)',
-            cursor: 'pointer',
-            textAlign: 'left',
-            width: '100%',
-            fontSize: 12,
-          }}
-        >
-          <FileCheck size={13} />
-          <span>Document Inspector (Workflow A)</span>
-        </button>
-
-        <button
-          onClick={() => {
-            onClose()
-            onSelectWorkflowMode?.('workflow_b')
-          }}
-          className="header-dropdown-item"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '7px 10px',
-            borderRadius: 6,
-            border: 'none',
-            backgroundColor: workflowMode === 'workflow_b' ? 'rgba(16, 185, 129, 0.12)' : 'transparent',
-            color: workflowMode === 'workflow_b' ? '#10B981' : 'var(--color-text-main)',
-            cursor: 'pointer',
-            textAlign: 'left',
-            width: '100%',
-            fontSize: 12,
-          }}
-        >
-          <Code2 size={13} />
-          <span>Autonomous Coding Agent (Workflow B)</span>
-        </button>
-
-        <button
-          onClick={() => {
-            onClose()
-            onSelectWorkflowMode?.('knowledge')
-          }}
-          className="header-dropdown-item"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '7px 10px',
-            borderRadius: 6,
-            border: 'none',
-            backgroundColor: workflowMode === 'knowledge' ? 'rgba(16, 185, 129, 0.12)' : 'transparent',
-            color: workflowMode === 'knowledge' ? '#10B981' : 'var(--color-text-main)',
-            cursor: 'pointer',
-            textAlign: 'left',
-            width: '100%',
-            fontSize: 12,
-          }}
-        >
-          <Database size={13} />
-          <span>Knowledge Base & SOP Vault</span>
-        </button>
-
-        <button
-          onClick={() => {
-            onClose()
-            onSelectWorkflowMode?.('security')
-          }}
-          className="header-dropdown-item"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '7px 10px',
-            borderRadius: 6,
-            border: 'none',
-            backgroundColor: workflowMode === 'security' ? 'rgba(16, 185, 129, 0.12)' : 'transparent',
-            color: workflowMode === 'security' ? '#10B981' : 'var(--color-text-main)',
-            cursor: 'pointer',
-            textAlign: 'left',
-            width: '100%',
-            fontSize: 12,
-          }}
-        >
-          <Shield size={13} />
-          <span>Security & Cryptographic Audit Ledger</span>
-        </button>
       </div>
 
       {/* Footer */}

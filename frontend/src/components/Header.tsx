@@ -5,7 +5,6 @@ import {
   MessageSquare,
   RefreshCw,
   Check,
-  Settings,
   Menu,
 } from 'lucide-react'
 import { DockTabs } from './ui/DockTabs'
@@ -142,18 +141,6 @@ export const Header: React.FC<HeaderProps> = ({
               size={12}
               style={{ animation: isRefreshing ? 'spin 0.7s linear infinite' : 'none' }}
             />
-          </button>
-        )}
-
-        {/* Workbench Settings Modal Trigger */}
-        {onOpenSettings && (
-          <button
-            onClick={onOpenSettings}
-            className="btn btn-sm btn-ghost"
-            title="Workbench Settings (Ctrl+,)"
-            style={{ width: '26px', padding: 0 }}
-          >
-            <Settings size={13} />
           </button>
         )}
 

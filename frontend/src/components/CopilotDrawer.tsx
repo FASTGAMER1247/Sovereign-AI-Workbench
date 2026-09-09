@@ -7,11 +7,9 @@ import {
   Copy,
   Check,
   RotateCcw,
-  Sparkles,
   Cpu,
   Clock,
   Square,
-  ChevronRight,
 } from 'lucide-react'
 import { sendChat } from '../api/client'
 import type { AppSystemState } from '../types'
@@ -32,13 +30,6 @@ interface CopilotDrawerProps {
   systemState: AppSystemState
   initialPrompt?: string
 }
-
-const STARTER_PROMPTS = [
-  'What are the minimum wall thickness limits in SOP-REF-570?',
-  'How does Workflow A perform an autonomous compliance audit?',
-  'Explain how this air-gapped system guarantees data sovereignty.',
-  'What criteria classify an industrial inspection finding as CRITICAL?',
-]
 
 export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
   isOpen,
@@ -474,51 +465,6 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
           background: 'var(--color-bg)',
         }}
       >
-        {/* Starter Chips when conversation is fresh */}
-        {messages.length <= 1 && (
-          <div
-            style={{
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-md)',
-              padding: '14px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
-            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Sparkles size={13} color="var(--color-accent)" /> Suggested Prompts
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {STARTER_PROMPTS.map((promptText, pIdx) => (
-                <button
-                  key={pIdx}
-                  onClick={() => handleSend(promptText)}
-                  style={{
-                    textAlign: 'left',
-                    padding: '8px 10px',
-                    fontSize: '11px',
-                    color: 'var(--color-text-primary)',
-                    background: 'var(--color-bg)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius-sm)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    transition: 'border-color var(--transition-fast)',
-                  }}
-                >
-                  <span>{promptText}</span>
-                  <ChevronRight size={12} color="var(--color-text-muted)" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Message List */}
         {messages.map((msg) => {
           const isUser = msg.role === 'user'
           return (
