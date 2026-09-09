@@ -21,6 +21,12 @@ import {
   Trash2,
   Plus,
   FileText,
+  ThumbsUp,
+  ThumbsDown,
+  CornerDownLeft,
+  ExternalLink,
+  BookOpen,
+  Database,
 } from 'lucide-react'
 import {
   sendChat,
@@ -102,6 +108,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const [isGenerating, setIsGenerating] = useState<boolean>(false)
   const [isProcessingFiles, setIsProcessingFiles] = useState<boolean>(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [openSourcesId, setOpenSourcesId] = useState<string | null>(null)
+  const [messageRatings, setMessageRatings] = useState<Record<string, 'up' | 'down'>>({})
 
   // Sessions / History
   const [sessions, setSessions] = useState<ChatSession[]>(() => loadSavedSessions())
@@ -531,7 +539,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               return (
                 <div key={lIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '4px 0' }}>
                   <span style={{ color: 'var(--color-accent)', marginTop: '4px' }}>•</span>
-                  <span>{renderBoldInline(line.slice(2))}</span>
+                  <span>{renderInlineWithCitations(line.slice(2))}</span>
                 </div>
               )
             }
@@ -540,7 +548,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             }
             return (
               <p key={lIdx} style={{ margin: '4px 0' }}>
-                {renderBoldInline(line)}
+                {renderInlineWithCitations(line)}
               </p>
             )
           })}
@@ -549,18 +557,154 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     })
   }
 
-  function renderBoldInline(text: string) {
+  function renderInlineWithCitations(text: string) {
+    // Match inline bracketed citations like [API 570 §5.4], [SOP-REF-570], [ASME B31.3]
+    const citationRegex = /(\[[A-Za-z0-9_\-\.\s§#:]+\])/g
+    const parts = text.split(citationRegex)
+
+    return parts.map((part, pIdx) => {
+      if (
+        part.startsWith('[') &&
+        part.endsWith(']') &&
+        (part.includes('API') || part.includes('SOP') || part.includes('ASME') || part.includes('SEC') || part.includes('UT_') || part.includes('REF'))
+      ) {
+        const citationCode = part.slice(1, -1)
+        return (
+          <span
+            key={pIdx}
+            onClick={() => onSelectWorkflowMode('knowledge')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '1px 6px',
+              margin: '0 3px',
+              borderRadius: '5px',
+              background: 'var(--color-accent-bg)',
+              border: '1px solid var(--color-accent-border)',
+              color: 'var(--color-accent)',
+              fontSize: '11px',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 600,
+              cursor: 'pointer',
+              animation: 'pop-in 250ms cubic-bezier(0.23,1,0.32,1) both',
+              verticalAlign: 'baseline',
+              transition: 'all var(--transition-fast)',
+            }}
+            title="Inspect standard in Knowledge Vault"
+          >
+            <BookOpen size={10} />
+            <span>{citationCode}</span>
+          </span>
+        )
+      }
+
+      return renderBoldInline(part, pIdx)
+    })
+  }
+
+  function renderBoldInline(text: string, baseKey: number | string = 0) {
     const boldParts = text.split(/(\*\*.*?\*\*)/g)
     return boldParts.map((bPart, bIdx) => {
       if (bPart.startsWith('**') && bPart.endsWith('**')) {
         return (
-          <strong key={bIdx} style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>
+          <strong key={`${baseKey}_${bIdx}`} style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>
             {bPart.slice(2, -2)}
           </strong>
         )
       }
       return bPart
     })
+  }
+
+  function getSourcesForContent(content: string) {
+    const sList: Array<{ name: string; standard: string; href: 'knowledge' | 'workflow_a' | 'workflow_b' | 'security' }> = []
+    const lower = content.toLowerCase()
+    if (lower.includes('api 570') || lower.includes('piping') || lower.includes('sop-ref-570') || lower.includes('thickness') || lower.includes('ultrasonic')) {
+      sList.push({
+        name: 'Refinery Piping Inspection SOP',
+        standard: 'SOP-REF-570',
+        href: 'knowledge',
+      })
+      sList.push({
+        name: 'Piping Inspection Code',
+        standard: 'API 570 §5.4',
+        href: 'knowledge',
+      })
+    }
+    if (lower.includes('asme') || lower.includes('vessel') || lower.includes('b31.3')) {
+      sList.push({
+        name: 'Process Piping Standard',
+        standard: 'ASME B31.3',
+        href: 'knowledge',
+      })
+    }
+    if (lower.includes('python') || lower.includes('ast') || lower.includes('script') || lower.includes('pytest') || lower.includes('code')) {
+      sList.push({
+        name: 'AST Security Execution Guard',
+        standard: 'SEC-AST-01',
+        href: 'workflow_b',
+      })
+    }
+    if (lower.includes('sha-256') || lower.includes('ledger') || lower.includes('hash') || lower.includes('audit')) {
+      sList.push({
+        name: 'Sequential Cryptographic Hash Chain',
+        standard: 'SHA-256 Ledger',
+        href: 'security',
+      })
+    }
+    if (sList.length === 0) {
+      sList.push({
+        name: 'Industrial Knowledge Base',
+        standard: 'ChromaDB Local Vault',
+        href: 'knowledge',
+      })
+    }
+    return sList
+  }
+
+  function getFollowUpsForContent(content: string): string[] {
+    const lower = content.toLowerCase()
+    if (lower.includes('api 570') || lower.includes('thickness') || lower.includes('ultrasonic') || lower.includes('corrosion')) {
+      return [
+        'Calculate minimum wall thickness under API 570 §5.4',
+        'Check corrosion allowance and retirement thickness limits',
+        'Draft certified compliance inspection report for this piping loop',
+      ]
+    }
+    if (lower.includes('python') || lower.includes('ast') || lower.includes('script') || lower.includes('code')) {
+      return [
+        'Write sandboxed pytest unit tests for this routine',
+        'Inspect AST safety boundaries and blocked syscalls',
+        'Run 3-pass automated self-repair loop',
+      ]
+    }
+    if (lower.includes('sha-256') || lower.includes('ledger') || lower.includes('hash') || lower.includes('security')) {
+      return [
+        'Verify cryptographic hash chain for latest block',
+        'Run live zero-egress network probe',
+      ]
+    }
+    return [
+      'Summarize API 570 piping limits in SOP-REF-570',
+      'Write a Python function to validate sensor readings with tests',
+    ]
+  }
+
+  function handleRetry(assistantMsgIndex: number) {
+    for (let i = assistantMsgIndex - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        handleSend(messages[i].content)
+        break
+      }
+    }
+  }
+
+  function handleToggleRating(msgId: string, type: 'up' | 'down') {
+    setMessageRatings((prev) => ({
+      ...prev,
+      [msgId]: prev[msgId] === type ? (null as any) : type,
+    }))
   }
 
   /* ── SHARED PROMPT INPUT CARD (CLAUDE-STYLE WITH IN-BOX MODEL SELECTOR & ATTACHMENT) ── */
@@ -1043,7 +1187,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             }}
           >
             <div style={{ maxWidth: '820px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              {messages.map((msg) => {
+              {messages.map((msg, idx) => {
                 const isUser = msg.role === 'user'
 
                 return (
@@ -1112,25 +1256,235 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       </div>
                     ) : (
                       <div
+                        key={msg.id}
                         style={{
                           width: '100%',
                           background: 'transparent',
                           color: 'var(--color-text-primary)',
                           padding: '4px 0',
+                          animation: 'fade-in 250ms ease-out both',
                         }}
                       >
-                        {renderFormattedContent(msg.content)}
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
-                          <button
-                            onClick={() => handleCopy(msg.content, msg.id)}
-                            className="btn btn-sm btn-ghost"
-                            style={{ fontSize: '10.5px', padding: '0 8px', height: '22px' }}
-                          >
-                            {copiedId === msg.id ? <Check size={11} /> : <Copy size={11} />}
-                            <span>{copiedId === msg.id ? 'Copied Response' : 'Copy'}</span>
-                          </button>
+                        <div style={{ lineHeight: 1.65 }}>
+                          {renderFormattedContent(msg.content)}
+                          {isGenerating && idx === messages.length - 1 && (
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                width: '3px',
+                                height: '14px',
+                                marginLeft: '4px',
+                                transform: 'translateY(2px)',
+                                borderRadius: '2px',
+                                background: 'var(--color-accent)',
+                                animation: 'fade-in 150ms ease-out both',
+                              }}
+                            />
+                          )}
                         </div>
+
+                        {/* Action Icons Row (Inspired by streaming-text.tsx) */}
+                        {(() => {
+                          const sources = getSourcesForContent(msg.content)
+                          const followUps = getFollowUpsForContent(msg.content)
+                          const isSourcesOpen = openSourcesId === msg.id
+                          const isLastAssistant = idx === messages.length - 1
+
+                          return (
+                            <div style={{ marginTop: '12px' }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  paddingTop: '8px',
+                                  borderTop: '1px solid var(--color-border-subtle)',
+                                }}
+                              >
+                                {/* Copy Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopy(msg.content, msg.id)}
+                                  className="btn btn-sm btn-ghost"
+                                  style={{ width: '28px', height: '26px', padding: 0 }}
+                                  title="Copy response"
+                                >
+                                  {copiedId === msg.id ? <Check size={13} color="var(--color-success)" /> : <Copy size={13} />}
+                                </button>
+
+                                {/* Retry / Regenerate Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRetry(idx)}
+                                  disabled={isGenerating}
+                                  className="btn btn-sm btn-ghost"
+                                  style={{ width: '28px', height: '26px', padding: 0 }}
+                                  title="Regenerate response"
+                                >
+                                  <RotateCcw size={13} />
+                                </button>
+
+                                {/* Thumbs Up */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleRating(msg.id, 'up')}
+                                  className="btn btn-sm btn-ghost"
+                                  style={{
+                                    width: '28px',
+                                    height: '26px',
+                                    padding: 0,
+                                    color: messageRatings[msg.id] === 'up' ? 'var(--color-success)' : 'inherit',
+                                    background: messageRatings[msg.id] === 'up' ? 'var(--color-success-bg)' : undefined,
+                                  }}
+                                  title="Helpful response"
+                                >
+                                  <ThumbsUp size={13} />
+                                </button>
+
+                                {/* Thumbs Down */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleRating(msg.id, 'down')}
+                                  className="btn btn-sm btn-ghost"
+                                  style={{
+                                    width: '28px',
+                                    height: '26px',
+                                    padding: 0,
+                                    color: messageRatings[msg.id] === 'down' ? 'var(--color-danger)' : 'inherit',
+                                    background: messageRatings[msg.id] === 'down' ? 'var(--color-danger-bg)' : undefined,
+                                  }}
+                                  title="Needs improvement"
+                                >
+                                  <ThumbsDown size={13} />
+                                </button>
+
+                                {/* Sources Toggle Button */}
+                                {sources.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setOpenSourcesId(isSourcesOpen ? null : msg.id)}
+                                    className="btn btn-sm btn-ghost"
+                                    style={{
+                                      marginLeft: '8px',
+                                      fontSize: '11px',
+                                      gap: '6px',
+                                      padding: '2px 8px',
+                                      height: '26px',
+                                      background: isSourcesOpen ? 'var(--color-surface-hover)' : 'var(--color-surface-2)',
+                                    }}
+                                    title="Inspect referenced sources"
+                                  >
+                                    <Database size={11} color="var(--color-accent)" />
+                                    <span>{sources.length} sources</span>
+                                    <ChevronDown
+                                      size={11}
+                                      style={{
+                                        transform: isSourcesOpen ? 'rotate(180deg)' : 'none',
+                                        transition: 'transform 0.2s ease',
+                                      }}
+                                    />
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Expandable Sources Tray (Accordion) */}
+                              {sources.length > 0 && (
+                                <div
+                                  style={{
+                                    display: 'grid',
+                                    gridTemplateRows: isSourcesOpen ? '1fr' : '0fr',
+                                    opacity: isSourcesOpen ? 1 : 0,
+                                    transition: 'grid-template-rows 250ms cubic-bezier(0.23, 1, 0.32, 1), opacity 200ms ease',
+                                    overflow: 'hidden',
+                                  }}
+                                >
+                                  <div style={{ overflow: 'hidden' }}>
+                                    <div
+                                      style={{
+                                        marginTop: '8px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '4px',
+                                        background: 'var(--color-surface-2)',
+                                        border: '1px solid var(--color-border)',
+                                        borderRadius: '8px',
+                                        padding: '6px 8px',
+                                      }}
+                                    >
+                                      {sources.map((s, sIdx) => (
+                                        <div
+                                          key={sIdx}
+                                          onClick={() => onSelectWorkflowMode(s.href)}
+                                          style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '6px 8px',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            transition: 'background var(--transition-fast)',
+                                          }}
+                                          className="hover:bg-white/5"
+                                        >
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <BookOpen size={13} color="var(--color-accent)" />
+                                            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                                              {s.name}
+                                            </span>
+                                          </div>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
+                                              {s.standard}
+                                            </span>
+                                            <ExternalLink size={11} color="var(--color-text-muted)" />
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Interactive Follow-ups Section (only on the last completed assistant response) */}
+                              {isLastAssistant && !isGenerating && followUps.length > 0 && (
+                                <div style={{ marginTop: '14px' }}>
+                                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '6px' }}>
+                                    Follow-ups
+                                  </div>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    {followUps.map((fu, fuIdx) => (
+                                      <button
+                                        key={fuIdx}
+                                        type="button"
+                                        onClick={() => handleSend(fu)}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '8px',
+                                          padding: '6px 8px',
+                                          background: 'transparent',
+                                          border: 'none',
+                                          borderBottom: '1px solid var(--color-border-subtle)',
+                                          color: 'var(--color-text-secondary)',
+                                          fontSize: '12.5px',
+                                          textAlign: 'left',
+                                          cursor: 'pointer',
+                                          transition: 'color var(--transition-fast), background var(--transition-fast)',
+                                          borderRadius: '4px',
+                                          animation: `fade-up 350ms cubic-bezier(0.23,1,0.32,1) ${fuIdx * 80}ms both`,
+                                        }}
+                                        className="hover:bg-white/5 hover:text-white"
+                                      >
+                                        <CornerDownLeft size={11} color="var(--color-text-muted)" />
+                                        <span>{fu}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })()}
                       </div>
                     )}
                   </div>

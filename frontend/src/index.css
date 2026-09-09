@@ -4,6 +4,7 @@
  */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -12,6 +13,22 @@
 }
 
 :root {
+  /* ── Streaming Text & Shadcn Tokens ── */
+  --page:                  #07090e;
+  --canvas:                #0d1015;
+  --surface:               #14181f;
+  --inset:                 #1a202c;
+  --hover:                 #1e2430;
+  --hover-2:               #252d3d;
+  --ink:                   #f8fafc;
+  --ink-2:                 #94a3b8;
+  --ink-3:                 #64748b;
+  --line:                  rgba(255, 255, 255, 0.08);
+  --line-strong:           rgba(255, 255, 255, 0.15);
+  --radius-control:        8px;
+  --ease-link:             cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-hairline:       0 0 0 1px var(--line);
+
   /* ── Claude Warm Stone Palette with Refined Jade Emerald Accent ── */
   --color-bg:              #141413; /* Claude warm obsidian charcoal canvas */
   --color-panel:           #1E1E1B; /* Claude warm stone container */
@@ -748,5 +765,37 @@ html, body {
   background-color: rgba(255, 255, 255, 0.06) !important;
   color: #FAF7F2 !important;
   transform: translateX(2px);
+}
+
+/* ─── Streaming Text Keyframes ─── */
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
