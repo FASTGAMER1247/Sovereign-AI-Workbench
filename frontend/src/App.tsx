@@ -194,6 +194,18 @@ function App() {
         />
       </main>
 
+      <footer className="workstation-footer">
+        <div className="workstation-footer-inner">
+          <span
+            className="workstation-footer-dot"
+            style={{
+              background: systemState?.backendStatus === 'online' ? 'var(--color-success)' : 'var(--color-danger)',
+            }}
+          />
+          <span>Binding: 127.0.0.1:8000</span>
+        </div>
+      </footer>
+
       <CommandMenu
         onSelectWorkflowMode={handleWorkflowModeChange}
         onTriggerDemo={() => {
