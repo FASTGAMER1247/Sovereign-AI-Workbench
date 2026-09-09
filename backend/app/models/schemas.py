@@ -414,3 +414,24 @@ class SovereigntyStatusResponse(BaseModel):
     probed_at: str = Field(..., description="ISO timestamp")
 
 
+class ModelRecommendation(BaseModel):
+    name: str = Field(..., description="Model identifier for Ollama")
+    role: str = Field(..., description="Primary workload category: Code, RAG, Reasoning, Vision")
+    reason: str = Field(..., description="Rationale based on detected hardware profile")
+    is_installed: bool = Field(False, description="Whether model is currently downloaded")
+
+
+class HardwareProfileResponse(BaseModel):
+    total_ram_gb: float = Field(..., description="Total system RAM in GB")
+    free_ram_gb: float = Field(..., description="Available system RAM in GB")
+    cpu_cores: int = Field(..., description="Logical CPU core count")
+    processor_name: str = Field(..., description="CPU model name")
+    gpu_name: str = Field(..., description="Detected GPU model name")
+    gpu_vram_gb: float = Field(..., description="GPU dedicated memory in GB")
+    recommended_tier: str = Field(..., description="Hardware profile tier name")
+    tier_description: str = Field(..., description="Detailed profile assessment")
+    recommended_models: List[ModelRecommendation] = Field(default_factory=list, description="Optimal models for this machine")
+    missing_models: List[str] = Field(default_factory=list, description="Recommended models not yet installed")
+    all_optimal_installed: bool = Field(False, description="True if all recommended models are already present")
+
+

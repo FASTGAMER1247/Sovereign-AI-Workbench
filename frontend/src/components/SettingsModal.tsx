@@ -601,6 +601,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <CheckCircle size={14} /> {modelStatusMsg}
                     </div>
                   )}
+
+                  {onOpenFirstRun && (
+                    <div style={{
+                      marginTop: 14,
+                      padding: '12px 14px',
+                      background: 'rgba(16, 185, 129, 0.05)',
+                      borderRadius: 8,
+                      border: '1px solid rgba(16, 185, 129, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 12
+                    }}>
+                      <div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f8fafc' }}>
+                          Hardware Inspection & Auto-Optimizer
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: 2 }}>
+                          Inspect host RAM, CPU cores, and GPU VRAM to install the fastest models for your system.
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          onClose()
+                          onOpenFirstRun()
+                        }}
+                        className="btn btn-primary btn-sm"
+                        style={{ fontSize: '0.8rem', padding: '6px 12px', whiteSpace: 'nowrap' }}
+                      >
+                        Launch Optimizer
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="settings-control-group" style={{ marginTop: 20 }}>

@@ -13,6 +13,9 @@ import {
   ExternalLink,
   X,
   ArrowRight,
+  Zap,
+  Gauge,
+  Sparkles,
 } from 'lucide-react'
 import {
   getHealth,
@@ -22,6 +25,8 @@ import {
   getSovereigntyStatus,
   verifyAuditIntegrity,
   pullModel,
+  getHardwareProfile,
+  autoOptimizeModels,
 } from '../api/client'
 import type {
   HealthResponse,
@@ -30,6 +35,7 @@ import type {
   KnowledgeStatsResponse,
   SovereigntyStatusResponse,
   LedgerIntegrityResponse,
+  HardwareProfileResponse,
 } from '../types'
 
 export interface FirstRunCheckModalProps {
@@ -98,6 +104,9 @@ export const FirstRunCheckModal: React.FC<FirstRunCheckModalProps> = ({
   // Live telemetry data
   const [healthData, setHealthData] = useState<HealthResponse | null>(null)
   const [modelHealth, setModelHealth] = useState<ModelHealthResponse | null>(null)
+  const [hardwareProfile, setHardwareProfile] = useState<HardwareProfileResponse | null>(null)
+  const [isOptimizing, setIsOptimizing] = useState<boolean>(false)
+  const [optimizingProgress, setOptimizingProgress] = useState<string | null>(null)
   const [sandboxData, setSandboxData] = useState<SandboxStatusResponse | null>(null)
   const [knowledgeStats, setKnowledgeStats] = useState<KnowledgeStatsResponse | null>(null)
   const [sovereigntyData, setSovereigntyData] = useState<SovereigntyStatusResponse | null>(null)
@@ -151,6 +160,14 @@ export const FirstRunCheckModal: React.FC<FirstRunCheckModalProps> = ({
       setModelHealth(mHealth)
     } catch {
       mHealth = null
+    }
+
+    // 2b. Hardware Profile & Recommendations
+    try {
+      const hwProfile = await getHardwareProfile()
+      setHardwareProfile(hwProfile)
+    } catch {
+      setHardwareProfile(null)
     }
 
     // 3. Sandbox Check
@@ -267,6 +284,31 @@ export const FirstRunCheckModal: React.FC<FirstRunCheckModalProps> = ({
       setDownloadError(`Download failed: ${msg}. You can run 'ollama pull ${modelName}' in terminal.`)
     } finally {
       setDownloadingModel(null)
+    }
+  }
+
+  // Automatically download tier-optimal models for detected system hardware
+  const handleAutoOptimize = async () => {
+    if (!hardwareProfile || isOptimizing) return
+    setIsOptimizing(true)
+    setDownloadError(null)
+    setDownloadSuccess(null)
+    setOptimizingProgress(`Downloading optimal models for ${hardwareProfile.recommended_tier}... This may take 1-3 minutes.`)
+    try {
+      const res = await autoOptimizeModels()
+      if (res.installed && res.installed.length > 0) {
+        setDownloadSuccess(`Successfully installed optimal models: ${res.installed.join(', ')}!`)
+      }
+      if (res.failed && res.failed.length > 0) {
+        setDownloadError(`Failed to download: ${res.failed.map((f) => `${f.model} (${f.error})`).join(', ')}`)
+      }
+      await runAllChecks()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setDownloadError(`Auto-optimization failed: ${msg}`)
+    } finally {
+      setIsOptimizing(false)
+      setOptimizingProgress(null)
     }
   }
 
@@ -454,6 +496,151 @@ export const FirstRunCheckModal: React.FC<FirstRunCheckModalProps> = ({
 
         {/* Content Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+          {/* HARDWARE SPECIFICATIONS & DYNAMIC TIER OPTIMIZATION */}
+          <div
+            style={{
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(56, 189, 248, 0.04) 100%)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              borderRadius: 10,
+              padding: '16px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Gauge size={16} color="#10B981" />
+                <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: '#10B981' }}>
+                  Hardware Specification & Tier Optimizer
+                </span>
+              </div>
+              {hardwareProfile && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '3px 9px',
+                    borderRadius: 6,
+                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                    color: '#10B981',
+                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                  }}
+                >
+                  {hardwareProfile.recommended_tier}
+                </span>
+              )}
+            </div>
+
+            {/* Hardware Metrics Pills */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+              <div style={{ padding: '8px 12px', backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: 6, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ fontSize: 10.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>System Memory</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginTop: 2 }}>
+                  {hardwareProfile ? `${hardwareProfile.total_ram_gb} GB RAM (${hardwareProfile.free_ram_gb} GB Free)` : 'Detecting RAM...'}
+                </div>
+              </div>
+              <div style={{ padding: '8px 12px', backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: 6, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ fontSize: 10.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Processor</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginTop: 2 }}>
+                  {hardwareProfile ? `${hardwareProfile.cpu_cores} Logical Cores` : 'Detecting CPU...'}
+                </div>
+              </div>
+              <div style={{ padding: '8px 12px', backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: 6, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ fontSize: 10.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>GPU / VRAM</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {hardwareProfile ? `${hardwareProfile.gpu_name} (${hardwareProfile.gpu_vram_gb} GB)` : 'Detecting GPU...'}
+                </div>
+              </div>
+            </div>
+
+            {/* Profile Strategy Note */}
+            {hardwareProfile && (
+              <p style={{ margin: 0, fontSize: 11.5, color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+                {hardwareProfile.tier_description}
+              </p>
+            )}
+
+            {/* Recommended Models for this System */}
+            {hardwareProfile && hardwareProfile.recommended_models && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Optimal AI Models for This Machine:
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 8 }}>
+                  {hardwareProfile.recommended_models.map((rec) => (
+                    <div
+                      key={rec.name}
+                      style={{
+                        padding: '8px 12px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid rgba(255, 255, 255, 0.05)',
+                        borderRadius: 6,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: 6,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                        <span style={{ fontSize: 12.5, fontWeight: 600, color: '#fff' }}>{rec.name}</span>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            padding: '1px 6px',
+                            borderRadius: 4,
+                            fontWeight: 600,
+                            backgroundColor: rec.is_installed ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                            color: rec.is_installed ? '#10B981' : '#F59E0B',
+                          }}
+                        >
+                          {rec.is_installed ? '✓ Installed' : 'Missing'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 10.5, color: '#38BDF8' }}>{rec.role}</div>
+                      <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>{rec.reason}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Auto-Optimize Action Button */}
+            {hardwareProfile && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, paddingTop: 6, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                {!hardwareProfile.all_optimal_installed ? (
+                  <>
+                    <span style={{ fontSize: 11.5, color: 'var(--color-text-muted)' }}>
+                      Setup will automatically download the optimal open weights tuned for your host hardware.
+                    </span>
+                    <button
+                      onClick={handleAutoOptimize}
+                      disabled={isOptimizing || statuses.ollama !== 'ready'}
+                      className="btn btn-primary"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        padding: '7px 16px',
+                        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                      }}
+                    >
+                      {isOptimizing ? <RefreshCw size={13} className="spin" /> : <Zap size={13} />}
+                      {isOptimizing ? (optimizingProgress || 'Auto-Optimizing Models...') : '⚡ Auto-Install Optimal AI Models'}
+                    </button>
+                  </>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#10B981', fontSize: 12, fontWeight: 600 }}>
+                    <Sparkles size={14} />
+                    All optimal models for your hardware specification are installed and ready.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* SECTION 1: APPLICATION */}
           <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: 10, padding: '14px 18px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>

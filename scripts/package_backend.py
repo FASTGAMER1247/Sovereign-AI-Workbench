@@ -82,6 +82,7 @@ def build_standalone_executable():
         "app.services.coding_agent",
         "app.services.document_service",
         "app.services.docx_service",
+        "app.services.hardware_service",
         "app.services.embedding_service",
         "app.services.knowledge_service",
         "app.services.retrieval_service",

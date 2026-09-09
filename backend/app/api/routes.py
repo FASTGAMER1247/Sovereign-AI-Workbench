@@ -37,10 +37,13 @@ from app.models.schemas import (
     LedgerIntegrityResponse,
     SovereigntyStatusResponse,
     EgressProbeResult,
+    ModelRecommendation,
+    HardwareProfileResponse,
 )
 from app.services.audit_logger import AuditLogger, audit_logger
 from app.services.coding_agent import CodingAgent, get_coding_agent
 from app.services.document_service import DocumentService, get_document_service
+from app.services.hardware_service import HardwareService, get_hardware_service
 from app.services.knowledge_service import KnowledgeService, get_knowledge_service
 from app.services.model_service import ModelService, get_model_service
 from app.services.retrieval_service import RetrievalService, get_retrieval_service
@@ -144,6 +147,91 @@ async def pull_model(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to download model '{model_name}': {str(e)}",
+        )
+
+
+@router.get("/system/hardware-profile", response_model=HardwareProfileResponse)
+async def get_system_hardware_profile(
+    model_service: ModelService = Depends(get_model_service),
+    hardware_service: HardwareService = Depends(get_hardware_service),
+) -> HardwareProfileResponse:
+    """Inspect host hardware specifications (RAM, CPU, GPU, VRAM) and return recommended models."""
+    try:
+        health = await model_service.check_health()
+        return await hardware_service.get_hardware_profile(available_models=health.available_models)
+    except Exception as e:
+        logger.exception("Failed to inspect hardware profile")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Hardware profile inspection failed: {str(e)}",
+        )
+
+
+@router.post("/system/auto-optimize-models")
+async def auto_optimize_models(
+    payload: Optional[Dict[str, Any]] = None,
+    model_service: ModelService = Depends(get_model_service),
+    hardware_service: HardwareService = Depends(get_hardware_service),
+) -> Dict[str, Any]:
+    """
+    Inspect host hardware specifications, detect missing tier-optimal models,
+    and automatically pull them into Ollama.
+    """
+    try:
+        health = await model_service.check_health()
+        profile = await hardware_service.get_hardware_profile(available_models=health.available_models)
+
+        # Target specific models if requested, else pull all missing optimal models for this tier
+        target_models = (payload or {}).get("models") or profile.missing_models
+
+        installed = []
+        failed = []
+
+        for model_name in target_models:
+            try:
+                logger.info(f"Auto-optimizer downloading model: {model_name}")
+                await model_service.pull_model(model_name)
+                installed.append(model_name)
+                audit_logger.log_event(
+                    event_type="MODEL_AUTO_OPTIMIZED",
+                    action="DOWNLOAD_MODEL",
+                    actor="SYSTEM_HARDWARE_OPTIMIZER",
+                    target=model_name,
+                    status="SUCCESS",
+                    details={
+                        "tier": profile.recommended_tier,
+                        "ram_gb": profile.total_ram_gb,
+                        "vram_gb": profile.gpu_vram_gb,
+                    },
+                )
+            except Exception as e:
+                logger.error(f"Failed to auto-pull model '{model_name}': {e}")
+                failed.append({"model": model_name, "error": str(e)})
+                audit_logger.log_event(
+                    event_type="MODEL_AUTO_OPTIMIZE_FAILED",
+                    action="DOWNLOAD_MODEL",
+                    actor="SYSTEM_HARDWARE_OPTIMIZER",
+                    target=model_name,
+                    status="FAILURE",
+                    details={"tier": profile.recommended_tier, "error": str(e)},
+                )
+
+        updated_health = await model_service.check_health()
+        updated_profile = await hardware_service.get_hardware_profile(
+            available_models=updated_health.available_models
+        )
+
+        return {
+            "status": "completed" if not failed else "partial",
+            "installed": installed,
+            "failed": failed,
+            "hardware_profile": updated_profile,
+        }
+    except Exception as e:
+        logger.exception("Failed during auto model optimization")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Auto model optimization failed: {str(e)}",
         )
 
 

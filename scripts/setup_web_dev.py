@@ -36,31 +36,102 @@ VENV_DIR = BACKEND_DIR / ".venv"
 VENV_PYTHON = VENV_DIR / "Scripts" / "python.exe" if sys.platform == "win32" else VENV_DIR / "bin" / "python"
 VENV_PIP = VENV_DIR / "Scripts" / "pip.exe" if sys.platform == "win32" else VENV_DIR / "bin" / "pip"
 
-# Required models
-REQUIRED_MODELS = [
-    {
-        "name": "qwen2.5-coder:1.5b",
-        "purpose": "Primary SLM for Chat, Workflow A (Document Compliance), and Workflow B (Autonomous Coding Agent)",
-        "mandatory": True,
-    },
-    {
-        "name": "nomic-embed-text",
-        "purpose": "768-dimensional dense vector embeddings for ChromaDB RAG & semantic standard retrieval",
-        "mandatory": True,
-    },
-]
+def detect_hardware_tier() -> dict:
+    """Inspect host RAM, CPU, and GPU to calculate optimal model tier."""
+    total_ram = 8.0
+    free_ram = 4.0
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            class MEMORYSTATUSEX(ctypes.Structure):
+                _fields_ = [
+                    ("dwLength", ctypes.c_ulong),
+                    ("dwMemoryLoad", ctypes.c_ulong),
+                    ("ullTotalPhys", ctypes.c_ulonglong),
+                    ("ullAvailPhys", ctypes.c_ulonglong),
+                    ("ullTotalPageFile", ctypes.c_ulonglong),
+                    ("ullAvailPageFile", ctypes.c_ulonglong),
+                    ("ullTotalVirtual", ctypes.c_ulonglong),
+                    ("ullAvailVirtual", ctypes.c_ulonglong),
+                    ("sullAvailExtendedVirtual", ctypes.c_ulonglong),
+                ]
+            mem = MEMORYSTATUSEX()
+            mem.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
+            ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(mem))
+            total_ram = round(mem.ullTotalPhys / (1024**3), 1)
+            free_ram = round(mem.ullAvailPhys / (1024**3), 1)
+        except Exception:
+            pass
 
+    cpu_cores = os.cpu_count() or 4
+    gpu_name = "Generic Graphics Adapter"
+    gpu_vram = 0.0
+
+    if sys.platform == "win32":
+        try:
+            cmd = [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                "Get-CimInstance Win32_VideoController | Select-Object -Property Name, AdapterRAM | ConvertTo-Json"
+            ]
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=2.0)
+            if res.returncode == 0 and res.stdout.strip():
+                data = json.loads(res.stdout)
+                if isinstance(data, list):
+                    data = data[0]
+                gpu_name = data.get("Name", "Standard GPU")
+                vram_bytes = data.get("AdapterRAM", 0) or 0
+                gpu_vram = round(vram_bytes / (1024**3), 1)
+        except Exception:
+            pass
+
+    if total_ram >= 28.0 or gpu_vram >= 10.0:
+        tier = "Tier 3 (Enterprise Rig)"
+        desc = f"High-capacity system ({total_ram} GB RAM, {gpu_vram} GB VRAM). Optimal for 14B models and multimodal vision."
+        models = [
+            {"name": "qwen2.5-coder:14b", "role": "Primary Chat & Autonomous Coding Agent", "purpose": "Highest reasoning depth & code synthesis for 32GB+ systems", "mandatory": True},
+            {"name": "nomic-embed-text", "role": "RAG Dense Vector Embeddings", "purpose": "Optimal 768-dimensional semantic embeddings for local SOP search", "mandatory": True},
+            {"name": "deepseek-r1:8b", "role": "Deep Multi-hop Reasoning & Audit Verification", "purpose": "Advanced chain-of-thought verification for high-spec workstations", "mandatory": False},
+            {"name": "llama3.2-vision:11b", "role": "Multimodal Document Vision & Image OCR", "purpose": "Hardware supports direct visual OCR and diagram parsing", "mandatory": False},
+        ]
+    elif total_ram >= 12.0 or gpu_vram >= 4.0:
+        tier = "Tier 2 (Pro Workstation)"
+        desc = f"Professional workstation ({total_ram} GB RAM, {gpu_vram} GB VRAM). Optimal for 7B models with high-speed execution."
+        models = [
+            {"name": "qwen2.5-coder:7b", "role": "Primary Chat, Coding & Compliance Audit", "purpose": "Peak accuracy-to-speed ratio for 16GB workstations", "mandatory": True},
+            {"name": "nomic-embed-text", "role": "RAG Dense Vector Embeddings", "purpose": "Optimal 768-dimensional semantic embeddings for local SOP search", "mandatory": True},
+            {"name": "deepseek-r1:1.5b", "role": "Fast Chain-of-Thought Reasoning", "purpose": "Lightweight mathematical and logical consistency auditing", "mandatory": False},
+            {"name": "llama3.2:3b", "role": "Executive Report Generation", "purpose": "High-speed document summarization and note generation", "mandatory": False},
+        ]
+    else:
+        tier = "Tier 1 (Light / Air-Gap Standard)"
+        desc = f"Lightweight / Standard laptop ({total_ram} GB RAM). Tuned for instant execution with low memory footprint."
+        models = [
+            {"name": "qwen2.5-coder:1.5b", "role": "Primary Chat, Coding & Compliance Audit", "purpose": "Instant sub-second inference with ultra-low 980MB RAM footprint", "mandatory": True},
+            {"name": "nomic-embed-text", "role": "RAG Dense Vector Embeddings", "purpose": "Optimal 768-dimensional semantic embeddings for local SOP search", "mandatory": True},
+            {"name": "deepseek-r1:1.5b", "role": "Fast Multi-hop Reasoning", "purpose": "Compact mathematical and logical audit verification", "mandatory": False},
+        ]
+
+    return {
+        "ram_gb": total_ram,
+        "free_ram_gb": free_ram,
+        "cores": cpu_cores,
+        "gpu": gpu_name,
+        "vram_gb": gpu_vram,
+        "tier": tier,
+        "desc": desc,
+        "models": models,
+    }
+
+
+# Backwards compatibility aliases
+REQUIRED_MODELS = [
+    {"name": "qwen2.5-coder:1.5b", "purpose": "Primary Chat & Coding", "mandatory": True},
+    {"name": "nomic-embed-text", "purpose": "RAG Vector Embeddings", "mandatory": True},
+]
 OPTIONAL_MODELS = [
-    {
-        "name": "llama3.2:3b",
-        "purpose": "Executive synthesis & general knowledge",
-        "mandatory": False,
-    },
-    {
-        "name": "deepseek-r1:1.5b",
-        "purpose": "Deep chain-of-thought mathematical reasoning",
-        "mandatory": False,
-    },
+    {"name": "deepseek-r1:1.5b", "purpose": "Multi-hop Reasoning", "mandatory": False},
 ]
 
 
@@ -212,8 +283,16 @@ def check_node_and_frontend() -> bool:
 
 
 
-def check_ollama_and_models() -> dict:
-    print(f"\n{Ansi.BOLD}4. Local Ollama Inference Engine & Models{Ansi.RESET}")
+def check_ollama_and_models(auto_pull: bool = False) -> dict:
+    print(f"\n{Ansi.BOLD}4. Host Hardware Specification & Optimal Model Assessment{Ansi.RESET}")
+    hw = detect_hardware_tier()
+
+    status_pass("Host Memory (RAM)", f"{hw['ram_gb']} GB Physical ({hw['free_ram_gb']} GB Available)")
+    status_pass("Processor Cores", f"{hw['cores']} Logical Cores")
+    status_pass("Graphics Adapter", f"{hw['gpu']} ({hw['vram_gb']} GB VRAM)")
+    status_pass("Recommended AI Tier", f"{Ansi.BOLD}{hw['tier']}{Ansi.RESET}")
+    print(f"    {Ansi.DIM}Architecture strategy: {hw['desc']}{Ansi.RESET}\n")
+
     ollama_online = False
     installed_models = []
 
@@ -255,36 +334,59 @@ def check_ollama_and_models() -> dict:
                 pass
 
     if ollama_online:
-        status_pass("Ollama Service", f"Online at http://127.0.0.1:11434 ({len(installed_models)} models installed)")
+        status_pass("Ollama Service", f"Online at http://127.0.0.1:11434 ({len(installed_models)} models detected)")
     else:
         status_fail("Ollama Service", "Ollama is unreachable on port 11434.")
         print(f"    {Ansi.YELLOW}Recovery: Download & install Ollama from https://ollama.com/{Ansi.RESET}")
         print(f"    {Ansi.YELLOW}Then run: ollama serve{Ansi.RESET}")
-        return {"online": False, "missing_models": [m["name"] for m in REQUIRED_MODELS]}
+        return {"online": False, "missing_models": [m["name"] for m in hw["models"] if m["mandatory"]]}
 
-    # Check individual required models
-    missing = []
-    print("\n    Required Sovereign Models:")
-    for model in REQUIRED_MODELS:
+    # Check tier-optimal models
+    missing_models = []
+    print(f"\n    {Ansi.BOLD}Optimal Models for {hw['tier']}:{Ansi.RESET}")
+    for model in hw["models"]:
         name = model["name"]
         is_installed = any(name in m or m.startswith(name.split(":")[0]) for m in installed_models)
         if is_installed:
-            status_pass(f"Model: {name}", f"Installed — {model['purpose']}")
+            status_pass(f"Model: {name}", f"Installed — {model['role']} ({model['purpose']})")
         else:
-            status_warn(f"Model: {name}", f"MISSING — {model['purpose']}")
-            missing.append(name)
-            print(f"      {Ansi.CYAN}→ To install run:  ollama pull {name}{Ansi.RESET}")
+            tag = "MISSING [REQUIRED]" if model["mandatory"] else "MISSING [RECOMMENDED]"
+            status_warn(f"Model: {name}", f"{tag} — {model['role']}")
+            missing_models.append(name)
+            print(f"      {Ansi.CYAN}→ Purpose: {model['purpose']}{Ansi.RESET}")
 
-    # Check optional models
-    for model in OPTIONAL_MODELS:
-        name = model["name"]
-        is_installed = any(name in m for m in installed_models)
-        if is_installed:
-            status_pass(f"Model: {name} (Optional)", f"Installed — {model['purpose']}")
-        else:
-            print(f"      {Ansi.DIM}Model: {name} (Optional) not installed. (ollama pull {name}){Ansi.RESET}")
+    # Auto-install missing optimal models if confirmed or auto_pull flag is set
+    if missing_models and ollama_online:
+        should_pull = auto_pull
+        if not should_pull and sys.stdin.isatty():
+            try:
+                print()
+                ans = input(
+                    f"    {Ansi.BOLD}{Ansi.GREEN}--> Auto-download {len(missing_models)} missing optimal models for your system now? [Y/n]: {Ansi.RESET}"
+                ).strip().lower()
+                should_pull = (ans in ("", "y", "yes"))
+            except Exception:
+                should_pull = False
 
-    return {"online": ollama_online, "missing_models": missing}
+        if should_pull:
+            print(f"\n    {Ansi.BOLD}{Ansi.CYAN}Starting automatic download of optimal models for {hw['tier']}...{Ansi.RESET}")
+            pulled_successfully = []
+            for model_name in missing_models:
+                print(f"\n    {Ansi.CYAN}[DOWNLOADING]{Ansi.RESET} Pulling {Ansi.BOLD}{model_name}{Ansi.RESET}...")
+                try:
+                    res = subprocess.run(["ollama", "pull", model_name])
+                    if res.returncode == 0:
+                        status_pass(f"Model: {model_name}", "Installed and verified")
+                        pulled_successfully.append(model_name)
+                    else:
+                        status_fail(f"Model: {model_name}", f"Pull exited with code {res.returncode}")
+                except Exception as e:
+                    status_fail(f"Model: {model_name}", f"Download failed: {e}")
+
+            # Remove successfully pulled models from missing list
+            missing_models = [m for m in missing_models if m not in pulled_successfully]
+
+    return {"online": ollama_online, "missing_models": missing_models, "tier": hw["tier"]}
 
 
 def check_sandbox_capability():
@@ -308,13 +410,15 @@ def check_sandbox_capability():
 def main():
     print_banner()
 
+    auto_pull = ("--auto-pull" in sys.argv or "-y" in sys.argv or "--yes" in sys.argv)
+
     py_ok = check_python()
     if not py_ok:
         sys.exit(1)
 
     venv_ok = check_and_setup_venv()
     node_ok = check_node_and_frontend()
-    ollama_status = check_ollama_and_models()
+    ollama_status = check_ollama_and_models(auto_pull=auto_pull)
     check_sandbox_capability()
 
     print(f"\n{Ansi.BOLD}{Ansi.CYAN}{'=' * 78}{Ansi.RESET}")
@@ -324,7 +428,7 @@ def main():
     all_ok = venv_ok and node_ok and ollama_status["online"] and len(ollama_status["missing_models"]) == 0
 
     if all_ok:
-        print(f"\n {Ansi.GREEN}{Ansi.BOLD}[OK] ALL PREREQUISITES SATISFIED!{Ansi.RESET}")
+        print(f"\n {Ansi.GREEN}{Ansi.BOLD}[OK] ALL PREREQUISITES & OPTIMAL MODELS SATISFIED!{Ansi.RESET}")
         print(" You can now run the web application at any time using:")
         print(f"   {Ansi.CYAN}Launch Workbench.bat{Ansi.RESET}  (or 'npm run dev' inside frontend/)\n")
     else:

@@ -367,4 +367,34 @@ export interface SovereigntyStatusResponse {
   probed_at: string
 }
 
+// ─── Hardware Profile & Auto-Optimizer Types ───
+
+export interface ModelRecommendation {
+  name: string
+  role: string
+  reason: string
+  is_installed: boolean
+}
+
+export interface HardwareProfileResponse {
+  total_ram_gb: number
+  free_ram_gb: number
+  cpu_cores: number
+  processor_name: string
+  gpu_name: string
+  gpu_vram_gb: number
+  recommended_tier: string
+  tier_description: string
+  recommended_models: ModelRecommendation[]
+  missing_models: string[]
+  all_optimal_installed: boolean
+}
+
+export interface AutoOptimizeResponse {
+  status: string
+  installed: string[]
+  failed: Array<{ model: string; error: string }>
+  hardware_profile: HardwareProfileResponse
+}
+
 

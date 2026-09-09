@@ -22,6 +22,8 @@ import type {
   RAGAuditResponse,
   SandboxStatusResponse,
   SovereigntyStatusResponse,
+  HardwareProfileResponse,
+  AutoOptimizeResponse,
 } from '../types'
 
 const isTauri =
@@ -94,6 +96,19 @@ export async function pullModel(model: string): Promise<{ status: string; model:
   return apiFetch('/models/pull', {
     method: 'POST',
     body: JSON.stringify({ model }),
+  })
+}
+
+/** Inspect host hardware specifications and recommend tier-optimal models */
+export async function getHardwareProfile(): Promise<HardwareProfileResponse> {
+  return apiFetch<HardwareProfileResponse>('/system/hardware-profile')
+}
+
+/** Automatically download and configure optimal models for detected host hardware */
+export async function autoOptimizeModels(models?: string[]): Promise<AutoOptimizeResponse> {
+  return apiFetch<AutoOptimizeResponse>('/system/auto-optimize-models', {
+    method: 'POST',
+    body: JSON.stringify(models ? { models } : {}),
   })
 }
 
