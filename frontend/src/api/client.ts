@@ -31,9 +31,7 @@ const isTauri =
     window.location.protocol === 'tauri:' ||
     window.location.hostname === 'tauri.localhost')
 
-export const BASE_URL = isTauri
-  ? 'http://127.0.0.1:8000/api'
-  : (import.meta.env.VITE_API_BASE_URL || '/api')
+export const BASE_URL = isTauri ? 'http://127.0.0.1:8000/api' : '/api'
 
 async function apiFetch<T>(
   path: string,
