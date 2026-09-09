@@ -1,7 +1,5 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { Home, FileCheck, Code2, Database } from 'lucide-react';
-import { StarBorder } from './StarBorder';
-import { SpecularButton } from './SpecularButton';
 
 export interface DockTabsProps {
   activeTab?: string;
@@ -16,7 +14,6 @@ export const DockTabs: React.FC<DockTabsProps> = ({
   className = '',
   style = {},
 }) => {
-  const [mouseX, setMouseX] = useState<number | null>(null);
   const dockRef = useRef<HTMLDivElement>(null);
 
   const tabs: Array<{
@@ -30,120 +27,95 @@ export const DockTabs: React.FC<DockTabsProps> = ({
     { id: 'knowledge', label: 'Knowledge Base', icon: <Database size={13} /> }
   ];
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (dockRef.current) {
-      const rect = dockRef.current.getBoundingClientRect();
-      setMouseX(e.clientX - rect.left);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setMouseX(null);
-  };
-
   return (
     <div 
       className={`dock-tabs-wrapper ${className}`} 
       style={{ 
         display: 'flex', 
         justifyContent: 'center', 
-        height: '52px', 
+        height: '42px', 
         alignItems: 'center',
-        padding: '0 16px',
+        padding: '0 8px',
         ...style,
       }}
     >
       <style>{`
         .dock-tab-btn {
-          transition: transform 0.1s ease-out;
-          will-change: transform;
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: transparent;
+          border: 1px solid transparent;
+          border-radius: var(--radius-xs);
+          padding: 5px 11px;
+          color: var(--color-text-secondary);
+          font-size: 11.5px;
+          font-family: inherit;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all var(--transition-fast);
         }
-        .dock-tabs-container:not(:hover) .dock-tab-btn {
-          transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        
+        .dock-tab-btn:hover {
+          color: var(--color-text-primary);
+          background: rgba(255, 255, 255, 0.04);
+        }
+
+        .dock-tab-btn.active {
+          color: var(--color-text-primary);
+          background: var(--color-surface-2);
+          border-color: var(--color-border-strong);
         }
         
         .dock-tab-btn.active .active-glow {
           position: absolute;
-          bottom: -2px;
+          bottom: -1px;
           left: 50%;
           transform: translateX(-50%);
-          width: 24px;
+          width: 20px;
           height: 2px;
-          background: #10B981;
-          border-radius: 2px;
-          box-shadow: 0 -2px 10px rgba(16, 185, 129, 0.8), 0 0 4px rgba(16, 185, 129, 0.5);
-          z-index: 10;
+          background: #F59E0B;
+          border-radius: 1px;
+          box-shadow: 0 -1px 6px rgba(245, 158, 11, 0.7);
         }
       `}</style>
 
-      <StarBorder 
-        borderRadius={16} 
-        borderWidth={1} 
-        speed={6} 
-        color="#10B981" 
-        starSize={60}
+      {/* Industrial Precision Instrument Bezel */}
+      <div
+        ref={dockRef}
+        className="dock-tabs-container"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '3px',
+          padding: '3px 5px',
+          background: 'var(--color-panel)',
+          border: '1px solid var(--color-border-strong)',
+          borderRadius: 'var(--radius-sm)',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
+          position: 'relative'
+        }}
       >
-        <div
-          ref={dockRef}
-          className="dock-tabs-container"
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '4px 6px',
-            background: 'rgba(7, 9, 14, 0.7)',
-            backdropFilter: 'blur(16px)',
-            borderRadius: '15px', // slightly less to fit inside StarBorder's border
-            position: 'relative'
-          }}
-        >
-          {tabs.map((tab, index) => {
-            let scale = 1;
-            
-            if (mouseX !== null && dockRef.current) {
-               const els = Array.from(dockRef.current.children) as HTMLElement[];
-               // children includes the tabs.
-               if (els[index]) {
-                 const rect = els[index].getBoundingClientRect();
-                 const dockRect = dockRef.current.getBoundingClientRect();
-                 const center = rect.left - dockRect.left + rect.width / 2;
-                 const distance = Math.abs(mouseX - center);
-                 
-                 // How far the effect spreads
-                 const maxDistance = 120;
-                 if (distance < maxDistance) {
-                   const scaleFactor = 1.05;
-                   scale = 1 + (scaleFactor - 1) * Math.cos((distance / maxDistance) * (Math.PI / 2));
-                 }
-               }
-            }
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
 
-            const isActive = activeTab === tab.id;
-
-            return (
-              <SpecularButton
-                key={tab.id}
-                className={`dock-tab-btn dock-tab`}
-                active={isActive}
-                onClick={() => onTabChange?.(tab.id)}
-                style={{
-                  transform: `scale(${scale})`,
-                  transformOrigin: 'bottom center',
-                  zIndex: isActive ? 5 : 1,
-                  padding: '5px 10px',
-                  fontSize: '12px',
-                }}
-              >
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              className={`dock-tab-btn ${isActive ? 'active' : ''}`}
+              onClick={() => onTabChange?.(tab.id)}
+            >
+              <span style={{ color: isActive ? '#F59E0B' : 'inherit', display: 'flex', alignItems: 'center' }}>
                 {tab.icon}
-                <span>{tab.label}</span>
-                {isActive && <div className="active-glow" />}
-              </SpecularButton>
-            );
-          })}
-        </div>
-      </StarBorder>
+              </span>
+              <span>{tab.label}</span>
+              {isActive && <div className="active-glow" />}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 };

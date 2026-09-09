@@ -3,6 +3,7 @@ import { Header } from './components/Header'
 import { UnifiedStudio } from './components/UnifiedStudio'
 import { Particles } from './components/ui/Particles'
 import { DotGrid } from './components/ui/DotGrid'
+import { SchematicGrid } from './components/ui/SchematicGrid'
 import { CommandMenu } from './components/ui/CommandMenu'
 import { SettingsModal } from './components/SettingsModal'
 import { CopilotDrawer } from './components/CopilotDrawer'
@@ -26,19 +27,19 @@ function App() {
   const [copilotInitialPrompt, setCopilotInitialPrompt] = useState<string>('')
   const [isCopilotDrawerOpen, setIsCopilotDrawerOpen] = useState<boolean>(false)
   const [isFirstRunOpen, setIsFirstRunOpen] = useState<boolean>(false)
-  const [backgroundStyle, setBackgroundStyle] = useState<'particles' | 'dotgrid'>(() => {
+  const [backgroundStyle, setBackgroundStyle] = useState<'schematic' | 'particles' | 'dotgrid'>(() => {
     try {
       const saved = localStorage.getItem('sovereign_settings')
       if (saved) {
         const parsed = JSON.parse(saved)
-        if (parsed.bgStyle === 'dotgrid' || parsed.bgStyle === 'particles') {
+        if (parsed.bgStyle === 'dotgrid' || parsed.bgStyle === 'particles' || parsed.bgStyle === 'schematic') {
           return parsed.bgStyle
         }
       }
     } catch {
       // fallback
     }
-    return 'particles'
+    return 'schematic'
   })
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false)
 
@@ -140,29 +141,32 @@ function App() {
 
   return (
     <div className="app-layout">
-      {/* Dynamic ambient background — selectable in Settings */}
+      {/* Static CAD Schematic Grid (Industrial Workstation) — selectable in Settings */}
+      {workflowMode === 'home' && backgroundStyle === 'schematic' && (
+        <SchematicGrid />
+      )}
       {workflowMode === 'home' && backgroundStyle === 'particles' && (
         <Particles
-          particleCount={65}
-          speed={0.25}
-          connectDistance={110}
-          particleColor="#10B981"
-          secondaryColor="#38BDF8"
-          lineOpacity={0.12}
-          mouseRadius={140}
+          particleCount={50}
+          speed={0.15}
+          connectDistance={90}
+          particleColor="#F59E0B"
+          secondaryColor="#60A5FA"
+          lineOpacity={0.08}
+          mouseRadius={100}
           minSize={1}
-          maxSize={2.5}
+          maxSize={2}
         />
       )}
       {workflowMode === 'home' && backgroundStyle === 'dotgrid' && (
         <DotGrid
-          dotSpacing={26}
-          baseRadius={1.2}
-          maxRadius={2.8}
-          glowRadius={150}
-          baseColor="rgba(255, 255, 255, 0.08)"
-          activeColor="#10B981"
-          secondaryColor="#38BDF8"
+          dotSpacing={28}
+          baseRadius={1}
+          maxRadius={2}
+          glowRadius={120}
+          baseColor="rgba(255, 255, 255, 0.05)"
+          activeColor="#F59E0B"
+          secondaryColor="#60A5FA"
         />
       )}
 

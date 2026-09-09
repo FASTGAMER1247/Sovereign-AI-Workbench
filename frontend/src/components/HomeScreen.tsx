@@ -15,7 +15,7 @@ import {
   Sparkles,
   Bot,
   FileCheck,
-  CheckCircle2,
+  AlertTriangle,
   Paperclip,
   X,
   History,
@@ -570,12 +570,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     <div
       style={{
         width: '100%',
-        maxWidth: isBottomDock ? '820px' : '780px',
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-border-strong)',
-        borderRadius: '14px',
-        boxShadow: isBottomDock ? '0 12px 36px rgba(0, 0, 0, 0.5)' : 'var(--color-shadow-sm, 0 4px 20px rgba(0, 0, 0, 0.25))',
-        padding: '14px 16px',
+        maxWidth: isBottomDock ? '820px' : '1100px',
+        background: 'var(--color-panel)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius-sm)',
+        boxShadow: isBottomDock ? '0 12px 36px rgba(0, 0, 0, 0.5)' : 'var(--shadow-sm)',
+        padding: '12px 16px',
         display: 'flex',
         flexDirection: 'column',
         gap: '10px',
@@ -644,7 +644,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         value={inputText}
         onChange={(e) => setInputText(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder={attachedFiles.length > 0 ? "Ask anything about the attached files, or describe the analysis..." : "Ask Sovereign Copilot anything, or describe an engineering problem to solve..."}
+        placeholder={attachedFiles.length > 0 ? "Ask anything about the attached files, or describe the analysis..." : "Query plant SOPs, inspect document compliance thresholds, or request sandboxed Python routines..."}
         disabled={isGenerating || isProcessingFiles}
         style={{
           width: '100%',
@@ -1182,20 +1182,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   }
 
   /* ══════════════════════════════════════════════════════════════════════ */
-  /* CASE 2: EMPTY HOME OVERVIEW SCREEN (CLAUDE-STYLE HERO + CARDS)        */
+  /* CASE 2: EMPTY HOME OVERVIEW SCREEN (INDUSTRIAL CONSOLE & HITL GATEWAY) */
   /* ══════════════════════════════════════════════════════════════════════ */
   return (
     <div style={{ display: 'flex', width: '100%', minHeight: 'calc(100vh - 52px)' }}>
-      {/* Left History Sidebar (can be toggled from home screen too) */}
+      {/* Left History Sidebar */}
       {renderHistorySidebar()}
 
       <div className="home-container" style={{ flex: 1 }}>
-        {/* ── 1. SOVEREIGN EDITORIAL HERO ── */}
+        {/* ── 1. WORKSTATION IDENTIFICATION & TELEMETRY STRIP ── */}
         <div className="home-hero">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div className="home-badge">
               <Shield size={12} color="var(--color-accent)" />
-              <span>Air-Gapped Sovereign Intelligence</span>
+              <span>Air-Gapped Engineering Workstation · v0.1.0</span>
             </div>
 
             {sessions.length > 0 && (
@@ -1204,7 +1204,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 onClick={() => setShowHistoryPanel(!showHistoryPanel)}
                 className="btn btn-sm btn-ghost"
                 style={{ fontSize: '11px', height: '24px', padding: '0 8px', gap: '4px' }}
-                title="View previous conversations"
+                title="View previous session history"
               >
                 <History size={12} />
                 <span>History ({sessions.length})</span>
@@ -1212,58 +1212,230 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             )}
           </div>
 
-          <h1
-            className="home-title"
-            style={{
-              fontSize: '32px',
-              fontWeight: 700,
-              letterSpacing: '-0.5px',
-              color: 'var(--color-text-primary)',
-              margin: '6px 0 2px 0',
-            }}
-          >
+          <h1 className="home-title">
             Sovereign AI Workbench
           </h1>
 
-
           <p className="home-subtitle">
-            On-premise workstation for industrial compliance, autonomous code synthesis,
-            and cryptographic audit validation. Zero external cloud telemetry.
+            On-premise workstation for industrial document compliance, sandboxed Python AST execution,
+            and tamper-evident SHA-256 provenance logging. Powered by local open-weight SLMs with zero cloud telemetry.
           </p>
         </div>
 
-        {/* ── 2. CENTRAL PROMPT DOCK WITH IN-BOX MODEL SELECTOR & ATTACHMENTS ── */}
-        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+        {/* ── 2. WORKSTATION TELEMETRY STRIP ── */}
+        <div className="workstation-telemetry-bar">
+          <div className={`workstation-telemetry-pill ${isAirGapped ? 'active' : ''}`}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isAirGapped ? 'var(--color-success)' : 'var(--color-warning)', display: 'inline-block' }} />
+            <span>Air-Gap Zero Egress: {isAirGapped ? 'Active' : 'Standby'}</span>
+          </div>
+          <div className="workstation-telemetry-pill">
+            <Cpu size={12} color="var(--color-accent)" />
+            <span>Inference SLM: {activeModelDisplay}</span>
+          </div>
+          <div className="workstation-telemetry-pill">
+            <Lock size={12} color="var(--color-info)" />
+            <span>SHA-256 Ledger: Tamper-Evident Chain</span>
+          </div>
+          <div className="workstation-telemetry-pill" style={{ color: 'var(--color-text-muted)' }}>
+            <span>Binding: 127.0.0.1:8000</span>
+          </div>
+        </div>
+
+        {/* ── 3. MANDATORY HUMAN-IN-THE-LOOP (HITL) GATEWAY BANNER ── */}
+        <div className="hitl-banner">
+          <AlertTriangle size={17} className="hitl-banner-icon" />
+          <div className="hitl-banner-text">
+            <strong>MANDATORY HUMAN-IN-THE-LOOP (HITL) GATEWAY:</strong> All compliance extractions, minimum wall thickness evaluations, and code outputs are AI-assisted recommendations generated by local models (default: {activeModelDisplay}). Regulatory compliance certification strictly requires manual inspection review and cryptographic digital sign-off by a qualified engineer.
+          </div>
+        </div>
+
+        {/* ── 4. THREE INDUSTRIAL CONSOLE STATIONS (DATA-FORWARD) ── */}
+        <div className="console-station-grid">
+          {/* Station 1: Inspection & Compliance Engine */}
+          <div className="console-station" onClick={() => onSelectWorkflowMode('workflow_a')}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div className="console-station-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FileCheck size={16} color="var(--color-accent)" />
+                  <span className="console-station-title">Inspection & Compliance</span>
+                </div>
+                <span className="console-station-tag amber">GATE: HITL REQUIRED</span>
+              </div>
+
+              <div className="console-station-subtitle">
+                Workflow A · ASME Sec VIII / API 570 Pipeline Auditing
+              </div>
+
+              <p className="console-station-desc">
+                Extracts ultrasonic thickness scans and NDT inspection reports via local OCR, cross-references minimum wall thresholds against SOP-REF-570, and generates draft compliance notes.
+              </p>
+
+              {/* Technical Parameter Table */}
+              <table className="console-spec-table">
+                <tbody>
+                  <tr>
+                    <td className="console-spec-key">Target Standard</td>
+                    <td className="console-spec-val">API 570 / ASME B31.3</td>
+                  </tr>
+                  <tr>
+                    <td className="console-spec-key">Ingestion Pipeline</td>
+                    <td className="console-spec-val">Local PyMuPDF & Table OCR</td>
+                  </tr>
+                  <tr>
+                    <td className="console-spec-key">Verification Gate</td>
+                    <td className="console-spec-val" style={{ color: 'var(--color-warning)' }}>Mandatory HITL Sign-Off</td>
+                  </tr>
+                  <tr>
+                    <td className="console-spec-key">Custody Chain</td>
+                    <td className="console-spec-val">SHA-256 Ledger Block</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="console-station-action">
+              <span>Open Inspection Console</span>
+              <ArrowRight size={13} />
+            </div>
+          </div>
+
+          {/* Station 2: Sandboxed Python Scripting & AST Guard */}
+          <div className="console-station" onClick={() => onSelectWorkflowMode('workflow_b')}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div className="console-station-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Code2 size={16} color="var(--color-info)" />
+                  <span className="console-station-title">Python AST Sandbox</span>
+                </div>
+                <span className="console-station-tag blue">ISOLATION: STRICT AST</span>
+              </div>
+
+              <div className="console-station-subtitle">
+                Workflow B · Assisted Scripting & Boundary Traps
+              </div>
+
+              <p className="console-station-desc">
+                Drafts Python calculation routines using local coder SLMs, enforces air-gap boundaries by intercepting prohibited networking/OS syscalls via AST traversal, and executes unit tests.
+              </p>
+
+              {/* Technical Parameter Table */}
+              <table className="console-spec-table">
+                <tbody>
+                  <tr>
+                    <td className="console-spec-key">Runtime Isolation</td>
+                    <td className="console-spec-val">Isolated Subprocess</td>
+                  </tr>
+                  <tr>
+                    <td className="console-spec-key">AST Security Traps</td>
+                    <td className="console-spec-val">Blocks socket, os.system, urllib</td>
+                  </tr>
+                  <tr>
+                    <td className="console-spec-key">Test Verification</td>
+                    <td className="console-spec-val">3-Pass PyTest Self-Repair</td>
+                  </tr>
+                  <tr>
+                    <td className="console-spec-key">Inference SLM</td>
+                    <td className="console-spec-val">{activeModelDisplay}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="console-station-action" style={{ color: 'var(--color-info)' }}>
+              <span>Open Scripting Workspace</span>
+              <ArrowRight size={13} />
+            </div>
+          </div>
+
+          {/* Station 3: Knowledge Base & SOP Vault */}
+          <div className="console-station" onClick={() => onSelectWorkflowMode('knowledge')}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div className="console-station-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Database size={16} color="var(--color-success)" />
+                  <span className="console-station-title">Knowledge & SOP Vault</span>
+                </div>
+                <span className="console-station-tag green">STORAGE: AIR-GAP SQLITE</span>
+              </div>
+
+              <div className="console-station-subtitle">
+                Vector Retrieval · ChromaDB Local Storage
+              </div>
+
+              <p className="console-station-desc">
+                Stores organization SOPs, safety thresholds, and engineering codes in a local ChromaDB vector store. Generates embeddings offline for grounded RAG query citation.
+              </p>
+
+              {/* Technical Parameter Table */}
+              <table className="console-spec-table">
+                <tbody>
+                  <tr>
+                    <td className="console-spec-key">Storage Engine</td>
+                    <td className="console-spec-val">ChromaDB v0.4 (SQLite3)</td>
+                  </tr>
+                  <tr>
+                    <td className="console-spec-key">Embedding Model</td>
+                    <td className="console-spec-val">nomic-embed-text (768-dim)</td>
+                  </tr>
+                  <tr>
+                    <td className="console-spec-key">Active Index</td>
+                    <td className="console-spec-val">SOP-REF-570 Piping Standard</td>
+                  </tr>
+                  <tr>
+                    <td className="console-spec-key">Network Policy</td>
+                    <td className="console-spec-val" style={{ color: 'var(--color-success)' }}>100% Offline Retrieval</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="console-station-action" style={{ color: 'var(--color-success)' }}>
+              <span>Access Knowledge Vault</span>
+              <ArrowRight size={13} />
+            </div>
+          </div>
+        </div>
+
+        {/* ── 5. SECONDARY: ENGINEERING DIAGNOSTIC & QUERY CONSOLE ── */}
+        <div style={{ width: '100%', maxWidth: '1100px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', padding: '0 4px' }}>
+            <span>Engineering Query & Diagnostic Console (Local SLM)</span>
+            <span>Ctrl+K for Command Menu</span>
+          </div>
+
           {renderPromptBox(false)}
 
-          {/* Quick Suggestion Chips */}
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '780px' }}>
+          {/* Preset Diagnostic Queries */}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', paddingTop: '2px' }}>
+            <span style={{ fontSize: '10.5px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
+              Diagnostic Queries:
+            </span>
             <button
               type="button"
-              onClick={() => handleSend('Summarize API 570 minimum wall thickness calculation limits in SOP-REF-570.')}
+              onClick={() => handleSend('Query SOP-REF-570 Section 3.4 for minimum pipe wall thickness and retirement limits.')}
               className="btn btn-sm btn-ghost"
-              style={{ fontSize: '11px', height: '26px', padding: '0 10px' }}
+              style={{ fontSize: '11px', height: '24px', padding: '0 8px' }}
             >
-              <FileCheck size={12} color="var(--color-accent)" />
-              <span>API 570 Piping Limits</span>
+              <FileCheck size={11} color="var(--color-accent)" />
+              <span>API 570 Limits (SOP-REF-570)</span>
             </button>
             <button
               type="button"
-              onClick={() => handleSend('Write a Python function to validate sensor pressure readings with unit tests.')}
+              onClick={() => handleSend('Explain the prohibited syscall policy enforced by the Python AST security guard.')}
               className="btn btn-sm btn-ghost"
-              style={{ fontSize: '11px', height: '26px', padding: '0 10px' }}
+              style={{ fontSize: '11px', height: '24px', padding: '0 8px' }}
             >
-              <Code2 size={12} color="var(--color-info)" />
-              <span>Sensor Code Generator</span>
+              <Code2 size={11} color="var(--color-info)" />
+              <span>Inspect AST Security Policy</span>
             </button>
             <button
               type="button"
-              onClick={() => handleSend('How does the sequential SHA-256 audit ledger verify cryptographic integrity?')}
+              onClick={() => handleSend('How does the sequential SHA-256 ledger guarantee tamper-evident audit trails?')}
               className="btn btn-sm btn-ghost"
-              style={{ fontSize: '11px', height: '26px', padding: '0 10px' }}
+              style={{ fontSize: '11px', height: '24px', padding: '0 8px' }}
             >
-              <Lock size={12} color="var(--color-success)" />
-              <span>Verify SHA-256 Chain</span>
+              <Lock size={11} color="var(--color-success)" />
+              <span>Verify SHA-256 Ledger Chain</span>
             </button>
 
             {onTriggerDemo && (
@@ -1277,183 +1449,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   color: 'var(--color-accent)',
                   borderColor: 'var(--color-accent-border)',
                   background: 'var(--color-accent-bg)',
-                  height: '26px',
+                  height: '24px',
+                  padding: '0 8px',
                 }}
               >
                 <Zap size={11} />
-                <span>{isSeedingDemo ? 'Seeding...' : 'Quick Demo Package'}</span>
+                <span>{isSeedingDemo ? 'Seeding...' : 'Load Refinery Line 102 Demo'}</span>
               </button>
             )}
           </div>
-        </div>
-
-        {/* ── 3. THREE SEPARATE WORKSPACE LAUNCHERS ── */}
-        <div className="home-card-grid">
-          {/* Workspace A: Industrial Audit */}
-          <div className="home-card" onClick={() => onSelectWorkflowMode('workflow_a')}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div
-                  style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '6px',
-                    background: 'var(--color-accent-bg)',
-                    border: '1px solid var(--color-accent-border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--color-accent)',
-                  }}
-                >
-                  <FileCheck size={17} />
-                </div>
-                <span className="badge badge-info" style={{ fontSize: '9.5px', height: '18px' }}>
-                  INSPECTOR
-                </span>
-              </div>
-
-              <div>
-                <h3 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
-                  Document Inspector
-                </h3>
-                <div style={{ fontSize: '11px', color: 'var(--color-accent)', fontWeight: 600, marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
-                  Safety Check & Compliance Certificate
-                </div>
-              </div>
-
-              <p style={{ fontSize: '11.5px', color: 'var(--color-text-secondary)', lineHeight: 1.55, margin: 0 }}>
-                Upload inspection reports, ultrasonic thickness scans, or maintenance logs.
-                The AI checks measurements against rules in the Knowledge Base and creates a certified report.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 600, color: 'var(--color-accent)' }}>
-              <span>Enter Document Inspector</span>
-              <ArrowRight size={13} />
-            </div>
-          </div>
-
-          {/* Workspace B: Coding Agent */}
-          <div className="home-card" onClick={() => onSelectWorkflowMode('workflow_b')}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div
-                  style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '6px',
-                    background: 'var(--color-info-bg)',
-                    border: '1px solid var(--color-info-border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--color-info)',
-                  }}
-                >
-                  <Code2 size={17} />
-                </div>
-                <span className="badge badge-neutral" style={{ fontSize: '9.5px', height: '18px', color: 'var(--color-info)' }}>
-                  WORKFLOW B
-                </span>
-              </div>
-
-              <div>
-                <h3 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
-                  Autonomous Coding Agent
-                </h3>
-                <div style={{ fontSize: '11px', color: 'var(--color-info)', fontWeight: 600, marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
-                  Static AST Guard · Sandboxed Unit Tests
-                </div>
-              </div>
-
-              <p style={{ fontSize: '11.5px', color: 'var(--color-text-secondary)', lineHeight: 1.55, margin: 0 }}>
-                Synthesize Python routines with local LLMs, block prohibited networking calls through AST security inspection,
-                and execute sandboxed test suites with automated 3-pass self-repair.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 600, color: 'var(--color-info)' }}>
-              <span>Enter Coding Studio</span>
-              <ArrowRight size={13} />
-            </div>
-          </div>
-
-          {/* Workspace C: Knowledge Base & SOP Vault */}
-          <div className="home-card" onClick={() => onSelectWorkflowMode('knowledge')}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div
-                  style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '6px',
-                    background: 'var(--color-success-bg)',
-                    border: '1px solid var(--color-success-border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--color-success)',
-                  }}
-                >
-                  <Database size={17} />
-                </div>
-                <span className="badge badge-success" style={{ fontSize: '9.5px', height: '18px' }}>
-                  CHROMA STORE
-                </span>
-              </div>
-
-              <div>
-                <h3 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
-                  Knowledge Base & SOP Vault
-                </h3>
-                <div style={{ fontSize: '11px', color: 'var(--color-success)', fontWeight: 600, marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
-                  SOP-REF-570 · ChromaDB Vector Search
-                </div>
-              </div>
-
-              <p style={{ fontSize: '11.5px', color: 'var(--color-text-secondary)', lineHeight: 1.55, margin: 0 }}>
-                Ingest organizational safety procedures and ASME/API standards into local ChromaDB,
-                inspect vector chunk embeddings, and run live semantic similarity queries.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 600, color: 'var(--color-success)' }}>
-              <span>Enter Knowledge Vault</span>
-              <ArrowRight size={13} />
-            </div>
-          </div>
-        </div>
-
-        {/* ── 4. SYSTEM TELEMETRY FOOTNOTE ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '11px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
-          <button
-            type="button"
-            onClick={() => onSelectWorkflowMode('security')}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              padding: 0,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              color: isAirGapped ? 'var(--color-success)' : 'inherit',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '11px',
-            }}
-            title="Click to view Security Center & Cryptographic Audit Ledger"
-          >
-            <CheckCircle2 size={12} />
-            <span>{isAirGapped ? 'Zero-Egress Verified (Security Center)' : 'Local Binding (Security Center)'}</span>
-          </button>
-          <span>·</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <Cpu size={12} />
-            Model: {activeModelDisplay}
-          </span>
-          <span>·</span>
-          <span>127.0.0.1:8000</span>
         </div>
       </div>
     </div>
