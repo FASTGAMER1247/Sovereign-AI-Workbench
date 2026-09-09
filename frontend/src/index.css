@@ -4,6 +4,29 @@
  */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-text-primary);
+  --color-card: var(--color-panel);
+  --color-card-foreground: var(--color-text-primary);
+  --color-popover: var(--color-panel);
+  --color-popover-foreground: var(--color-text-primary);
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: #0D1013;
+  --color-secondary: var(--color-surface-2);
+  --color-secondary-foreground: var(--color-text-primary);
+  --color-muted: var(--color-surface-2);
+  --color-muted-foreground: var(--color-text-muted);
+  --color-accent: var(--color-surface-hover);
+  --color-accent-foreground: var(--color-accent);
+  --color-destructive: #EF4444;
+  --color-destructive-foreground: #FFFFFF;
+  --color-border: var(--color-border);
+  --color-input: var(--color-border);
+  --color-ring: var(--color-accent);
+}
 
 *, *::before, *::after {
   box-sizing: border-box;

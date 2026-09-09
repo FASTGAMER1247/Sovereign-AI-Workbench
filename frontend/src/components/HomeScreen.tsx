@@ -1,15 +1,10 @@
-import React, { useState, useEffect, useRef, KeyboardEvent } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Shield,
-  Send,
-  Square,
   Copy,
   Check,
   RotateCcw,
-  ChevronDown,
-  Sparkles,
   Bot,
-  Paperclip,
   X,
   History,
   Trash2,
@@ -23,6 +18,7 @@ import {
   extractDocumentText,
 } from '../api/client'
 import type { AppSystemState } from '../types'
+import { PromptInput } from './ui/ai-chat-input'
 
 
 
@@ -117,12 +113,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     }
   }, [systemState.modelHealth?.default_model])
 
-  const [showModelDropdown, setShowModelDropdown] = useState<boolean>(false)
-
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
   // Fetch installed models
@@ -144,21 +135,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       .catch(() => {})
   }, [selectedModel])
 
-  // Click outside to close model dropdown
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowModelDropdown(false)
-      }
-    }
-    if (showModelDropdown) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showModelDropdown])
-
   // Handle external initialPrompt injection
   useEffect(() => {
     if (initialPrompt && initialPrompt.trim()) {
@@ -172,11 +148,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages, isGenerating])
-
-  // Focus textarea on load
-  useEffect(() => {
-    textareaRef.current?.focus()
-  }, [])
 
   // Auto-save active session whenever messages change
   useEffect(() => {
@@ -214,36 +185,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     }
   }, [messages, activeSessionId])
 
-  // File selection handler
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!e.target.files || e.target.files.length === 0) return
-
-    const newFiles: AttachedFile[] = Array.from(e.target.files).map((f) => ({
-      id: `file_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      file: f,
-      name: f.name,
-      size: f.size,
-      type: f.type,
-    }))
-
-    setAttachedFiles((prev) => [...prev, ...newFiles])
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
-    textareaRef.current?.focus()
-  }
-
-  function handleRemoveFile(fileId: string) {
-    setAttachedFiles((prev) => prev.filter((f) => f.id !== fileId))
-  }
-
   // Read content from files to inject into prompt context
-  async function extractContentFromFiles(files: AttachedFile[]): Promise<string> {
+  async function extractContentFromFiles(files: File[]): Promise<string> {
     const fileExtracts: string[] = []
 
-    for (const item of files) {
-      const f = item.file
+    for (const f of files) {
       // Text, Code, CSV, JSON, Python, Markdown
       if (
         f.type.startsWith('text/') ||
@@ -281,14 +227,32 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     return fileExtracts.join('\n\n')
   }
 
-  async function handleSend(textToSend?: string) {
+  async function handleSend(
+    textToSend?: string,
+    filesToSend?: File[],
+    modelOverride?: string,
+    effortOverride?: string
+  ) {
     const query = (textToSend || inputText).trim()
-    if (!query && attachedFiles.length === 0) return
+    const currentFiles: File[] = filesToSend && filesToSend.length > 0
+      ? filesToSend
+      : attachedFiles.map((af) => af.file)
+
+    if (!query && currentFiles.length === 0) return
     if (isGenerating) return
 
-    const currentFiles = [...attachedFiles]
     setAttachedFiles([])
     setInputText('')
+
+    let temperature = 0.7
+    if (effortOverride === 'Strict Audit') temperature = 0.1
+    else if (effortOverride === 'Deep Code') temperature = 0.2
+    else if (effortOverride === 'Balanced') temperature = 0.5
+
+    const activeModel = modelOverride || selectedModel || systemState.modelHealth?.default_model || 'qwen2.5-coder:1.5b'
+    if (modelOverride && modelOverride !== selectedModel) {
+      setSelectedModel(modelOverride)
+    }
 
     // Display user message with attached file metadata
     const userMsg: CopilotMessage = {
@@ -322,8 +286,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       const response = await sendChat(
         {
           prompt: promptWithContext,
-          model: selectedModel || systemState.modelHealth?.default_model || 'qwen2.5-coder:1.5b',
-          temperature: 0.7,
+          model: activeModel,
+          temperature,
         },
         controller.signal
       )
@@ -366,13 +330,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     setIsGenerating(false)
   }
 
-  function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
-  }
-
   function handleCopy(text: string, id: string) {
     navigator.clipboard.writeText(text)
     setCopiedId(id)
@@ -389,7 +346,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     setInputText('')
     setAttachedFiles([])
     setIsGenerating(false)
-    setTimeout(() => textareaRef.current?.focus(), 50)
   }
 
   function handleCloseChat() {
@@ -553,257 +509,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     })
   }
 
-  /* ── SHARED PROMPT INPUT CARD (CLAUDE-STYLE WITH IN-BOX MODEL SELECTOR & ATTACHMENT) ── */
+  /* ── SHARED PROMPT INPUT DOCK (SPRING TRANSITION + VOICE AUDIO + ATTACHMENTS) ── */
   const renderPromptBox = (isBottomDock: boolean) => (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: '820px',
-        background: 'var(--color-panel)',
-        border: '1px solid var(--color-border)',
-        borderRadius: 'var(--radius-sm)',
-        boxShadow: isBottomDock ? '0 12px 36px rgba(0, 0, 0, 0.5)' : 'var(--shadow-sm)',
-        padding: '12px 16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px',
-        transition: 'border-color var(--transition-fast)',
-      }}
-    >
-      {/* Hidden file input */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileSelect}
-        multiple
-        style={{ display: 'none' }}
-      />
-
-      {/* Attached Files Badge Bar */}
-      {attachedFiles.length > 0 && (
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', paddingBottom: '4px' }}>
-          {attachedFiles.map((af) => (
-            <div
-              key={af.id}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: 'var(--color-surface-2)',
-                border: '1px solid var(--color-border)',
-                borderRadius: '6px',
-                padding: '4px 8px',
-                fontSize: '11px',
-                color: 'var(--color-text-primary)',
-              }}
-            >
-              <FileText size={12} color="var(--color-accent)" />
-              <span style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {af.name}
-              </span>
-              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
-                ({(af.size / 1024).toFixed(0)} KB)
-              </span>
-              <button
-                type="button"
-                onClick={() => handleRemoveFile(af.id)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--color-text-muted)',
-                  cursor: 'pointer',
-                  padding: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-                title="Remove attachment"
-              >
-                <X size={12} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Textarea */}
-      <textarea
-        ref={textareaRef}
-        rows={isBottomDock ? 2 : 3}
-        value={inputText}
-        onChange={(e) => setInputText(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={attachedFiles.length > 0 ? "Ask anything about the attached files, or describe the analysis..." : "Query plant SOPs, inspect document compliance thresholds, or request sandboxed Python routines..."}
-        disabled={isGenerating || isProcessingFiles}
-        style={{
-          width: '100%',
-          background: 'transparent',
-          border: 'none',
-          color: 'var(--color-text-primary)',
-          fontSize: '13.5px',
-          lineHeight: 1.55,
-          outline: 'none',
-          resize: 'none',
-          fontFamily: 'inherit',
-        }}
-      />
-
-      {/* BOTTOM ACTION BAR INSIDE THE TYPING SECTION (CLAUDE-STYLE) */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderTop: '1px solid var(--color-border)',
-          paddingTop: '10px',
-        }}
-      >
-        {/* Left: Attachments + Model Selector Pill */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {/* File Attachment Button */}
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="btn btn-sm btn-ghost"
-            style={{
-              padding: '4px 8px',
-              height: '26px',
-              fontSize: '11px',
-              gap: '4px',
-              color: attachedFiles.length > 0 ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-            }}
-            title="Attach files (PDF, TXT, CSV, JSON, Python, Docs)"
-          >
-            <Paperclip size={13} />
-            <span>Attach</span>
-          </button>
-
-          {/* Model Selector Pill inside the typing bar */}
-          <div style={{ position: 'relative' }} ref={dropdownRef}>
-            <button
-              type="button"
-              onClick={() => setShowModelDropdown(!showModelDropdown)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: 'var(--color-surface-2)',
-                border: '1px solid var(--color-border)',
-                borderRadius: '8px',
-                padding: '4px 10px',
-                color: 'var(--color-text-primary)',
-                fontSize: '11px',
-                fontFamily: 'var(--font-mono)',
-                cursor: 'pointer',
-                transition: 'all var(--transition-fast)',
-              }}
-              title="Select Local Inference Model"
-            >
-              <Sparkles size={11} color="var(--color-accent)" />
-              <span>{selectedModel}</span>
-              <ChevronDown size={11} color="var(--color-text-muted)" />
-            </button>
-
-            {/* Model Selector Dropdown Popover */}
-            {showModelDropdown && (
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '100%',
-                  left: 0,
-                  marginBottom: '8px',
-                  background: 'var(--color-surface)',
-                  border: '1px solid var(--color-border-strong)',
-                  borderRadius: '8px',
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6)',
-                  zIndex: 100,
-                  minWidth: '200px',
-                  overflow: 'hidden',
-                  padding: '4px 0',
-                }}
-              >
-                <div style={{ padding: '6px 12px', fontSize: '10px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                  Installed Local Models
-                </div>
-                {availableModels.map((m) => (
-                  <div
-                    key={m}
-                    onClick={() => {
-                      setSelectedModel(m)
-                      setShowModelDropdown(false)
-                    }}
-                    style={{
-                      padding: '8px 12px',
-                      fontSize: '12px',
-                      fontFamily: 'var(--font-mono)',
-                      color: selectedModel === m ? 'var(--color-accent)' : 'var(--color-text-primary)',
-                      background: selectedModel === m ? 'var(--color-accent-bg)' : 'transparent',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <span>{m}</span>
-                    {selectedModel === m && <Check size={12} color="var(--color-accent)" />}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right: Send or Stop Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {isProcessingFiles ? (
-            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
-              Reading files...
-            </span>
-          ) : null}
-
-          {isGenerating ? (
-            <button
-              type="button"
-              onClick={handleStop}
-              className="btn btn-danger"
-              style={{
-                height: '32px',
-                padding: '0 12px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12px',
-              }}
-              title="Stop Generation"
-            >
-              <Square size={12} />
-              <span>Stop</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => handleSend()}
-              disabled={(!inputText.trim() && attachedFiles.length === 0) || isProcessingFiles}
-              className="btn btn-primary"
-              style={{
-                width: '32px',
-                height: '32px',
-                padding: 0,
-                borderRadius: '8px',
-                flexShrink: 0,
-                opacity: (inputText.trim() || attachedFiles.length > 0) && !isProcessingFiles ? 1 : 0.4,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              title="Send message (Enter)"
-            >
-              <Send size={13} />
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+    <PromptInput
+      placeholder={
+        isBottomDock
+          ? "Ask a follow-up question or attach more documents..."
+          : "Query plant SOPs, inspect document compliance thresholds, or request sandboxed Python routines..."
+      }
+      models={availableModels}
+      selectedModel={selectedModel}
+      onModelChange={setSelectedModel}
+      onSubmit={(val, meta) => handleSend(val, meta.attachments, meta.model, meta.effort)}
+      isGenerating={isGenerating}
+      onStop={handleStop}
+      isProcessingFiles={isProcessingFiles}
+      initialExpanded={isBottomDock}
+    />
   )
 
   /* ── HISTORY DRAWER / SIDEBAR ── */
