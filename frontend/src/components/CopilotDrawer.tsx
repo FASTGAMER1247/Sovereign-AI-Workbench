@@ -13,11 +13,6 @@ import {
 } from 'lucide-react'
 import { sendChat } from '../api/client'
 import type { AppSystemState } from '../types'
-import {
-  StreamingText,
-  getLoadingTokensForQuery,
-  getLoadingSourcesForQuery,
-} from './ui/streaming-text'
 import { MessageLoading } from './ui/message-loading'
 
 export interface CopilotMessage {
@@ -619,41 +614,17 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
                 background: 'var(--color-surface)',
                 border: '1px solid var(--color-border)',
                 borderRadius: '12px 12px 12px 2px',
-                padding: '10px 12px',
-                width: '100%',
-                fontSize: '11.5px',
+                padding: '8px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                width: 'fit-content',
               }}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '8px',
-                  paddingBottom: '6px',
-                  borderBottom: '1px solid var(--color-border-subtle)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <MessageLoading size={16} color="var(--color-accent)" />
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-accent)' }}>
-                    Local model reasoning...
-                  </span>
-                </div>
-                <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
-                  {selectedModel || 'qwen2.5-coder:1.5b'}
-                </span>
-              </div>
-              <StreamingText
-                className="w-full font-sans text-ink"
-                tokens={getLoadingTokensForQuery(messages[messages.length - 1]?.content || '')}
-                sources={getLoadingSourcesForQuery(messages[messages.length - 1]?.content || '')}
-                wordMs={55}
-                holdMs={1500}
-                autoLoop={true}
-                showActions={false}
-                showFollowUps={false}
-              />
+              <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
+                {selectedModel || 'qwen2.5-coder:1.5b'}
+              </span>
+              <MessageLoading size={20} color="var(--color-accent)" />
             </div>
           </div>
         )}

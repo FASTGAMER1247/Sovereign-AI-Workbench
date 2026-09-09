@@ -1,10 +1,5 @@
 import { Clock, Cpu, Hash, CheckCircle2, AlertCircle } from 'lucide-react'
 import type { ChatResponse } from '../types'
-import {
-  StreamingText,
-  getLoadingTokensForQuery,
-  getLoadingSourcesForQuery,
-} from './ui/streaming-text'
 import { MessageLoading } from './ui/message-loading'
 
 interface ResponseViewerProps {
@@ -54,21 +49,8 @@ export function ResponseViewer({ response, isGenerating, error, prompt }: Respon
 
       {/* Body */}
       {isGenerating && (
-        <div style={{ padding: '16px 20px', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--color-accent)', fontSize: '12px', fontWeight: 600 }}>
-            <MessageLoading size={18} color="var(--color-accent)" />
-            <span>Generating response from local model…</span>
-          </div>
-          <StreamingText
-            className="w-full font-sans text-ink"
-            tokens={getLoadingTokensForQuery(prompt || '')}
-            sources={getLoadingSourcesForQuery(prompt || '')}
-            wordMs={55}
-            holdMs={1500}
-            autoLoop={true}
-            showActions={false}
-            showFollowUps={false}
-          />
+        <div style={{ padding: '16px 20px', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <MessageLoading size={24} color="var(--color-accent)" />
         </div>
       )}
 

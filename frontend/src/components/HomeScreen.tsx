@@ -35,11 +35,6 @@ import {
   extractDocumentText,
 } from '../api/client'
 import type { AppSystemState } from '../types'
-import {
-  StreamingText,
-  getLoadingTokensForQuery,
-  getLoadingSourcesForQuery,
-} from './ui/streaming-text'
 import { MessageLoading } from './ui/message-loading'
 
 
@@ -1500,75 +1495,57 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               {isGenerating && (
                 <div
                   style={{
-                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
                     background: 'var(--color-surface)',
                     border: '1px solid var(--color-border)',
-                    borderRadius: '12px',
-                    padding: '16px 18px',
+                    borderRadius: '12px 12px 12px 2px',
+                    padding: '10px 16px',
                     marginTop: '10px',
+                    width: 'fit-content',
                     animation: 'fade-in 250ms ease-out both',
                   }}
                 >
                   <div
                     style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '6px',
+                      background: 'var(--color-accent-bg)',
+                      border: '1px solid var(--color-accent-border)',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: '12px',
-                      paddingBottom: '8px',
-                      borderBottom: '1px solid var(--color-border-subtle)',
+                      justifyContent: 'center',
+                      color: 'var(--color-accent)',
+                      flexShrink: 0,
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div
-                        style={{
-                          width: '22px',
-                          height: '22px',
-                          borderRadius: '6px',
-                          background: 'var(--color-accent-bg)',
-                          border: '1px solid var(--color-accent-border)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'var(--color-accent)',
-                        }}
-                      >
-                        <Bot size={13} />
-                      </div>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                        Sovereign Copilot
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '10px',
-                          fontFamily: 'var(--font-mono)',
-                          color: 'var(--color-accent)',
-                          background: 'var(--color-accent-bg)',
-                          padding: '1px 6px',
-                          borderRadius: '4px',
-                          border: '1px solid var(--color-accent-border)',
-                        }}
-                      >
-                        {selectedModel || 'qwen2.5-coder:1.5b'}
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--color-accent)' }}>
-                      <MessageLoading size={18} color="var(--color-accent)" />
-                      <span style={{ fontWeight: 600 }}>Local Reasoning</span>
-                    </div>
+                    <Bot size={13} />
                   </div>
 
-                  <StreamingText
-                    className="w-full font-sans text-ink"
-                    tokens={getLoadingTokensForQuery(messages[messages.length - 1]?.content || '')}
-                    sources={getLoadingSourcesForQuery(messages[messages.length - 1]?.content || '')}
-                    wordMs={50}
-                    holdMs={1400}
-                    autoLoop={true}
-                    showActions={false}
-                    showFollowUps={false}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                      Sovereign Copilot
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        fontFamily: 'var(--font-mono)',
+                        color: 'var(--color-accent)',
+                        background: 'var(--color-accent-bg)',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        border: '1px solid var(--color-accent-border)',
+                      }}
+                    >
+                      {selectedModel || 'qwen2.5-coder:1.5b'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', paddingLeft: '4px' }}>
+                    <MessageLoading size={24} color="var(--color-accent)" />
+                  </div>
                 </div>
               )}
 
