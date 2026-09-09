@@ -617,13 +617,9 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
                 padding: '8px 14px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
                 width: 'fit-content',
               }}
             >
-              <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
-                {selectedModel || 'qwen2.5-coder:1.5b'}
-              </span>
               <MessageLoading size={20} color="var(--color-accent)" />
             </div>
           </div>

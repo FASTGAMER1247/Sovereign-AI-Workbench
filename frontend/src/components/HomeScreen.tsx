@@ -1498,10 +1498,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '10px',
-                    background: 'var(--color-surface)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: '12px 12px 12px 2px',
-                    padding: '10px 16px',
                     marginTop: '10px',
                     width: 'fit-content',
                     animation: 'fade-in 250ms ease-out both',
@@ -1524,26 +1520,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     <Bot size={13} />
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                      Sovereign Copilot
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        fontFamily: 'var(--font-mono)',
-                        color: 'var(--color-accent)',
-                        background: 'var(--color-accent-bg)',
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                        border: '1px solid var(--color-accent-border)',
-                      }}
-                    >
-                      {selectedModel || 'qwen2.5-coder:1.5b'}
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', paddingLeft: '4px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      background: 'var(--color-surface)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '12px 12px 12px 2px',
+                      padding: '8px 14px',
+                    }}
+                  >
                     <MessageLoading size={24} color="var(--color-accent)" />
                   </div>
                 </div>
