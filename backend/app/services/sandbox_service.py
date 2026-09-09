@@ -230,6 +230,9 @@ except Exception as e:
         clean_env = {
             "PATH": os.environ.get("PATH", ""),
             "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),
+            "TEMP": os.environ.get("TEMP", str(run_dir)),
+            "TMP": os.environ.get("TMP", str(run_dir)),
+            "USERPROFILE": os.environ.get("USERPROFILE", ""),
             "PYTHONPATH": str(run_dir),
             "PYTHONUNBUFFERED": "1",
             "PYTHONDONTWRITEBYTECODE": "1",
