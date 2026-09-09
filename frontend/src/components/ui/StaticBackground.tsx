@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 
 export interface StaticBackgroundProps {
   className?: string;
@@ -21,7 +21,7 @@ export const StaticBackground: React.FC<StaticBackgroundProps> = ({
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 0,
+        zIndex: -1,
         pointerEvents: 'none',
         backgroundColor: '#07090e',
         backgroundImage: `

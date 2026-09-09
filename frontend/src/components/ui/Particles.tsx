@@ -200,7 +200,7 @@ export const Particles: React.FC<ParticlesProps> = ({
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 0,
+        zIndex: -1,
         pointerEvents: 'none',
         background: 'transparent',
         ...style,

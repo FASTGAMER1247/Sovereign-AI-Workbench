@@ -148,6 +148,8 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  position: relative;
+  z-index: 1;
 }
 
 /* ─── Mission Control Header ─── */
@@ -616,13 +618,15 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   min-height: calc(85vh - 52px);
   max-width: 1040px;
   margin: 0 auto;
-  padding: 36px 24px;
-  gap: 30px;
+  padding: 24px 24px 32px 24px;
+  gap: 18px;
   animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes fadeIn {
@@ -635,7 +639,7 @@ html, body {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .home-badge {

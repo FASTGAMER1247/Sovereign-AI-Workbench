@@ -1183,7 +1183,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   /* CASE 2: EMPTY HOME OVERVIEW SCREEN (CLAUDE-STYLE HERO + CARDS)        */
   /* ══════════════════════════════════════════════════════════════════════ */
   return (
-    <div style={{ display: 'flex', width: '100%', minHeight: 'calc(100vh - 52px)' }}>
+    <div style={{ display: 'flex', width: '100%', flex: 1 }}>
       {/* Left History Sidebar (can be toggled from home screen too) */}
       {renderHistorySidebar()}
 
