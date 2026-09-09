@@ -118,7 +118,11 @@ pub fn run() {
                 if let Some((exe_path, args, work_dir)) = find_backend_target(app.handle()) {
                     println!("[Desktop] Starting backend: {:?} in {:?}", exe_path, work_dir);
                     let mut cmd = Command::new(&exe_path);
-                    cmd.args(&args);
+                    let my_pid = std::process::id();
+                    let mut final_args = args.clone();
+                    final_args.push("--parent-pid".into());
+                    final_args.push(my_pid.to_string());
+                    cmd.args(&final_args);
                     cmd.current_dir(&work_dir);
 
                     // Propagate safe writable data directory in production
@@ -162,13 +166,22 @@ pub fn run() {
 
             Ok(())
         })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Destroyed = event {
+                let state = window.state::<BackendState>();
+                state.kill();
+            }
+        })
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 
     app.run(|app_handle, event| {
-        if let RunEvent::Exit = event {
-            let state = app_handle.state::<BackendState>();
-            state.kill();
+        match event {
+            RunEvent::Exit | RunEvent::ExitRequested { .. } => {
+                let state = app_handle.state::<BackendState>();
+                state.kill();
+            }
+            _ => {}
         }
     });
 }
