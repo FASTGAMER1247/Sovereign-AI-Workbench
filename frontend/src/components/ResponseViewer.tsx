@@ -1,5 +1,10 @@
 import { Clock, Cpu, Hash, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import type { ChatResponse } from '../types'
+import {
+  StreamingText,
+  getLoadingTokensForQuery,
+  getLoadingSourcesForQuery,
+} from './ui/streaming-text'
 
 interface ResponseViewerProps {
   response: ChatResponse | null
@@ -48,9 +53,21 @@ export function ResponseViewer({ response, isGenerating, error, prompt }: Respon
 
       {/* Body */}
       {isGenerating && (
-        <div className="generating-indicator">
-          <Loader2 size={14} style={{ animation: 'spin 0.7s linear infinite' }} />
-          Generating response from local model…
+        <div style={{ padding: '16px 20px', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--color-accent)', fontSize: '12px', fontWeight: 600 }}>
+            <Loader2 size={13} style={{ animation: 'spin 0.7s linear infinite' }} />
+            <span>Generating response from local model…</span>
+          </div>
+          <StreamingText
+            className="w-full font-sans text-ink"
+            tokens={getLoadingTokensForQuery(prompt || '')}
+            sources={getLoadingSourcesForQuery(prompt || '')}
+            wordMs={55}
+            holdMs={1500}
+            autoLoop={true}
+            showActions={false}
+            showFollowUps={false}
+          />
         </div>
       )}
 

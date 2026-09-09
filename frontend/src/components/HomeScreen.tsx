@@ -35,6 +35,11 @@ import {
   extractDocumentText,
 } from '../api/client'
 import type { AppSystemState } from '../types'
+import {
+  StreamingText,
+  getLoadingTokensForQuery,
+  getLoadingSourcesForQuery,
+} from './ui/streaming-text'
 
 
 
@@ -1492,17 +1497,80 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               })}
 
               {isGenerating && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--color-accent)', fontSize: '12px', padding: '8px 0' }}>
+                <div
+                  style={{
+                    width: '100%',
+                    background: 'var(--color-surface)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '12px',
+                    padding: '16px 18px',
+                    marginTop: '10px',
+                    animation: 'fade-in 250ms ease-out both',
+                  }}
+                >
                   <div
                     style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      background: 'var(--color-accent)',
-                      animation: 'pulse 1s infinite alternate',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '12px',
+                      paddingBottom: '8px',
+                      borderBottom: '1px solid var(--color-border-subtle)',
                     }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div
+                        style={{
+                          width: '22px',
+                          height: '22px',
+                          borderRadius: '6px',
+                          background: 'var(--color-accent-bg)',
+                          border: '1px solid var(--color-accent-border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--color-accent)',
+                        }}
+                      >
+                        <Bot size={13} />
+                      </div>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                        Sovereign Copilot
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontFamily: 'var(--font-mono)',
+                          color: 'var(--color-accent)',
+                          background: 'var(--color-accent-bg)',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          border: '1px solid var(--color-accent-border)',
+                        }}
+                      >
+                        {selectedModel || 'qwen2.5-coder:1.5b'}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                      <span
+                        className="spinner"
+                        style={{ width: '10px', height: '10px', borderTopColor: 'var(--color-accent)' }}
+                      />
+                      <span>Local Reasoning</span>
+                    </div>
+                  </div>
+
+                  <StreamingText
+                    className="w-full font-sans text-ink"
+                    tokens={getLoadingTokensForQuery(messages[messages.length - 1]?.content || '')}
+                    sources={getLoadingSourcesForQuery(messages[messages.length - 1]?.content || '')}
+                    wordMs={50}
+                    holdMs={1400}
+                    autoLoop={true}
+                    showActions={false}
+                    showFollowUps={false}
                   />
-                  <span>Sovereign Copilot is generating response via local Ollama...</span>
                 </div>
               )}
 

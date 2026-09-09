@@ -13,6 +13,11 @@ import {
 } from 'lucide-react'
 import { sendChat } from '../api/client'
 import type { AppSystemState } from '../types'
+import {
+  StreamingText,
+  getLoadingTokensForQuery,
+  getLoadingSourcesForQuery,
+} from './ui/streaming-text'
 
 export interface CopilotMessage {
   id: string
@@ -590,17 +595,20 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
 
         {/* In-flight typing indicator */}
         {isGenerating && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '6px 0' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', padding: '6px 0' }}>
             <div
               style={{
                 width: '24px',
                 height: '24px',
-                borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.08)',
+                borderRadius: '6px',
+                background: 'var(--color-accent-bg)',
+                border: '1px solid var(--color-accent-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'var(--color-accent)',
+                flexShrink: 0,
+                marginTop: '2px',
               }}
             >
               <Bot size={13} />
@@ -610,16 +618,44 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({
                 background: 'var(--color-surface)',
                 border: '1px solid var(--color-border)',
                 borderRadius: '12px 12px 12px 2px',
-                padding: '8px 12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '11px',
-                color: 'var(--color-text-muted)',
+                padding: '10px 12px',
+                width: '100%',
+                fontSize: '11.5px',
               }}
             >
-              <span className="spinner" style={{ width: '10px', height: '10px' }} />
-              Local model is reasoning...
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '8px',
+                  paddingBottom: '6px',
+                  borderBottom: '1px solid var(--color-border-subtle)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span
+                    className="spinner"
+                    style={{ width: '8px', height: '8px', borderTopColor: 'var(--color-accent)' }}
+                  />
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-accent)' }}>
+                    Local model reasoning...
+                  </span>
+                </div>
+                <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
+                  {selectedModel || 'qwen2.5-coder:1.5b'}
+                </span>
+              </div>
+              <StreamingText
+                className="w-full font-sans text-ink"
+                tokens={getLoadingTokensForQuery(messages[messages.length - 1]?.content || '')}
+                sources={getLoadingSourcesForQuery(messages[messages.length - 1]?.content || '')}
+                wordMs={55}
+                holdMs={1500}
+                autoLoop={true}
+                showActions={false}
+                showFollowUps={false}
+              />
             </div>
           </div>
         )}
