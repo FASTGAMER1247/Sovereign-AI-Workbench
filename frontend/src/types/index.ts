@@ -397,4 +397,64 @@ export interface AutoOptimizeResponse {
   hardware_profile: HardwareProfileResponse
 }
 
+// ─── Image Generation Types ───
+
+export interface ImageGenerateRequest {
+  prompt: string
+  num_inference_steps?: number
+  guidance_scale?: number
+  width?: number
+  height?: number
+  seed?: number
+}
+
+export interface ImageGenerateResponse {
+  id: string
+  filename: string
+  prompt: string
+  width: number
+  height: number
+  steps: number
+  generation_time_ms: number
+  device_used: string
+  file_url: string
+  created_at: string
+  model_name: string
+}
+
+export interface ImageStatusResponse {
+  is_available: boolean
+  is_loaded: boolean
+  model_name: string
+  device: string
+  vram_allocated_mb?: number | null
+}
+
+// ─── Voice Interaction Types (STT & TTS) ───
+
+export interface VoiceStatusResponse {
+  stt_available: boolean
+  tts_available: boolean
+  installed_voices: string[]
+  default_voice?: string | null
+  device_used: string
+}
+
+export interface VoiceSynthesizeRequest {
+  text: string
+  voice?: string | null
+  rate?: number
+  volume?: number
+}
+
+export interface VoiceTranscribeResponse {
+  text: string
+  language: string
+  duration_seconds?: number | null
+  confidence?: number
+  processing_time_ms: number
+}
+
+
+
 

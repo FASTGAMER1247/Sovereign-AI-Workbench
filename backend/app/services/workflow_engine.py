@@ -20,6 +20,7 @@ from app.models.schemas import (
 )
 from app.services.document_service import DocumentService, get_document_service
 from app.services.docx_service import DocxService, get_docx_service
+from app.services.pdf_service import PdfService, get_pdf_service
 from app.services.rag_service import RAGService, get_rag_service
 from app.services.retrieval_service import RetrievalService, get_retrieval_service
 from app.services.router_service import ModelRouterService, get_router_service
@@ -39,12 +40,14 @@ class WorkflowEngine:
         retrieval_service: Optional[RetrievalService] = None,
         rag_service: Optional[RAGService] = None,
         docx_service: Optional[DocxService] = None,
+        pdf_service: Optional[PdfService] = None,
         router_service: Optional[ModelRouterService] = None,
     ):
         self.document_service = document_service or get_document_service()
         self.retrieval_service = retrieval_service or get_retrieval_service()
         self.rag_service = rag_service or get_rag_service()
         self.docx_service = docx_service or get_docx_service()
+        self.pdf_service = pdf_service or get_pdf_service()
         self.router_service = router_service or get_router_service()
 
         self.storage_dir = Path(settings.DATA_DIR) / "workflows"
@@ -463,16 +466,26 @@ class WorkflowEngine:
                 reviewer_notes=request.reviewer_notes or "Validated against grounded operational standards.",
             )
 
-            # Generate file
+            # Generate files (DOCX and PDF)
             artifact_info = self.docx_service.generate_approval_note(
                 execution_id=execution_id,
                 content=doc_content,
                 filename_prefix=execution.document_name.split(".")[0],
             )
+            try:
+                pdf_info = self.pdf_service.generate_approval_note(
+                    execution_id=execution_id,
+                    content=doc_content,
+                    filename_prefix=execution.document_name.split(".")[0],
+                )
+                artifact_info["pdf_url"] = pdf_info["url"]
+                artifact_info["pdf_filename"] = pdf_info["filename"]
+            except Exception as e:
+                logger.warning(f"Failed to generate PDF approval note for {execution_id}: {e}")
 
             step5.status = "completed"
             step5.completed_at = datetime.datetime.now().isoformat()
-            step5.output_summary = f"Generated approval note: {artifact_info['filename']} ({artifact_info['size_bytes']} bytes)."
+            step5.output_summary = f"Generated approval notes: {artifact_info['filename']} (.docx) and PDF ({artifact_info.get('size_bytes', 0)} bytes)."
             step5.output_data = artifact_info
 
             execution.artifact_filename = artifact_info["filename"]

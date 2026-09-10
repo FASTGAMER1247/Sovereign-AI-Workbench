@@ -61,6 +61,16 @@ async def run_router_tests():
     assert "qwen2.5-coder:1.5b" in o_resp.selected_model
     print("TEST 5 PASSED!")
 
+    # 6. Image Generation Route
+    print("\n[TEST 6] Testing Image Generation Routing...")
+    img_req = ModelRouteRequest(prompt="Generate an image of an industrial refinery reactor unit at sunset")
+    img_resp = await router.route_task(img_req)
+    print(f"Task: {img_resp.task_type} -> Selected Model: {img_resp.selected_model} (Reason: {img_resp.reason})")
+    assert img_resp.task_type == "image_generation"
+    assert "sd-turbo" in img_resp.selected_model
+    assert "image_generation" in img_resp.capabilities
+    print("TEST 6 PASSED!")
+
 
     print("\n" + "=" * 60)
     print("ALL MULTI-MODEL ROUTER TESTS PASSED!")

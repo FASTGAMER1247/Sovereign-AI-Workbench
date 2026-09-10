@@ -56,7 +56,31 @@ class HardwareService:
 
     @staticmethod
     def get_gpu_info() -> Tuple[str, float]:
-        """Detect GPU name and VRAM in GB."""
+        """Detect GPU name and VRAM in GB using native CUDA driver or nvidia-smi."""
+        # 1. First attempt: Direct PyTorch CUDA runtime (most accurate physical VRAM)
+        try:
+            import torch
+            if torch.cuda.is_available():
+                name = torch.cuda.get_device_name(0)
+                vram_bytes = torch.cuda.get_device_properties(0).total_memory
+                vram_gb = round(vram_bytes / (1024**3), 1)
+                return name, vram_gb
+        except Exception as e:
+            logger.debug(f"PyTorch CUDA query skipped: {e}")
+
+        # 2. Second attempt: nvidia-smi CLI
+        try:
+            cmd = ["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"]
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=2.0)
+            if res.returncode == 0 and res.stdout.strip():
+                parts = res.stdout.strip().split("\n")[0].split(",")
+                name = parts[0].strip()
+                vram_mb = float(parts[1].strip())
+                return name, round(vram_mb / 1024, 1)
+        except Exception as e:
+            logger.debug(f"nvidia-smi query skipped: {e}")
+
+        # 3. Third attempt: Windows WMI fallback (Note: AdapterRAM is a 32-bit uint capped at 4GB)
         if sys.platform == "win32":
             try:
                 cmd = [
@@ -75,7 +99,7 @@ class HardwareService:
                     vram_gb = round(vram_bytes / (1024**3), 1)
                     return name, vram_gb
             except Exception as e:
-                logger.debug(f"Error checking Windows GPU: {e}")
+                logger.debug(f"Error checking Windows GPU via WMI: {e}")
 
         return "Generic Graphics Adapter", 0.0
 

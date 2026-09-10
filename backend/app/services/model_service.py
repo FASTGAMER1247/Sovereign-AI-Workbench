@@ -33,6 +33,19 @@ class ModelService:
             f"with default model {self.settings.DEFAULT_MODEL}"
         )
 
+    DEFAULT_SYSTEM_PROMPT = (
+        "You are Sovereign Copilot, the intelligent sovereign AI assistant of Sovereign AI Workbench.\n"
+        "You operate 100% locally and air-gapped on the host workstation with hardware acceleration (NVIDIA GeForce RTX 5050 Laptop GPU, 8GB VRAM).\n\n"
+        "Key System Capabilities & Integrated Tooling:\n"
+        "- Image Generation: The workbench has a built-in, local Stable Diffusion Turbo (SD-Turbo) engine running directly on CUDA (<1s per image). When users ask if you can generate images or photos, answer YES! Explain that they can simply type 'generate an image of...', 'draw...', or 'photo of...' to synthesize visuals locally.\n"
+        "- Multimodal Vision & OCR: You can inspect uploaded images, diagrams, blueprints, and documents using local vision models (LLaVA and Moondream).\n"
+        "- Document & PDF Intelligence: The workbench can parse, audit, and generate industrial compliance reports in both PDF (.pdf) and DOCX (.docx) formats using PyMuPDF.\n"
+        "- Python Sandbox: Secure local code execution with AST safety analysis.\n"
+        "- Local RAG: Semantic search and document intelligence using ChromaDB and nomic-embed-text.\n"
+        "- Video Generation: Full-scale text-to-video models (e.g. Wan2.1, CogVideoX, uncompressed SVD) typically require 16GB-24GB VRAM for temporal sequence rendering. Generative video pipelines are actively being optimized for 8GB VRAM with quantization, while sub-second image synthesis is fully operational on your 8GB RTX 5050 GPU.\n\n"
+        "Always provide helpful, precise, and concise responses. Never claim to be a purely text-only model unable to generate images."
+    )
+
     def get_provider(self, provider_name: str = "ollama") -> ModelProvider:
         provider = self._providers.get(provider_name)
         if not provider:
@@ -40,7 +53,10 @@ class ModelService:
         return provider
 
     async def generate_chat(self, request: ChatRequest) -> ChatResponse:
-        messages = request.get_effective_messages()
+        messages = list(request.get_effective_messages())
+        if not any(m.role == "system" for m in messages):
+            messages = [ChatMessage(role="system", content=self.DEFAULT_SYSTEM_PROMPT)] + messages
+
         model = request.model or self.settings.DEFAULT_MODEL
         provider = self.get_provider("ollama")
         
@@ -53,7 +69,10 @@ class ModelService:
         )
 
     async def stream_chat(self, request: ChatRequest) -> AsyncGenerator[str, None]:
-        messages = request.get_effective_messages()
+        messages = list(request.get_effective_messages())
+        if not any(m.role == "system" for m in messages):
+            messages = [ChatMessage(role="system", content=self.DEFAULT_SYSTEM_PROMPT)] + messages
+
         model = request.model or self.settings.DEFAULT_MODEL
         provider = self.get_provider("ollama")
         

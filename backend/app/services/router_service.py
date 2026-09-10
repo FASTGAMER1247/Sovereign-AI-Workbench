@@ -25,7 +25,7 @@ class ModelRouterService:
         "llama3.2:3b": ["chat", "reasoning", "rag_audit", "coding"],
         "llama3.2:1b": ["chat", "rag_audit"],
         "llama3.2": ["chat", "reasoning", "rag_audit"],
-        "qwen2.5-coder:1.5b": ["chat", "reasoning", "coding", "rag_audit", "vision"],
+        "qwen2.5-coder:1.5b": ["chat", "reasoning", "coding", "rag_audit"],
         "qwen2.5-coder:0.5b": ["coding", "reasoning", "chat"],
         "qwen2.5-coder:3b": ["coding", "reasoning", "chat", "rag_audit"],
         "qwen2.5-coder:7b": ["coding", "reasoning", "chat", "rag_audit"],
@@ -41,7 +41,12 @@ class ModelRouterService:
         "qwen2.5:3b": ["chat", "reasoning", "coding", "rag_audit"],
         "qwen2.5:7b": ["chat", "reasoning", "coding", "rag_audit"],
         "llama3.2-vision": ["vision", "chat"],
-        "llava": ["vision", "chat"],
+        "llava": ["vision", "chat", "reasoning"],
+        "llava:latest": ["vision", "chat", "reasoning"],
+        "llava:7b": ["vision", "chat", "reasoning"],
+        "moondream": ["vision", "chat"],
+        "moondream:latest": ["vision", "chat"],
+        "stabilityai/sd-turbo": ["image_generation", "diffusion"],
         "nomic-embed-text": ["embeddings", "vector"],
         "all-minilm": ["embeddings", "vector"],
     }
@@ -68,6 +73,26 @@ class ModelRouterService:
             return "chat"
 
         p_lower = prompt.lower()
+
+        # Check for Image Generation keywords first
+        image_gen_patterns = [
+            r"\b(generate (an? |the |this )?image|create (an? |the |this )?image|draw (an? |the |this )?image|render (an? |the |this )?image|generate (a |the )?picture|text to image|text-to-image|diffusion|synthesize (an? )?image)\b",
+            r"\b(generate (a |an )?(guy|man|woman|person|character|portrait|landscape|cat|dog|car|robot|scene|city|room|building|drawing|photo|painting|artwork))\b",
+            r"^(draw|paint|sketch|illustrate)\b",
+            r"\b(photo of|picture of|portrait of|illustration of)\b",
+            r"^generate (the|this|that)( image)?$",
+        ]
+        for pattern in image_gen_patterns:
+            if re.search(pattern, p_lower):
+                return "image_generation"
+
+        # Check for Vision keywords
+        vision_patterns = [
+            r"\b(image|picture|photo|screenshot|diagram|scan|visual|inspect this image|ocr|extract text from image)\b",
+        ]
+        for pattern in vision_patterns:
+            if re.search(pattern, p_lower):
+                return "vision"
 
         # Check for Coding keywords
         code_patterns = [
@@ -145,10 +170,23 @@ class ModelRouterService:
             required_cap = "embeddings"
         elif task_type == "coding":
             required_cap = "coding"
+        elif task_type == "image_generation":
+            required_cap = "image_generation"
         elif task_type == "reasoning":
             required_cap = "reasoning"
         elif task_type == "rag_audit":
             required_cap = "rag_audit"
+
+        # If image generation requested
+        if required_cap == "image_generation":
+            return ModelRouteResponse(
+                task_type="image_generation",
+                selected_model="stabilityai/sd-turbo",
+                provider="diffusers",
+                capabilities=["image_generation", "diffusion"],
+                reason="Task requires text-to-image synthesis, auto-routed to local GPU-accelerated SD-Turbo diffusion engine.",
+                fallback_model=None,
+            )
 
         # If embeddings requested
         if required_cap == "embeddings":
@@ -185,11 +223,18 @@ class ModelRouterService:
                 # If coding task, prioritize specialized coder models (e.g. qwen2.5-coder)
                 coder_specialists = [m for m in exact_matches if "coder" in m.lower()]
                 r1_specialists = [m for m in exact_matches if "deepseek-r1" in m.lower() or "r1" in m.lower()]
-                if required_cap == "coding" and coder_specialists:
-                    selected_model = coder_specialists[0]
+                vision_specialists = [m for m in exact_matches if "llava" in m.lower() or "moondream" in m.lower() or "vision" in m.lower()]
+
+                if required_cap == "vision" and vision_specialists:
+                    selected_model = vision_specialists[0]
+                    reason = f"Specialized Multimodal Vision Model '{selected_model}' auto-selected for visual analysis."
+                elif required_cap == "coding" and coder_specialists:
+                    sev_b = [m for m in coder_specialists if "7b" in m]
+                    selected_model = sev_b[0] if sev_b else coder_specialists[0]
                     reason = f"Specialized Coder Model '{selected_model}' auto-selected for coding task."
                 elif required_cap == "reasoning" and r1_specialists:
-                    selected_model = r1_specialists[0]
+                    sev_b = [m for m in r1_specialists if "7b" in m]
+                    selected_model = sev_b[0] if sev_b else r1_specialists[0]
                     reason = f"Specialized Chain-of-Thought Reasoning Model '{selected_model}' auto-selected for reasoning task."
                 # Prefer default model if it matches
                 elif any(default_model in m for m in exact_matches):

@@ -82,6 +82,8 @@ def build_standalone_executable():
         "app.services.coding_agent",
         "app.services.document_service",
         "app.services.docx_service",
+        "app.services.pdf_service",
+        "app.services.image_service",
         "app.services.hardware_service",
         "app.services.embedding_service",
         "app.services.knowledge_service",
@@ -196,13 +198,25 @@ if __name__ == "__main__":
     print("================================================================")
     print(" Sovereign AI Workbench — Backend Standalone Packaging Pipeline")
     print("================================================================")
+    skip_if_exists = "--skip-if-exists" in sys.argv
+    backend_exe = RESOURCES_DIR / "sovereign-backend.exe"
+    runner_exe = RESOURCES_DIR / "sovereign-sandbox-runner.exe"
+
     try:
-        ensure_pyinstaller()
-        build_standalone_executable()
-        build_sandbox_runner()
-        stage_for_tauri()
+        if skip_if_exists and backend_exe.is_file() and runner_exe.is_file():
+            print("\n[INFO] Pre-compiled backend and sandbox runner exist in resources.")
+            print(f"--> {backend_exe} ({backend_exe.stat().st_size / (1024*1024):.1f} MB)")
+            print(f"--> {runner_exe} ({runner_exe.stat().st_size / (1024*1024):.1f} MB)")
+            print("--> Skipping PyInstaller compilation (--skip-if-exists).")
+        else:
+            ensure_pyinstaller()
+            build_standalone_executable()
+            build_sandbox_runner()
+            stage_for_tauri()
+
         verify_bundle()
         print("\n Packaging process completed successfully!")
     except Exception as e:
         print(f"\n [ERROR] Packaging failed: {e}")
         sys.exit(1)
+

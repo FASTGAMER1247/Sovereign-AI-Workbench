@@ -2,6 +2,7 @@ import asyncio
 import sys
 from pathlib import Path
 import httpx
+import pytest
 
 # Add backend directory to sys.path
 backend_dir = Path(__file__).resolve().parent.parent
@@ -9,6 +10,7 @@ sys.path.insert(0, str(backend_dir))
 
 from app.main import app
 
+@pytest.mark.anyio
 async def test_full_api():
     print("=" * 60)
     print("SOVEREIGN AI WORKBENCH - FULL API REGRESSION TEST")

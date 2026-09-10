@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Response, status
 from fastapi.responses import FileResponse
 from app.config import Settings, get_settings
 from app.models.schemas import (
@@ -39,17 +39,25 @@ from app.models.schemas import (
     EgressProbeResult,
     ModelRecommendation,
     HardwareProfileResponse,
+    ImageGenerateRequest,
+    ImageGenerateResponse,
+    ImageStatusResponse,
+    VoiceTranscribeResponse,
+    VoiceSynthesizeRequest,
+    VoiceStatusResponse,
 )
 from app.services.audit_logger import AuditLogger, audit_logger
 from app.services.coding_agent import CodingAgent, get_coding_agent
 from app.services.document_service import DocumentService, get_document_service
 from app.services.hardware_service import HardwareService, get_hardware_service
+from app.services.image_service import image_service
 from app.services.knowledge_service import KnowledgeService, get_knowledge_service
 from app.services.model_service import ModelService, get_model_service
 from app.services.retrieval_service import RetrievalService, get_retrieval_service
 from app.services.router_service import ModelRouterService, get_router_service
 from app.services.sandbox_service import SandboxService, get_sandbox_service
 from app.services.sovereignty_service import SovereigntyService, sovereignty_service
+from app.services.voice_service import voice_service
 from app.services.workflow_engine import WorkflowEngine, get_workflow_engine
 
 logger = logging.getLogger(__name__)
@@ -596,9 +604,10 @@ async def submit_workflow_approval(
 @router.get("/workflows/executions/{execution_id}/artifact")
 async def download_workflow_artifact(
     execution_id: str,
+    format: str = "docx",
     workflow_engine: WorkflowEngine = Depends(get_workflow_engine),
 ):
-    """Download the generated DOCX compliance approval note artifact."""
+    """Download the generated compliance approval note artifact (.docx or .pdf)."""
     execution = workflow_engine.get_execution(execution_id)
     if not execution:
         raise HTTPException(
@@ -611,6 +620,17 @@ async def download_workflow_artifact(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Artifact for execution '{execution_id}' has not been generated or approved yet.",
         )
+
+    if format.lower() == "pdf":
+        base_path = execution.artifact_path.rsplit(".", 1)[0]
+        pdf_path = f"{base_path}.pdf"
+        if os.path.exists(pdf_path):
+            base_name = (execution.artifact_filename or f"Approval_Note_{execution_id[:8]}").rsplit(".", 1)[0]
+            return FileResponse(
+                path=pdf_path,
+                filename=f"{base_name}.pdf",
+                media_type="application/pdf",
+            )
 
     return FileResponse(
         path=execution.artifact_path,
@@ -810,6 +830,89 @@ async def seed_demo():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Demo package seeding failed: {str(e)}"
         )
+
+
+# ─── Local Image Generation Endpoints ───
+
+@router.get("/images/status", response_model=ImageStatusResponse)
+async def get_image_service_status() -> ImageStatusResponse:
+    """Get the current health and status of local GPU-accelerated diffusion generation."""
+    return image_service.get_status()
+
+
+@router.post("/images/generate", response_model=ImageGenerateResponse)
+async def generate_image(request: ImageGenerateRequest) -> ImageGenerateResponse:
+    """Generate an image from prompt using local SD-Turbo on RTX 5050 GPU."""
+    try:
+        return image_service.generate_image(request)
+    except Exception as e:
+        logger.error(f"Image generation failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Local image generation failed: {str(e)}"
+        )
+
+
+@router.get("/images/{image_id}")
+@router.get("/images/{image_id}/download")
+async def get_image_artifact(image_id: str):
+    """Retrieve or download a locally generated image artifact."""
+    img_path = image_service.get_image_path(image_id)
+    if not img_path or not img_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Image artifact '{image_id}' not found."
+        )
+
+    return FileResponse(
+        path=str(img_path),
+        media_type="image/png",
+        filename=img_path.name
+    )
+
+
+# ─── Local Voice Interaction Endpoints (STT & TTS) ───
+
+@router.get("/voice/status", response_model=VoiceStatusResponse)
+async def get_voice_status() -> VoiceStatusResponse:
+    """Get operational status and installed local voices for speech synthesis/recognition."""
+    return voice_service.get_status()
+
+
+@router.post("/voice/synthesize")
+async def synthesize_voice(request: VoiceSynthesizeRequest):
+    """Synthesize plain text into a PCM WAV audio stream using local Windows SAPI."""
+    try:
+        wav_bytes = voice_service.synthesize(request)
+        return Response(
+            content=wav_bytes,
+            media_type="audio/wav",
+            headers={"Content-Disposition": "inline; filename=speech.wav"}
+        )
+    except Exception as e:
+        logger.error(f"Speech synthesis failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Speech synthesis failed: {str(e)}"
+        )
+
+
+@router.post("/voice/transcribe", response_model=VoiceTranscribeResponse)
+async def transcribe_voice(file: UploadFile = File(...)) -> VoiceTranscribeResponse:
+    """Transcribe an audio recording into text using local Whisper."""
+    try:
+        audio_bytes = await file.read()
+        return voice_service.transcribe(audio_bytes, filename=file.filename or "recording.wav")
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+    except Exception as e:
+        logger.error(f"Voice transcription failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Voice transcription failed: {str(e)}"
+        )
+
+
 
 
 

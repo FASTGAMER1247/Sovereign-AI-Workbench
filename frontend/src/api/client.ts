@@ -24,6 +24,12 @@ import type {
   SovereigntyStatusResponse,
   HardwareProfileResponse,
   AutoOptimizeResponse,
+  ImageGenerateRequest,
+  ImageGenerateResponse,
+  ImageStatusResponse,
+  VoiceStatusResponse,
+  VoiceSynthesizeRequest,
+  VoiceTranscribeResponse,
 } from '../types'
 
 const isTauri =
@@ -379,6 +385,69 @@ export async function seedDemoPackage(): Promise<DemoSeedResponse> {
     method: 'POST',
   })
 }
+
+// ─── Phase 8: Image Generation Client API ───
+
+/** Check image synthesis engine status and VRAM allocation */
+export async function getImageStatus(): Promise<ImageStatusResponse> {
+  return apiFetch<ImageStatusResponse>('/images/status')
+}
+
+/** Generate an image using local GPU-accelerated SD-Turbo diffusion */
+export async function generateImage(
+  request: ImageGenerateRequest,
+): Promise<ImageGenerateResponse> {
+  return apiFetch<ImageGenerateResponse>('/images/generate', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+/** Get download/display URL for an image artifact */
+export function getImageDownloadUrl(imageId: string): string {
+  return `${BASE_URL}/images/${imageId}/download`
+}
+
+// ─── Voice Interaction Client API (STT & TTS) ───
+
+/** Check local speech synthesis and recognition status */
+export async function getVoiceStatus(): Promise<VoiceStatusResponse> {
+  return apiFetch<VoiceStatusResponse>('/voice/status')
+}
+
+/** Synthesize plain text into local WAV audio blob via backend */
+export async function synthesizeVoice(request: VoiceSynthesizeRequest): Promise<Blob> {
+  const url = `${BASE_URL}/voice/synthesize`
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  })
+  if (!resp.ok) {
+    const errorText = await resp.text()
+    throw new Error(`Voice synthesis failed: ${resp.status} - ${errorText}`)
+  }
+  return resp.blob()
+}
+
+/** Transcribe an audio recording Blob into text via local Whisper */
+export async function transcribeVoice(audioBlob: Blob, filename = 'recording.wav'): Promise<VoiceTranscribeResponse> {
+  const formData = new FormData()
+  formData.append('file', audioBlob, filename)
+
+  const url = `${BASE_URL}/voice/transcribe`
+  const resp = await fetch(url, {
+    method: 'POST',
+    body: formData,
+  })
+  if (!resp.ok) {
+    const errorText = await resp.text()
+    throw new Error(`Voice transcription failed: ${resp.status} - ${errorText}`)
+  }
+  return resp.json()
+}
+
+
 
 
 

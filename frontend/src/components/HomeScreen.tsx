@@ -27,15 +27,26 @@ import {
   ExternalLink,
   BookOpen,
   Database,
+  Download,
+  Image as ImageIcon,
+  Mic,
+  MicOff,
+  Volume2,
+  VolumeX,
+  Settings2,
 } from 'lucide-react'
 import {
   sendChat,
   listModels,
   uploadDocument,
   extractDocumentText,
+  generateImage,
+  getImageStatus,
+  getImageDownloadUrl,
 } from '../api/client'
 import type { AppSystemState } from '../types'
 import { MessageLoading } from './ui/message-loading'
+import { useVoiceChat } from '../hooks/useVoiceChat'
 
 
 
@@ -48,6 +59,19 @@ export interface CopilotMessage {
   duration_ms?: number
   tokens?: number
   attachedFiles?: Array<{ name: string; size: number }>
+  imageUrl?: string
+  imageMeta?: {
+    id: string
+    width: number
+    height: number
+    steps: number
+    device: string
+    generation_time_ms: number
+  }
+  actionSuggestion?: {
+    label: string
+    prompt: string
+  }
 }
 
 export interface AttachedFile {
@@ -134,6 +158,28 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
   const [showModelDropdown, setShowModelDropdown] = useState<boolean>(false)
 
+  // Voice Chat (STT & TTS) Hook
+  const voice = useVoiceChat({
+    onTranscriptChange: (text) => {
+      setInputText(text)
+    },
+    onTranscriptFinal: (text) => {
+      setInputText(text)
+    },
+  })
+  const [showVoiceSettings, setShowVoiceSettings] = useState<boolean>(false)
+  const voiceSettingsRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (voiceSettingsRef.current && !voiceSettingsRef.current.contains(event.target as Node)) {
+        setShowVoiceSettings(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -158,6 +204,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               setSelectedModel(names[0])
             }
           }
+        }
+      })
+      .catch(() => {})
+
+    getImageStatus()
+      .then((st) => {
+        if (st.is_available) {
+          setAvailableModels((prev) =>
+            prev.includes('stabilityai/sd-turbo') ? prev : [...prev, 'stabilityai/sd-turbo']
+          )
         }
       })
       .catch(() => {})
@@ -305,6 +361,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     if (!query && attachedFiles.length === 0) return
     if (isGenerating) return
 
+    if (voice.isListening) {
+      voice.stopListening()
+    }
+    if (voice.isSpeaking) {
+      voice.stopSpeaking()
+    }
+
     const currentFiles = [...attachedFiles]
     setAttachedFiles([])
     setInputText('')
@@ -337,6 +400,142 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     const controller = new AbortController()
     abortControllerRef.current = controller
 
+    // Check for explicit video generation requests (e.g. "generate a video of...", "make a video of...")
+    if (currentFiles.length === 0) {
+      const qTrimmed = query.trim()
+      const isVideoRequest =
+        /\b(video|animation|clip|movie|timelapse)\b/i.test(qTrimmed) &&
+        /^(generate|create|render|make|produce|build|draw)\b/i.test(qTrimmed)
+
+      if (isVideoRequest) {
+        const visualSubject = qTrimmed
+          .replace(/^(please\s+)?(can\s+you\s+)?(generate|create|render|make|produce|build|draw)\s+(an?|the)?\s*(video|animation|clip|movie|timelapse)\s*(of|with|depicting|showing)?\s*/i, '')
+          .trim() || 'scenic view'
+
+        const videoExplanationMsg: CopilotMessage = {
+          id: `asst_${Date.now()}`,
+          role: 'assistant',
+          content: `**Local Video Generation Hardware Status**\n\nFull text-to-video diffusion models (such as *Wan2.1*, *CogVideoX*, or uncompressed *SVD*) typically require **16 GB – 24 GB VRAM** for multi-second temporal rendering. Your workstation's **NVIDIA GeForce RTX 5050 Laptop GPU has 8 GB VRAM**, and lightweight video pipelines with INT4/GGUF quantization are currently in active integration.\n\nHowever, **high-speed local image generation is fully accelerated** on your 8GB RTX 5050 via **SD-Turbo** (<0.6s).\n\nWould you like to generate a high-detail image of this subject instead?`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          model: 'system/hardware-guard',
+          actionSuggestion: {
+            label: `Generate Image: "${visualSubject}"`,
+            prompt: `generate an image of ${visualSubject}`,
+          },
+        }
+
+        setMessages((prev) => [...prev, videoExplanationMsg])
+        if (voice.autoSpeak) {
+          voice.speakText(videoExplanationMsg.content, videoExplanationMsg.id)
+        }
+        setIsGenerating(false)
+        abortControllerRef.current = null
+        return
+      }
+    }
+
+    // Resolve whether this is an image generation request and determine the effective visual prompt
+    let resolvedImagePrompt: string | null = null
+
+    if (currentFiles.length === 0) {
+      const qTrimmed = query.trim()
+      const isExplicitModel = selectedModel?.includes('sd-turbo')
+
+      // Case A: Follow-up command like "generate the image", "generate it", "draw this", "make the image"
+      const isFollowUpCommand = /^(generate|create|render|draw|make|show)\s+(the|this|that|it)?(\s+image|\s+picture|\s+photo)?$/i.test(qTrimmed)
+      if (isFollowUpCommand) {
+        // Look back through previous messages for the subject description
+        for (let i = messages.length - 1; i >= 0; i--) {
+          const m = messages[i]
+          if (m.role === 'user' && m.content.length > 5 && !/^(generate|create|draw)\s+(the|this|that|it)/i.test(m.content)) {
+            resolvedImagePrompt = m.content
+            break
+          }
+        }
+      }
+
+      // Case B: Direct explicit generation phrases
+      if (!resolvedImagePrompt) {
+        if (isExplicitModel) {
+          resolvedImagePrompt = qTrimmed
+        } else if (
+          /^(generate|create|render|draw|paint|sketch|make)\s+(an?|the|this)?\s*(image|picture|photo|illustration|portrait|drawing|painting|artwork|visual|graphic|render)\b/i.test(qTrimmed) ||
+          /\b(text[- ]to[- ]image|stable[- ]diffusion|sd-turbo)\b/i.test(qTrimmed) ||
+          /^(photo|picture|portrait|illustration|painting|drawing|artwork)\s+of\b/i.test(qTrimmed)
+        ) {
+          resolvedImagePrompt = qTrimmed
+        } else {
+          // Case C: "generate a <character/scene>" e.g. "generate a guy who is fat and has a beard..."
+          const actionSubjectMatch = /^(generate|create|render|draw|paint|sketch|make)\s+(a|an)\s+(.+)/i.exec(qTrimmed)
+          if (actionSubjectMatch) {
+            const subject = actionSubjectMatch[3].trim().toLowerCase()
+            const textKeywords = ['code', 'script', 'function', 'class', 'python', 'unit test', 'test', 'summary', 'report', 'note', 'document', 'analysis', 'table', 'list', 'plan', 'sop', 'workflow', 'api', 'video', 'animation', 'clip', 'movie', 'timelapse']
+            const isTextTask = textKeywords.some((kw) => subject.startsWith(kw) || subject.includes(` ${kw}`))
+            if (!isTextTask) {
+              resolvedImagePrompt = qTrimmed
+            }
+          }
+        }
+      }
+    }
+
+    if (resolvedImagePrompt) {
+      // Clean command verbs like "generate a ", "draw an image of " for pure visual prompt synthesis
+      const cleanPrompt = resolvedImagePrompt
+        .replace(/^(please\s+)?(can\s+you\s+)?(generate|create|render|draw|paint|sketch|make)\s+(an?|the|this)?\s*(image|picture|photo|illustration|portrait|drawing|painting|artwork|visual)?\s*(of|with|depicting|showing)?\s*/i, '')
+        .trim() || resolvedImagePrompt
+
+      try {
+        const imgResp = await generateImage({
+          prompt: cleanPrompt,
+          num_inference_steps: 1,
+          guidance_scale: 0.0,
+          width: 512,
+          height: 512,
+        })
+
+        if (controller.signal.aborted) return
+
+        const assistantMsg: CopilotMessage = {
+          id: `asst_${Date.now()}`,
+          role: 'assistant',
+          content: `**Generated Image** using local **SD-Turbo** (${imgResp.device_used.toUpperCase()}) in **${(imgResp.generation_time_ms / 1000).toFixed(2)}s**.\n\n*Prompt:* "${cleanPrompt}"`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          model: 'stabilityai/sd-turbo',
+          duration_ms: imgResp.generation_time_ms,
+          imageUrl: getImageDownloadUrl(imgResp.id),
+          imageMeta: {
+            id: imgResp.id,
+            width: imgResp.width,
+            height: imgResp.height,
+            steps: imgResp.steps,
+            device: imgResp.device_used,
+            generation_time_ms: imgResp.generation_time_ms,
+          },
+        }
+
+        setMessages((prev) => [...prev, assistantMsg])
+        if (voice.autoSpeak) {
+          voice.speakText(assistantMsg.content, assistantMsg.id)
+        }
+      } catch (err: unknown) {
+        if (controller.signal.aborted) return
+        const errorMsg: CopilotMessage = {
+          id: `err_${Date.now()}`,
+          role: 'assistant',
+          content: `**Image Generation Error:** ${
+            err instanceof Error ? err.message : 'Failed to generate image with local SD-Turbo.'
+          }`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        }
+        setMessages((prev) => [...prev, errorMsg])
+      } finally {
+        setIsGenerating(false)
+        abortControllerRef.current = null
+      }
+      return
+    }
+
     try {
       const response = await sendChat(
         {
@@ -360,6 +559,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       }
 
       setMessages((prev) => [...prev, assistantMsg])
+      if (voice.autoSpeak) {
+        voice.speakText(response.response, assistantMsg.id)
+      }
     } catch (err: unknown) {
       if (controller.signal.aborted) return
       const errorMsg: CopilotMessage = {
@@ -654,6 +856,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         href: 'security',
       })
     }
+    if (lower.includes('image') || lower.includes('sd-turbo') || lower.includes('diffusion') || lower.includes('visual')) {
+      sList.push({
+        name: 'Local SD-Turbo Diffusion Pipeline',
+        standard: 'Stability AI (CUDA)',
+        href: 'security',
+      })
+    }
     if (sList.length === 0) {
       sList.push({
         name: 'Industrial Knowledge Base',
@@ -684,6 +893,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       return [
         'Verify cryptographic hash chain for latest block',
         'Run live zero-egress network probe',
+      ]
+    }
+    if (lower.includes('image') || lower.includes('sd-turbo') || lower.includes('diffusion') || lower.includes('visual') || lower.includes('photo')) {
+      return [
+        'Generate an image of an industrial sovereign command center',
+        'Generate an image of a futuristic automated refinery control room',
+        'Draw a high-detail blueprint diagram of a piping manifold',
       ]
     }
     return [
@@ -780,6 +996,74 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </div>
       )}
 
+      {/* Voice Listening Active Banner */}
+      {voice.isListening && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: '8px',
+            padding: '7px 12px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: '#ef4444',
+                boxShadow: '0 0 8px #ef4444',
+                display: 'inline-block',
+              }}
+            />
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#f87171' }}>
+              Microphone Listening...
+            </span>
+            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
+              {Math.floor(voice.recordingSeconds / 60)}:{(voice.recordingSeconds % 60).toString().padStart(2, '0')}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={voice.stopListening}
+            className="btn btn-sm btn-ghost"
+            style={{
+              fontSize: '11px',
+              height: '24px',
+              padding: '0 8px',
+              color: '#f87171',
+              border: '1px solid rgba(239, 68, 68, 0.35)',
+              borderRadius: '6px',
+            }}
+          >
+            Done
+          </button>
+        </div>
+      )}
+
+      {/* Voice Error Banner */}
+      {voice.speechError && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            borderRadius: '6px',
+            padding: '6px 10px',
+            fontSize: '11px',
+            color: '#f87171',
+          }}
+        >
+          <span>{voice.speechError}</span>
+        </div>
+      )}
+
       {/* Textarea */}
       <textarea
         ref={textareaRef}
@@ -853,7 +1137,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               }}
               title="Select Local Inference Model"
             >
-              <Sparkles size={11} color="var(--color-accent)" />
+              {selectedModel?.includes('sd-turbo') ? (
+                <ImageIcon size={11} color="#a855f7" />
+              ) : (
+                <Sparkles size={11} color="var(--color-accent)" />
+              )}
               <span>{selectedModel}</span>
               <ChevronDown size={11} color="var(--color-text-muted)" />
             </button>
@@ -898,7 +1186,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       justifyContent: 'space-between',
                     }}
                   >
-                    <span>{m}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {m.includes('sd-turbo') ? <ImageIcon size={12} color="#a855f7" /> : null}
+                      <span>{m}</span>
+                    </span>
                     {selectedModel === m && <Check size={12} color="var(--color-accent)" />}
                   </div>
                 ))}
@@ -907,13 +1198,38 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </div>
         </div>
 
-        {/* Right: Send or Stop Button */}
+        {/* Right: Voice Dictation + Send or Stop Button */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {isProcessingFiles ? (
             <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
               Reading files...
             </span>
           ) : null}
+
+          {/* Microphone Dictation Button */}
+          <button
+            type="button"
+            onClick={voice.isListening ? voice.stopListening : voice.startListening}
+            disabled={isGenerating || isProcessingFiles}
+            className="btn btn-sm btn-ghost"
+            style={{
+              width: '32px',
+              height: '32px',
+              padding: 0,
+              borderRadius: '8px',
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: voice.isListening ? '#ef4444' : 'var(--color-text-secondary)',
+              background: voice.isListening ? 'rgba(239, 68, 68, 0.15)' : 'var(--color-surface-2)',
+              border: voice.isListening ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--color-border)',
+              transition: 'all 150ms ease',
+            }}
+            title={voice.isListening ? "Stop listening (Dictating...)" : "Start voice dictation (Microphone)"}
+          >
+            {voice.isListening ? <MicOff size={15} color="#ef4444" /> : <Mic size={15} />}
+          </button>
 
           {isGenerating ? (
             <button
@@ -1155,8 +1471,114 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </div>
             </div>
 
-            {/* Right: New Chat and Close Chat */}
+            {/* Right: Voice Controls, New Chat and Close Chat */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {/* Voice Mode (Auto-Speak) Button */}
+              <button
+                type="button"
+                onClick={voice.toggleAutoSpeak}
+                className="btn btn-sm btn-ghost"
+                style={{
+                  fontSize: '11px',
+                  gap: '5px',
+                  color: voice.autoSpeak ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                  background: voice.autoSpeak ? 'rgba(99, 102, 241, 0.12)' : 'transparent',
+                  border: voice.autoSpeak ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid transparent',
+                  borderRadius: '6px',
+                  padding: '4px 8px',
+                }}
+                title={voice.autoSpeak ? 'Voice Mode ON (Auto-reads responses aloud)' : 'Voice Mode OFF (Click to enable auto-reading)'}
+              >
+                {voice.autoSpeak ? <Volume2 size={13} color="var(--color-accent)" /> : <VolumeX size={13} />}
+                <span>Voice Mode: {voice.autoSpeak ? 'ON' : 'OFF'}</span>
+              </button>
+
+              {/* Voice Settings Popover */}
+              <div style={{ position: 'relative' }} ref={voiceSettingsRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowVoiceSettings(!showVoiceSettings)}
+                  className="btn btn-sm btn-ghost"
+                  style={{
+                    width: '28px',
+                    height: '26px',
+                    padding: 0,
+                    color: showVoiceSettings ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                  }}
+                  title="Voice & Speech Settings"
+                >
+                  <Settings2 size={13} />
+                </button>
+
+                {showVoiceSettings && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: 0,
+                      marginTop: '6px',
+                      background: 'var(--color-surface)',
+                      border: '1px solid var(--color-border-strong)',
+                      borderRadius: '8px',
+                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6)',
+                      zIndex: 200,
+                      minWidth: '240px',
+                      padding: '12px',
+                    }}
+                  >
+                    <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+                      Voice Output Settings
+                    </div>
+
+                    {/* Voice selector */}
+                    <div style={{ marginBottom: '10px' }}>
+                      <label style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>
+                        Voice
+                      </label>
+                      <select
+                        value={voice.selectedVoiceName}
+                        onChange={(e) => voice.setSelectedVoice(e.target.value)}
+                        style={{
+                          width: '100%',
+                          background: 'var(--color-surface-2)',
+                          border: '1px solid var(--color-border)',
+                          borderRadius: '6px',
+                          color: 'var(--color-text-primary)',
+                          fontSize: '11px',
+                          padding: '4px 6px',
+                          outline: 'none',
+                        }}
+                      >
+                        {voice.availableVoices.map((v) => (
+                          <option key={v.name} value={v.name}>
+                            {v.name} ({v.lang})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Speed rate slider */}
+                    <div style={{ marginBottom: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>
+                        <span>Speed Rate</span>
+                        <span>{voice.speechRate}x</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.7"
+                        max="1.6"
+                        step="0.1"
+                        value={voice.speechRate}
+                        onChange={(e) => voice.setSpeechRate(parseFloat(e.target.value))}
+                        style={{ width: '100%', accentColor: 'var(--color-accent)' }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ width: '1px', height: '16px', background: 'var(--color-border)' }} />
+
               <button
                 onClick={handleNewChat}
                 className="btn btn-sm btn-ghost"
@@ -1284,6 +1706,113 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                           )}
                         </div>
 
+                        {msg.imageUrl && (
+                          <div style={{ marginTop: '14px', marginBottom: '14px' }}>
+                            <div
+                              style={{
+                                position: 'relative',
+                                display: 'inline-block',
+                                borderRadius: '12px',
+                                overflow: 'hidden',
+                                border: '1px solid var(--color-border-subtle)',
+                                background: '#0a0d14',
+                                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+                              }}
+                            >
+                              <img
+                                src={msg.imageUrl}
+                                alt={msg.content}
+                                style={{
+                                  maxWidth: '100%',
+                                  maxHeight: '460px',
+                                  display: 'block',
+                                  objectFit: 'contain',
+                                }}
+                              />
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  bottom: '8px',
+                                  left: '8px',
+                                  right: '8px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: '6px 12px',
+                                  background: 'rgba(10, 15, 25, 0.88)',
+                                  backdropFilter: 'blur(8px)',
+                                  borderRadius: '8px',
+                                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                                  fontSize: '11px',
+                                  color: '#e2e8f0',
+                                }}
+                              >
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                  <span style={{ fontWeight: 600, color: 'var(--color-accent)' }}>SD-Turbo</span>
+                                  <span>•</span>
+                                  <span>{msg.imageMeta?.width || 512}x{msg.imageMeta?.height || 512}</span>
+                                  <span>•</span>
+                                  <span>{((msg.imageMeta?.generation_time_ms || 0) / 1000).toFixed(2)}s</span>
+                                </div>
+                                <a
+                                  href={msg.imageUrl}
+                                  download={msg.imageMeta?.id ? `${msg.imageMeta.id}.png` : 'generated_image.png'}
+                                  className="btn btn-sm btn-ghost"
+                                  style={{
+                                    height: '24px',
+                                    padding: '0 8px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    color: '#38bdf8',
+                                    fontSize: '11px',
+                                  }}
+                                  title="Download full resolution PNG"
+                                >
+                                  <Download size={12} />
+                                  <span>Download PNG</span>
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {msg.actionSuggestion && (
+                          <div style={{ marginTop: '10px', marginBottom: '10px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleSend(msg.actionSuggestion!.prompt)}
+                              disabled={isGenerating}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '7px',
+                                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.2))',
+                                border: '1px solid rgba(168, 85, 247, 0.35)',
+                                color: '#c084fc',
+                                borderRadius: '8px',
+                                padding: '7px 14px',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 200ms ease',
+                                boxShadow: '0 2px 8px rgba(168, 85, 247, 0.15)',
+                              }}
+                              onMouseOver={(e) => {
+                                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(168, 85, 247, 0.3))'
+                                e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.55)'
+                              }}
+                              onMouseOut={(e) => {
+                                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.2))'
+                                e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.35)'
+                              }}
+                            >
+                              <Sparkles size={13} />
+                              <span>{msg.actionSuggestion.label}</span>
+                            </button>
+                          </div>
+                        )}
+
                         {/* Action Icons Row (Inspired by streaming-text.tsx) */}
                         {(() => {
                           const sources = getSourcesForContent(msg.content)
@@ -1357,6 +1886,27 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                                   title="Needs improvement"
                                 >
                                   <ThumbsDown size={13} />
+                                </button>
+
+                                {/* Read Aloud / Voice TTS Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => voice.speakText(msg.content, msg.id)}
+                                  className="btn btn-sm btn-ghost"
+                                  style={{
+                                    width: '28px',
+                                    height: '26px',
+                                    padding: 0,
+                                    color: voice.isSpeaking && voice.currentSpeakingId === msg.id ? 'var(--color-accent)' : 'inherit',
+                                    background: voice.isSpeaking && voice.currentSpeakingId === msg.id ? 'rgba(99, 102, 241, 0.15)' : undefined,
+                                  }}
+                                  title={voice.isSpeaking && voice.currentSpeakingId === msg.id ? "Stop reading aloud" : "Read aloud (Text-to-Speech)"}
+                                >
+                                  {voice.isSpeaking && voice.currentSpeakingId === msg.id ? (
+                                    <VolumeX size={13} color="var(--color-accent)" />
+                                  ) : (
+                                    <Volume2 size={13} />
+                                  )}
                                 </button>
 
                                 {/* Sources Toggle Button */}
@@ -1645,6 +2195,28 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             >
               <Lock size={12} color="var(--color-success)" />
               <span>Verify SHA-256 Chain</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSend('Generate an image of an industrial sovereign command center with holographic analytics screens, cinematic lighting, 8k')}
+              className="btn btn-sm btn-ghost"
+              style={{ fontSize: '11px', height: '26px', padding: '0 10px' }}
+            >
+              <Sparkles size={12} color="#a855f7" />
+              <span>Generate Image (SD-Turbo)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!voice.isListening) {
+                  voice.startListening()
+                }
+              }}
+              className="btn btn-sm btn-ghost"
+              style={{ fontSize: '11px', height: '26px', padding: '0 10px' }}
+            >
+              <Mic size={12} color="#38bdf8" />
+              <span>Voice Dictation (Mic)</span>
             </button>
 
             {onTriggerDemo && (

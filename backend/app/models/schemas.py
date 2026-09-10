@@ -435,3 +435,63 @@ class HardwareProfileResponse(BaseModel):
     all_optimal_installed: bool = Field(False, description="True if all recommended models are already present")
 
 
+# ─── Image Generation Schemas ───
+
+class ImageGenerateRequest(BaseModel):
+    prompt: str = Field(..., description="Text description of the image to generate")
+    num_inference_steps: Optional[int] = Field(1, ge=1, le=10, description="Inference steps (1-4 optimal for SD-Turbo)")
+    guidance_scale: Optional[float] = Field(0.0, ge=0.0, le=10.0, description="Guidance scale (0.0 recommended for SD-Turbo)")
+    width: Optional[int] = Field(512, ge=256, le=1024, description="Image width in pixels (512 default)")
+    height: Optional[int] = Field(512, ge=256, le=1024, description="Image height in pixels (512 default)")
+    seed: Optional[int] = Field(None, description="Optional random seed for reproducibility")
+
+
+class ImageGenerateResponse(BaseModel):
+    id: str = Field(..., description="Unique image identifier")
+    filename: str = Field(..., description="Filename on disk")
+    prompt: str = Field(..., description="Generation prompt")
+    width: int = Field(512, description="Image width")
+    height: int = Field(512, description="Image height")
+    steps: int = Field(1, description="Inference steps executed")
+    generation_time_ms: float = Field(..., description="Generation duration in milliseconds")
+    device_used: str = Field(..., description="Compute device: 'cuda' or 'cpu'")
+    file_url: str = Field(..., description="Download/view endpoint URL")
+    created_at: str = Field(..., description="ISO 8601 creation timestamp")
+    model_name: str = Field("stabilityai/sd-turbo", description="Model used")
+
+
+class ImageStatusResponse(BaseModel):
+    is_available: bool = Field(..., description="Whether diffusers and image generation backend is available")
+    is_loaded: bool = Field(..., description="Whether model pipeline is currently loaded into memory")
+    model_name: str = Field("stabilityai/sd-turbo", description="Default diffusion model")
+    device: str = Field(..., description="Target compute device: 'cuda' or 'cpu'")
+    vram_allocated_mb: Optional[float] = Field(None, description="Current CUDA memory allocated in MB")
+
+
+# ─── Voice Interaction Schemas (STT & TTS) ───
+
+class VoiceTranscribeResponse(BaseModel):
+    text: str = Field(..., description="Transcribed spoken text")
+    language: str = Field("en", description="Detected or configured language code")
+    duration_seconds: Optional[float] = Field(None, description="Audio length in seconds")
+    confidence: Optional[float] = Field(1.0, description="Transcription confidence score")
+    processing_time_ms: float = Field(..., description="Transcription processing time in ms")
+
+
+class VoiceSynthesizeRequest(BaseModel):
+    text: str = Field(..., description="Text content to synthesize into speech")
+    voice: Optional[str] = Field(None, description="Requested voice identifier (e.g. 'Microsoft David Desktop')")
+    rate: Optional[int] = Field(0, ge=-10, le=10, description="Speech rate adjustment (-10 slow to +10 fast)")
+    volume: Optional[int] = Field(100, ge=0, le=100, description="Speech volume (0 to 100)")
+
+
+class VoiceStatusResponse(BaseModel):
+    stt_available: bool = Field(..., description="Whether speech-to-text transcription engine is operational")
+    tts_available: bool = Field(..., description="Whether local text-to-speech synthesis engine is operational")
+    installed_voices: List[str] = Field(default_factory=list, description="List of local Windows SAPI / system voices")
+    default_voice: Optional[str] = Field(None, description="System default voice")
+    device_used: str = Field(..., description="Compute engine device (e.g. 'cuda' or 'cpu')")
+
+
+
+
